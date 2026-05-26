@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny. All writes go through the Admin SDK (server actions, cloud functions).
+    // Reads from the client are also blocked — the UI reads via server components
+    // that use the Admin SDK, never direct from the browser.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
