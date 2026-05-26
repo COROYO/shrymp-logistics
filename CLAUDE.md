@@ -9,9 +9,9 @@ Greenfield Next.js 16 + Firestore project.
 - **Firestore** as DB; **Firebase Auth** with custom claims for `role` (`ADMIN` | `LAGER`)
 - **Firebase Hosting** + **Cloud Functions Gen 2** (Node 22, region `europe-west3`)
 - **Cloud Tasks** queue `allocation-runs` for serialized allocation runs
-- **Shopify App** (Partner Dashboard / Shopify CLI) — Client ID + Client Secret only;
-  Admin API offline access token is acquired via OAuth and stored in Firestore
-  (`config/shopify_token`). The same Client Secret verifies webhook HMACs.
+- **Shopify Custom App** — pre-installed in the merchant's Shopify Admin.
+  All credentials come from ENV: `SHOPIFY_ADMIN_ACCESS_TOKEN` for the Admin
+  API, `SHOPIFY_API_SECRET` for webhook HMAC verification. No OAuth flow.
 - Tests with **Vitest** + **fast-check** (property-based)
 
 ## Next.js 16 specifics
@@ -32,8 +32,7 @@ app/
   lager/                          # LAGER + ADMIN (gated in layout)
   api/webhooks/shopify/route.ts   # HMAC (via SHOPIFY_API_SECRET), dedupe, enqueue
   api/auth/session/route.ts       # POST: create session cookie, DELETE: clear
-  api/shopify/install/route.ts    # Starts OAuth flow → Shopify authorize
-  api/shopify/callback/route.ts   # OAuth callback → token in Firestore
+  api/setup/bootstrap-admin/route.ts  # first-time admin bootstrap (no auth)
 
 lib/
   auth/session.ts                 # getSessionUser, requireRole
@@ -43,7 +42,7 @@ lib/
 server/
   firestore/schema.ts             # Zod schemas + Collections constants
   firestore/admin.ts              # Admin SDK init (server-only)
-  shopify/auth.ts                 # OAuth, token persistence, HMAC for install
+  shopify/auth.ts                 # shop-domain validation
   shopify/                        # client, mutations, queries, hmac, outbox
   allocation/                     # runAllocation (pure), run (Firestore), enqueue
   inventory/receive.ts            # Wareneingang (txn-atomic batch + audit)

@@ -1,20 +1,21 @@
 import "server-only";
 import { log } from "@/lib/logger";
-import { loadStoredToken } from "./auth";
 
 /**
- * Minimal Shopify Admin GraphQL client. We avoid `@shopify/admin-api-client`
- * to keep the surface tiny and explicit — we only need a typed `request`
- * function and a small retry loop for rate-limiting.
+ * Shopify Admin GraphQL client (single Custom App, single shop).
  *
- * Access token is sourced from Firestore (`config/shopify_token`), populated
- * by the OAuth install flow in `auth.ts`.
+ * Credentials come straight from ENV — the app is already installed in the
+ * shop; there is no OAuth dance.
+ *
+ *   SHOPIFY_SHOP_DOMAIN         e.g. "monolithcaviar.myshopify.com"
+ *   SHOPIFY_ADMIN_ACCESS_TOKEN  the Custom App's Admin API access token
+ *   SHOPIFY_API_VERSION         e.g. "2026-04" (optional, defaults below)
  */
 
 export type ShopifyClientConfig = {
-  shopDomain: string; // e.g. "monolithcaviar.myshopify.com"
-  accessToken: string; // Offline access token from the OAuth flow
-  apiVersion: string; // e.g. "2026-04"
+  shopDomain: string;
+  accessToken: string;
+  apiVersion: string;
 };
 
 export type GraphQLResult<TData> = {
@@ -52,19 +53,17 @@ export class ShopifyGraphQLError extends Error {
 const MAX_ATTEMPTS = 5;
 const BASE_BACKOFF_MS = 1000;
 
-async function getConfig(): Promise<ShopifyClientConfig> {
+export function getShopifyConfig(): ShopifyClientConfig {
+  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
+  const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
   const apiVersion = process.env.SHOPIFY_API_VERSION ?? "2026-04";
-  const stored = await loadStoredToken();
-  if (!stored) {
-    throw new Error(
-      "Shopify app not installed — visit /admin/settings to start the install flow",
-    );
+  if (!shopDomain) {
+    throw new Error("SHOPIFY_SHOP_DOMAIN env var is required");
   }
-  return {
-    shopDomain: stored.shop_domain,
-    accessToken: stored.access_token,
-    apiVersion,
-  };
+  if (!accessToken) {
+    throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN env var is required");
+  }
+  return { shopDomain, accessToken, apiVersion };
 }
 
 export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
@@ -72,7 +71,7 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
   variables?: TVars,
   override?: Partial<ShopifyClientConfig>,
 ): Promise<TData> {
-  const cfg = { ...(await getConfig()), ...override };
+  const cfg = { ...getShopifyConfig(), ...override };
   const url = `https://${cfg.shopDomain}/admin/api/${cfg.apiVersion}/graphql.json`;
 
   let lastErr: unknown;
@@ -118,7 +117,6 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
         );
       }
 
-      // Soft warn if we're getting close to the cost ceiling.
       const avail = json.extensions?.cost?.throttleStatus?.currentlyAvailable;
       if (typeof avail === "number" && avail < 100) {
         log.warn("shopify_cost_low", { currentlyAvailable: avail });
@@ -135,7 +133,6 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
     } catch (err) {
       lastErr = err;
       if (err instanceof ShopifyGraphQLError) throw err;
-      // Network error: backoff and retry.
       if (attempt < MAX_ATTEMPTS) {
         await sleep(backoffMs(attempt));
         continue;

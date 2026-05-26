@@ -2,118 +2,88 @@ import { adminDb } from "@/server/firestore/admin";
 import { Collections, ConfigDocs } from "@/server/firestore/schema";
 import { RegisterWebhooksButton } from "./register-webhooks-button";
 import { RunAllocationButton } from "./run-allocation-button";
-import { InstallShopifyAppLink } from "./install-shopify-button";
 
 export const dynamic = "force-dynamic";
 
 async function getConfig() {
   const db = adminDb();
-  const [metaSnap, tokenSnap] = await Promise.all([
-    db
-      .collection(Collections.Config)
-      .doc(ConfigDocs.ShopifyMeta)
-      .get(),
-    db
-      .collection(Collections.Config)
-      .doc(ConfigDocs.ShopifyToken)
-      .get(),
-  ]);
-  const meta = metaSnap.exists ? metaSnap.data() : null;
-  const token = tokenSnap.exists ? tokenSnap.data() : null;
+  const snap = await db
+    .collection(Collections.Config)
+    .doc(ConfigDocs.ShopifyMeta)
+    .get();
+  if (!snap.exists) return null;
+  const d = snap.data() ?? {};
   return {
-    shop_domain: (meta?.["shop_domain"] as string | undefined) ?? null,
-    location_gid: (meta?.["location_gid"] as string | undefined) ?? null,
-    api_version: (meta?.["api_version"] as string | undefined) ?? null,
-    token_installed: !!token,
-    token_shop_domain: (token?.["shop_domain"] as string | undefined) ?? null,
-    token_scope: (token?.["scope"] as string | undefined) ?? null,
+    shop_domain: (d["shop_domain"] as string | undefined) ?? null,
+    location_gid: (d["location_gid"] as string | undefined) ?? null,
+    api_version: (d["api_version"] as string | undefined) ?? null,
   };
 }
 
-async function getEnvHealth() {
+function getEnvHealth() {
   return {
+    shopDomain: process.env.SHOPIFY_SHOP_DOMAIN ?? null,
     apiKey: !!process.env.SHOPIFY_API_KEY,
     apiSecret: !!process.env.SHOPIFY_API_SECRET,
-    shopDomain: process.env.SHOPIFY_SHOP_DOMAIN ?? null,
-    scopes: process.env.SHOPIFY_SCOPES ?? null,
+    adminToken: !!process.env.SHOPIFY_ADMIN_ACCESS_TOKEN,
+    apiVersion: process.env.SHOPIFY_API_VERSION ?? null,
     allocationQueue: !!process.env.ALLOCATION_QUEUE,
     allocationTargetUrl: process.env.ALLOCATION_TARGET_URL ?? null,
     appUrl: process.env.APP_BASE_URL ?? null,
   };
 }
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ installed?: string }>;
-}) {
-  const [config, env, sp] = await Promise.all([
-    getConfig(),
-    getEnvHealth(),
-    searchParams,
-  ]);
-  const justInstalled = sp.installed === "1";
+export default async function SettingsPage() {
+  const config = await getConfig();
+  const env = getEnvHealth();
+  const allShopifyEnvOK = env.apiKey && env.apiSecret && env.adminToken;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">Einstellungen</h1>
 
-      {justInstalled ? (
-        <div className="rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Shopify-App erfolgreich installiert. Access-Token gespeichert.
-        </div>
-      ) : null}
-
       <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Shopify App</h2>
+        <h2 className="text-sm font-semibold">Shopify Custom App</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Die App authentifiziert sich mit Client ID + Client Secret. Der
-          Admin-API-Token wird über den OAuth-Install-Flow geholt und in
-          Firestore gespeichert.
+          Die App ist als Custom App im Shopify Admin installiert. Credentials
+          kommen direkt aus den Server-ENV.
         </p>
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
-          <DefItem label="Client ID (env)">
-            <Badge ok={env.apiKey} />
-          </DefItem>
-          <DefItem label="Client Secret (env)">
-            <Badge ok={env.apiSecret} />
-          </DefItem>
-          <DefItem label="App installiert (Token in Firestore)">
-            <Badge ok={config.token_installed} />
-          </DefItem>
-          <DefItem label="Installiert für Shop">
-            <span className="font-mono">
-              {config.token_shop_domain ?? "—"}
-            </span>
-          </DefItem>
-          <DefItem label="Gewährte Scopes">
-            <span className="font-mono text-xs">
-              {config.token_scope ?? "—"}
-            </span>
+          <DefItem label="Shop">
+            <span className="font-mono">{env.shopDomain ?? "—"}</span>
           </DefItem>
           <DefItem label="API Version">
-            <span className="font-mono">{config.api_version ?? "—"}</span>
+            <span className="font-mono">{env.apiVersion ?? "—"}</span>
           </DefItem>
-          <DefItem label="Konfigurierte Scopes (env)">
+          <DefItem label="Admin API Access Token">
+            <Badge ok={env.adminToken} />
+          </DefItem>
+          <DefItem label="Client Secret (Webhook HMAC)">
+            <Badge ok={env.apiSecret} />
+          </DefItem>
+          <DefItem label="Client ID">
+            <Badge ok={env.apiKey} />
+          </DefItem>
+          <DefItem label="Location GID">
             <span className="font-mono text-xs">
-              {env.scopes ?? "—"}
+              {config?.location_gid ?? "— (wird beim Produkt-Sync gesetzt)"}
             </span>
           </DefItem>
         </dl>
-        <div className="mt-4">
-          <InstallShopifyAppLink
-            shopDomain={env.shopDomain}
-            installed={config.token_installed}
-          />
-        </div>
+        {!allShopifyEnvOK ? (
+          <div className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Es fehlen noch ENV-Vars. Setze sie in <code>.env.local</code> (lokal)
+            bzw. im Hosting-Provider und starte neu.
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-lg border border-zinc-200 bg-white p-6">
         <h2 className="text-sm font-semibold">Webhooks</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Registriert die nötigen Webhook-Subscriptions bei Shopify
+          Registriert die Webhook-Subscriptions bei Shopify
           (orders/create, orders/updated, orders/cancelled, inventory_levels/update,
-          app/uninstalled). Idempotent — bestehende werden nicht doppelt erzeugt.
+          app/uninstalled). Idempotent.
         </p>
         <div className="mt-4">
           <RegisterWebhooksButton baseUrl={env.appUrl} />
