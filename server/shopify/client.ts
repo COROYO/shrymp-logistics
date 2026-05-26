@@ -1,14 +1,15 @@
 import "server-only";
 import { log } from "@/lib/logger";
+import { loadStoredToken } from "./auth";
 
 /**
- * Shopify Admin GraphQL client (single Custom App, single shop).
+ * Shopify Admin GraphQL client (single Custom Distribution App, single shop).
  *
- * Credentials come straight from ENV — the app is already installed in the
- * shop; there is no OAuth dance.
+ * Token + shop come from Firestore (`config/shopify_token`), populated by
+ * the OAuth callback in `app/api/shopify/callback/route.ts`. The user
+ * clicks the Shopify-generated install link once; from then on the token
+ * is reused from Firestore.
  *
- *   SHOPIFY_SHOP_DOMAIN         e.g. "monolithcaviar.myshopify.com"
- *   SHOPIFY_ADMIN_ACCESS_TOKEN  the Custom App's Admin API access token
  *   SHOPIFY_API_VERSION         e.g. "2026-04" (optional, defaults below)
  */
 
@@ -53,17 +54,19 @@ export class ShopifyGraphQLError extends Error {
 const MAX_ATTEMPTS = 5;
 const BASE_BACKOFF_MS = 1000;
 
-export function getShopifyConfig(): ShopifyClientConfig {
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+export async function getShopifyConfig(): Promise<ShopifyClientConfig> {
   const apiVersion = process.env.SHOPIFY_API_VERSION ?? "2026-04";
-  if (!shopDomain) {
-    throw new Error("SHOPIFY_SHOP_DOMAIN env var is required");
+  const stored = await loadStoredToken();
+  if (!stored) {
+    throw new Error(
+      "Shopify-App noch nicht installiert. Klicke den Install-Link aus dem Shopify Partner Dashboard, dann landet der Token via /api/shopify/callback in Firestore.",
+    );
   }
-  if (!accessToken) {
-    throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN env var is required");
-  }
-  return { shopDomain, accessToken, apiVersion };
+  return {
+    shopDomain: stored.shop_domain,
+    accessToken: stored.access_token,
+    apiVersion,
+  };
 }
 
 export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
@@ -71,7 +74,7 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
   variables?: TVars,
   override?: Partial<ShopifyClientConfig>,
 ): Promise<TData> {
-  const cfg = { ...getShopifyConfig(), ...override };
+  const cfg = { ...(await getShopifyConfig()), ...override };
   const url = `https://${cfg.shopDomain}/admin/api/${cfg.apiVersion}/graphql.json`;
 
   let lastErr: unknown;

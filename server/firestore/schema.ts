@@ -227,15 +227,22 @@ export const ShopifyOutboxSchema = z.object({
   done_at: FirestoreTimestamp.optional(),
 });
 
-// ---------- shopify config (singleton in config/shopify_meta) ----------
-// Just the fulfillment-location reference + api version. Credentials are
-// kept entirely in ENV — this is a pre-installed Custom App, no OAuth.
+// ---------- shopify config (singletons in config/) ----------
+// `config/shopify_meta` — fulfillment-location reference + api version
+// `config/shopify_token` — OAuth-acquired offline access token
 
 export const ShopifyConfigSchema = z.object({
-  shop_domain: z.string(), // e.g. "monolithcaviar.myshopify.com"
-  location_gid: z.string().optional(), // "gid://shopify/Location/123"
+  shop_domain: z.string(),
+  location_gid: z.string().optional(),
   api_version: z.string().default("2026-04"),
   updated_at: FirestoreTimestamp,
+});
+
+export const ShopifyTokenSchema = z.object({
+  shop_domain: z.string(),
+  access_token: z.string(),
+  scope: z.string(),
+  installed_at: FirestoreTimestamp,
 });
 
 // ---------- exported types ----------
@@ -258,6 +265,7 @@ export type AllocationRunStatus = z.infer<typeof AllocationRunStatusSchema>;
 export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 export type ShopifyOutbox = z.infer<typeof ShopifyOutboxSchema>;
 export type ShopifyConfig = z.infer<typeof ShopifyConfigSchema>;
+export type ShopifyToken = z.infer<typeof ShopifyTokenSchema>;
 
 // ---------- collection name constants ----------
 
@@ -277,4 +285,5 @@ export const Collections = {
 
 export const ConfigDocs = {
   ShopifyMeta: "shopify_meta",
+  ShopifyToken: "shopify_token",
 } as const;
