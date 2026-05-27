@@ -1,9 +1,15 @@
 import { adminDb } from "@/server/firestore/admin";
-import { Collections, ConfigDocs } from "@/server/firestore/schema";
+import {
+  Collections,
+  ConfigDocs,
+  DhlConfigSchema,
+  type DhlConfig,
+} from "@/server/firestore/schema";
 import { RegisterWebhooksButton } from "./register-webhooks-button";
 import { RunAllocationButton } from "./run-allocation-button";
 import { BackfillOrdersButton } from "./backfill-orders-button";
 import { PushInventoryButton } from "./push-inventory-button";
+import { DhlConfigForm, type DhlConfigFormValue } from "./dhl-config-form";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +30,40 @@ async function getStatus() {
   };
 }
 
+async function getDhlConfig(): Promise<DhlConfig | null> {
+  const snap = await adminDb()
+    .collection(Collections.Config)
+    .doc(ConfigDocs.DhlConfig)
+    .get();
+  if (!snap.exists) return null;
+  return DhlConfigSchema.safeParse(snap.data()).data ?? null;
+}
+
+/** Drop the Firestore Timestamp + the raw password before sending to a client component. */
+function toClientDhlConfig(c: DhlConfig | null): DhlConfigFormValue | null {
+  if (!c) return null;
+  return {
+    billing_number: c.billing_number,
+    profile: c.profile,
+    shipper: {
+      name1: c.shipper.name1,
+      name2: c.shipper.name2 ?? null,
+      addressStreet: c.shipper.addressStreet,
+      addressHouse: c.shipper.addressHouse ?? null,
+      postalCode: c.shipper.postalCode,
+      city: c.shipper.city,
+      country: c.shipper.country,
+      email: c.shipper.email ?? null,
+      phone: c.shipper.phone ?? null,
+    },
+    default_weight_g: c.default_weight_g,
+    default_dimensions_mm: c.default_dimensions_mm,
+    gkp_username: c.gkp_username ?? null,
+    gkp_password_set: !!c.gkp_password,
+    sandbox: c.sandbox,
+  };
+}
+
 function getEnvHealth() {
   return {
     apiKey: !!process.env.SHOPIFY_API_KEY,
@@ -33,6 +73,8 @@ function getEnvHealth() {
     allocationQueue: !!process.env.ALLOCATION_QUEUE,
     allocationTargetUrl: process.env.ALLOCATION_TARGET_URL ?? null,
     appUrl: process.env.APP_BASE_URL ?? null,
+    dhlApiKey: !!process.env.DHL_API_KEY,
+    dhlApiSecret: !!process.env.DHL_API_SECRET,
   };
 }
 
@@ -41,8 +83,9 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ installed?: string }>;
 }) {
-  const [status, env, sp] = await Promise.all([
+  const [status, dhlCfg, env, sp] = await Promise.all([
     getStatus(),
+    getDhlConfig(),
     Promise.resolve(getEnvHealth()),
     searchParams,
   ]);
@@ -184,6 +227,53 @@ export default async function SettingsPage({
         </p>
         <div className="mt-5">
           <BackfillOrdersButton />
+        </div>
+      </section>
+
+      <section className="card p-6">
+        <p className="eyebrow">DHL Versand</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          DHL Parcel DE Shipping API
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">
+          Erzeugt Versandetiketten direkt aus dem Packing-Screen. Inland (DE)
+          geht über die DHL Parcel DE Shipping API v2. Auslandsversand
+          (Express) bleibt via externem DHL-Tool.
+        </p>
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+          <DefItem label="DHL_API_KEY (env)">
+            <Badge ok={env.dhlApiKey} />
+          </DefItem>
+          <DefItem label="DHL_API_SECRET (env)">
+            <Badge ok={env.dhlApiSecret} />
+          </DefItem>
+          <DefItem label="Abrechnungsnummer">
+            <span className="font-mono text-xs">
+              {dhlCfg?.billing_number ?? "—"}
+            </span>
+          </DefItem>
+          <DefItem label="Endpunkt">
+            <span className="font-mono text-xs">
+              {dhlCfg
+                ? dhlCfg.sandbox
+                  ? "Sandbox"
+                  : "Production"
+                : "—"}
+            </span>
+          </DefItem>
+          <DefItem label="Absender">
+            <span className="text-xs">
+              {dhlCfg
+                ? `${dhlCfg.shipper.name1}, ${dhlCfg.shipper.postalCode} ${dhlCfg.shipper.city}`
+                : "—"}
+            </span>
+          </DefItem>
+          <DefItem label="GKP-Credentials">
+            <Badge ok={!!(dhlCfg?.gkp_username && dhlCfg?.gkp_password)} />
+          </DefItem>
+        </dl>
+        <div className="mt-6">
+          <DhlConfigForm current={toClientDhlConfig(dhlCfg)} />
         </div>
       </section>
 

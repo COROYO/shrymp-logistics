@@ -125,6 +125,26 @@ export const ShippingAddressSchema = z.object({
   phone: z.string().nullable().default(null),
 });
 
+/**
+ * Persisted DHL shipment metadata, written after a successful
+ * Parcel DE Shipping API call. The label PDF itself lives in Firebase Storage
+ * (Cloud Storage), `dhl-labels/{orderId}/{shipmentNo}.pdf`.
+ *
+ * `label_url` is a v4-signed URL with ~7d expiry, refreshed by the UI on demand.
+ */
+export const OrderDhlShipmentSchema = z.object({
+  shipment_no: z.string(), // 14-digit DHL Sendungsnummer (also the tracking number)
+  product: z.string(), // "V01PAK" etc.
+  tracking_url: z.string().url(),
+  label_storage_path: z.string(), // path inside the storage bucket
+  label_url: z.string().url().optional(), // last-issued signed URL
+  label_url_expires_at: FirestoreTimestamp.optional(),
+  weight_g: z.number().int().positive(),
+  created_at: FirestoreTimestamp,
+  created_by_uid: z.string(),
+  sandbox: z.boolean().default(false),
+});
+
 export const OrderSchema = z.object({
   id: z.string(), // doc id = numeric shopify order id as string
   shopify_gid: z.string(),
@@ -137,6 +157,7 @@ export const OrderSchema = z.object({
   internal_status: OrderInternalStatusSchema.default("NEW"),
   stop_reason: z.string().optional(),
   allocation_run_id: z.string().optional(),
+  dhl_shipment: OrderDhlShipmentSchema.optional(),
   created_at_shopify: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });
@@ -277,6 +298,47 @@ export const ShopifyTokenSchema = z.object({
   installed_at: FirestoreTimestamp,
 });
 
+// ---------- DHL Parcel DE Shipping configuration ----------
+// `config/dhl_config` — billing number, shipper address, defaults, business
+// customer portal credentials. All values are managed via the Admin UI.
+
+export const DhlAddressSchema = z.object({
+  name1: z.string().min(1).max(50),
+  name2: z.string().max(50).nullable().default(null),
+  addressStreet: z.string().min(1).max(50),
+  addressHouse: z.string().max(10).nullable().default(null),
+  postalCode: z.string().min(3).max(10),
+  city: z.string().min(1).max(40),
+  /** ISO 3166-1 alpha-3 (e.g. "DEU"). */
+  country: z.string().length(3),
+  email: z.string().email().nullable().default(null),
+  phone: z.string().max(20).nullable().default(null),
+});
+
+export const DhlConfigSchema = z.object({
+  /** 14-character DHL Abrechnungsnummer / EKP, e.g. "33333333330102". */
+  billing_number: z.string().min(14).max(14),
+  /** Standard "STANDARD_GRUPPENPROFIL" unless DHL assigned a dedicated profile. */
+  profile: z.string().default("STANDARD_GRUPPENPROFIL"),
+  shipper: DhlAddressSchema,
+  /** Default parcel weight in grams when no per-shipment value is provided. */
+  default_weight_g: z.number().int().positive().default(1000),
+  default_dimensions_mm: z
+    .object({
+      length: z.number().int().positive(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+    })
+    .optional(),
+  /** Geschäftskundenportal username + password for OAuth2 ROPC. */
+  gkp_username: z.string().nullable().default(null),
+  gkp_password: z.string().nullable().default(null),
+  /** Toggle sandbox vs. production (api-sandbox.dhl.com vs api-eu.dhl.com). */
+  sandbox: z.boolean().default(true),
+  updated_at: FirestoreTimestamp,
+  updated_by_uid: z.string().nullable().default(null),
+});
+
 // ---------- exported types ----------
 
 export type Product = z.infer<typeof ProductSchema>;
@@ -299,6 +361,9 @@ export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 export type ShopifyOutbox = z.infer<typeof ShopifyOutboxSchema>;
 export type ShopifyConfig = z.infer<typeof ShopifyConfigSchema>;
 export type ShopifyToken = z.infer<typeof ShopifyTokenSchema>;
+export type DhlAddress = z.infer<typeof DhlAddressSchema>;
+export type DhlConfig = z.infer<typeof DhlConfigSchema>;
+export type OrderDhlShipment = z.infer<typeof OrderDhlShipmentSchema>;
 
 // ---------- collection name constants ----------
 
@@ -319,4 +384,5 @@ export const Collections = {
 export const ConfigDocs = {
   ShopifyMeta: "shopify_meta",
   ShopifyToken: "shopify_token",
+  DhlConfig: "dhl_config",
 } as const;

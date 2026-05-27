@@ -4,10 +4,13 @@ import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
   ConfigDocs,
+  DhlConfigSchema,
   type Allocation,
   type Batch,
   type Order,
+  type OrderDhlShipment,
 } from "@/server/firestore/schema";
+import { signLabel } from "@/server/dhl/storage";
 import { ConfirmPackingForm } from "./confirm-packing-form";
 import { DhlLabelButtons } from "./dhl-label-buttons";
 
@@ -22,9 +25,10 @@ type AllocLine = {
 
 async function loadOrderForPacking(orderId: string) {
   const db = adminDb();
-  const [orderSnap, metaSnap] = await Promise.all([
+  const [orderSnap, metaSnap, dhlSnap] = await Promise.all([
     db.collection(Collections.Orders).doc(orderId).get(),
     db.collection(Collections.Config).doc(ConfigDocs.ShopifyMeta).get(),
+    db.collection(Collections.Config).doc(ConfigDocs.DhlConfig).get(),
   ]);
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
@@ -32,6 +36,9 @@ async function loadOrderForPacking(orderId: string) {
     (metaSnap.data()?.shop_domain as string | undefined) ??
     process.env.SHOPIFY_SHOP_DOMAIN ??
     "";
+  const dhlConfig = dhlSnap.exists
+    ? (DhlConfigSchema.safeParse(dhlSnap.data()).data ?? null)
+    : null;
 
   const allocSnap = await db
     .collection(Collections.Allocations)
@@ -74,7 +81,58 @@ async function loadOrderForPacking(orderId: string) {
     else allocsByLi.set(a.line_item_id, [entry]);
   }
 
-  return { order, allocsByLi, shopDomain };
+  const dhlShipmentForUi = await prepareDhlShipmentForUi(order);
+
+  return { order, allocsByLi, shopDomain, dhlConfig, dhlShipmentForUi };
+}
+
+type DhlShipmentForUi = {
+  shipment_no: string;
+  label_url?: string;
+  tracking_url: string;
+  weight_g: number;
+  sandbox: boolean;
+};
+
+/**
+ * Resolve a usable label URL for the UI: if the persisted signed URL is
+ * still valid (>5 min remaining) reuse it; otherwise re-sign on the fly.
+ */
+async function prepareDhlShipmentForUi(
+  order: Order,
+): Promise<DhlShipmentForUi | null> {
+  const s = order.dhl_shipment as OrderDhlShipment | undefined;
+  if (!s) return null;
+  let labelUrl = s.label_url;
+  const exp = s.label_url_expires_at as unknown as
+    | { toMillis?(): number }
+    | string
+    | Date
+    | undefined;
+  const expiresAt =
+    exp && typeof (exp as { toMillis?: unknown }).toMillis === "function"
+      ? (exp as { toMillis(): number }).toMillis()
+      : exp instanceof Date
+        ? exp.getTime()
+        : typeof exp === "string"
+          ? Date.parse(exp)
+          : 0;
+  if (!labelUrl || expiresAt - Date.now() < 5 * 60_000) {
+    try {
+      const resigned = await signLabel(order.id, s.shipment_no);
+      labelUrl = resigned.signedUrl;
+    } catch {
+      // best-effort; UI will hide the open-button if missing
+      labelUrl = undefined;
+    }
+  }
+  return {
+    shipment_no: s.shipment_no,
+    label_url: labelUrl,
+    tracking_url: s.tracking_url,
+    weight_g: s.weight_g,
+    sandbox: s.sandbox,
+  };
 }
 
 export default async function PackingPage({
@@ -85,7 +143,8 @@ export default async function PackingPage({
   const { orderId } = await params;
   const data = await loadOrderForPacking(orderId);
   if (!data) notFound();
-  const { order, allocsByLi, shopDomain } = data;
+  const { order, allocsByLi, shopDomain, dhlConfig, dhlShipmentForUi } = data;
+  const defaultWeightG = dhlConfig?.default_weight_g ?? 1000;
 
   const isPacking = order.internal_status === "PICKING";
   const isPacked = order.internal_status === "PACKED";
@@ -213,8 +272,23 @@ export default async function PackingPage({
             orderId={order.id}
             shopDomain={shopDomain}
             countryCode={order.shipping_address?.country_code ?? null}
+            existingShipment={dhlShipmentForUi}
+            defaultWeightG={defaultWeightG}
           />
         </div>
+        {!dhlConfig &&
+        (order.shipping_address?.country_code ?? "").toUpperCase() === "DE" ? (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            DHL ist noch nicht konfiguriert.{" "}
+            <Link
+              href="/admin/settings"
+              className="font-semibold underline underline-offset-2"
+            >
+              In den Admin-Einstellungen
+            </Link>{" "}
+            EKP-Nummer + Absenderadresse pflegen.
+          </div>
+        ) : null}
       </section>
 
       <div className="flex gap-3">

@@ -135,7 +135,7 @@ export async function confirmPacking(
   const db = adminDb();
   const orderRef = db.collection(Collections.Orders).doc(orderId);
 
-  const { consumedQtyByBatch, consumedQtyByVariant, lineItems } =
+  const { consumedQtyByBatch, consumedQtyByVariant, lineItems, effectiveTracking } =
     await db.runTransaction(async (tx) => {
       const orderSnap = await tx.get(orderRef);
       if (!orderSnap.exists) throw new TransitionError("order_not_found");
@@ -275,6 +275,22 @@ export async function confirmPacking(
         });
       }
 
+      // If the lager already created a DHL label, fall back to its
+      // shipment_no when the operator didn't type a tracking number
+      // manually. This keeps Shopify's "shipped" notification truthful.
+      const dhl = order.dhl_shipment;
+      const effectiveTracking: TrackingInput | undefined = (() => {
+        if (tracking?.number) return tracking;
+        if (dhl?.shipment_no) {
+          return {
+            carrier: tracking?.carrier || "DHL",
+            number: dhl.shipment_no,
+            url: tracking?.url || dhl.tracking_url,
+          };
+        }
+        return tracking;
+      })();
+
       // Order
       const orderUpdate: Record<string, unknown> = {
         internal_status: "PACKED",
@@ -282,19 +298,25 @@ export async function confirmPacking(
         packed_by_uid: userId,
         updated_at: FieldValue.serverTimestamp(),
       };
-      if (tracking) orderUpdate.tracking = tracking;
+      if (effectiveTracking) orderUpdate.tracking = effectiveTracking;
       tx.update(orderRef, orderUpdate);
 
       return {
         consumedQtyByBatch: consumedByBatch,
         consumedQtyByVariant: consumedByVariant,
         lineItems: order.line_items,
+        effectiveTracking,
       };
     });
 
   // ---- Outside-tx side effects (best-effort, idempotent via outbox) ----
   await writeAudit(orderId, userId, consumedQtyByBatch, consumedQtyByVariant);
-  await queueShopifyOutbox(orderId, lineItems, tracking, consumedQtyByVariant);
+  await queueShopifyOutbox(
+    orderId,
+    lineItems,
+    effectiveTracking,
+    consumedQtyByVariant,
+  );
 
   // Drain Shopify outbox synchronously so the merchant sees the order as
   // Fulfilled by the time this server action returns. (Otherwise the
