@@ -91,9 +91,16 @@ export async function tagsRemoveFromOrder(
 
 // ----------------------- inventorySetOnHandQuantities -----------------------
 
+// Since 2026-01 the `@idempotent` directive is required on this mutation.
+// We pass a per-call key (UUID) so Shopify de-dupes retries — same key →
+// same result, no double-write if a network hiccup makes us POST twice.
 const INVENTORY_SET_MUTATION = /* GraphQL */ `
-  mutation InventorySet($input: InventorySetOnHandQuantitiesInput!) {
-    inventorySetOnHandQuantities(input: $input) {
+  mutation InventorySet(
+    $input: InventorySetOnHandQuantitiesInput!
+    $idempotencyKey: String!
+  ) {
+    inventorySetOnHandQuantities(input: $input)
+      @idempotent(key: $idempotencyKey) {
       inventoryAdjustmentGroup {
         createdAt
         changes {
@@ -119,6 +126,12 @@ export async function inventorySetOnHand(
   reason: string,
   setQuantities: InventorySetEntry[],
   referenceDocumentUri?: string,
+  /**
+   * Idempotency key (required since API 2026-01). Should be stable across
+   * retries of the *same* write — we use the outbox row id for that. If
+   * omitted, a fresh UUID is generated (safe for one-shot callers).
+   */
+  idempotencyKey?: string,
 ): Promise<void> {
   if (setQuantities.length === 0) return;
   const data = await shopifyGraphQL<{
@@ -133,8 +146,13 @@ export async function inventorySetOnHand(
         inventoryItemId: toGid("InventoryItem", s.inventoryItemId),
         locationId: toGid("Location", s.locationId),
         quantity: s.quantity,
+        // Required since 2026-01. `null` opts out of the compare-and-swap
+        // (no optimistic-locking check against Shopify's previous value).
+        // We're the source of truth, so a blind set is what we want.
+        changeFromQuantity: null,
       })),
     },
+    idempotencyKey: idempotencyKey ?? crypto.randomUUID(),
   });
   throwIfUserErrors(
     "inventorySetOnHandQuantities",

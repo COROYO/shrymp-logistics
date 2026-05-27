@@ -47,6 +47,23 @@ export type DhlShipper = {
   email?: string;
 };
 
+export type DhlMoneyValue = {
+  currency: string;
+  value: number;
+};
+
+export type DhlCashOnDelivery = {
+  amount: DhlMoneyValue;
+  accountReference?: string;
+  transferNote1: string;
+  transferNote2?: string;
+};
+
+export type DhlVAS = {
+  premium?: boolean;
+  cashOnDelivery?: DhlCashOnDelivery;
+};
+
 export type DhlShipment = {
   product: DhlProduct;
   billingNumber: string;
@@ -56,7 +73,7 @@ export type DhlShipment = {
   shipper: DhlShipper;
   consignee: DhlContactAddress;
   details: { weight: DhlWeight; dim?: DhlDimensions };
-  services?: Record<string, unknown>;
+  services?: DhlVAS;
 };
 
 export type DhlShipmentOrderRequest = {

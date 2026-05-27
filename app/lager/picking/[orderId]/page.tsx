@@ -8,6 +8,7 @@ import {
   type Order,
 } from "@/server/firestore/schema";
 import { StartPickingButton, CancelPickingButton } from "./client-buttons";
+import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 
 export const dynamic = "force-dynamic";
 
@@ -175,7 +176,10 @@ export default async function PickingDetailPage({
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
-            {order.name}
+            <span className="inline-flex items-center gap-2">
+              <OrderNoteIcon note={order.customer_note} />
+              {order.name}
+            </span>
           </h1>
           <span
             className={isPicking ? "chip chip-violet" : "chip chip-emerald"}
@@ -245,7 +249,7 @@ export default async function PickingDetailPage({
                 <th>Produkt</th>
                 <th>SKU</th>
                 <th className="text-right">Menge</th>
-                <th>Charge / MHD</th>
+                <th>Charge</th>
               </tr>
             </thead>
             <tbody>
@@ -279,9 +283,6 @@ export default async function PickingDetailPage({
                           >
                             <span className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white">
                               {a.chargeNumber}
-                            </span>
-                            <span className="text-brand-navy/60">
-                              MHD {a.expiryDateIso ?? "—"}
                             </span>
                             <span className="font-semibold text-brand-navy">
                               {a.qty} Stk

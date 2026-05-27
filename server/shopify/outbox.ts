@@ -112,7 +112,13 @@ async function dispatch(row: ShopifyOutbox): Promise<void> {
           quantity: number;
         }[];
       };
-      await inventorySetOnHand(reason, setQuantities, referenceDocumentUri);
+      // Stable idempotency key per outbox row so Shopify de-dupes retries.
+      await inventorySetOnHand(
+        reason,
+        setQuantities,
+        referenceDocumentUri,
+        `outbox-${row.id}`,
+      );
       return;
     }
     default:

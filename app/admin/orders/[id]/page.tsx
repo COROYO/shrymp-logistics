@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { adminDb } from "@/server/firestore/admin";
+import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 import {
   Collections,
   type Allocation,
@@ -79,7 +80,10 @@ export default async function AdminOrderDetailPage({
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
-            {order.name}
+            <span className="inline-flex items-center gap-2">
+              <OrderNoteIcon note={order.customer_note} />
+              {order.name}
+            </span>
           </h1>
           <span className="chip chip-soft">{order.internal_status}</span>
           {order.tags.map((t) => (

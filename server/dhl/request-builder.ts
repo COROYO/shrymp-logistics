@@ -11,6 +11,7 @@ import type {
   Order,
   ShippingAddress,
 } from "@/server/firestore/schema";
+import { buildDhlServices } from "./services";
 import type {
   DhlContactAddress,
   DhlProduct,
@@ -18,6 +19,9 @@ import type {
   DhlShipmentOrderRequest,
   DhlShipper,
 } from "./types";
+
+export { summarizeDhlServices, type DhlServicesSummary } from "./services";
+export { DhlServicesError } from "./services";
 
 /** ISO 3166-1 alpha-2 → alpha-3, only entries we expect. */
 const ISO2_TO_ISO3: Record<string, string> = {
@@ -149,9 +153,19 @@ export function consigneeFromShopify(addr: ShippingAddress): DhlContactAddress {
 }
 
 export type BuildShipmentInput = {
-  order: Pick<Order, "id" | "name" | "shipping_address">;
+  order: Pick<
+    Order,
+    | "id"
+    | "name"
+    | "shipping_method"
+    | "cod_amount_cents"
+    | "currency"
+    | "shipping_address"
+  >;
   config: DhlConfig;
   weightG?: number;
+  /** Manual override (in cents) for COD orders without `cod_amount_cents`. */
+  codAmountCents?: number | null;
 };
 
 export function buildShipmentOrderRequest(
@@ -183,6 +197,9 @@ export function buildShipmentOrderRequest(
       height: config.default_dimensions_mm.height,
     };
   }
+
+  const services = buildDhlServices(order, config, input.codAmountCents);
+  if (services) shipment.services = services;
 
   return {
     profile: config.profile,

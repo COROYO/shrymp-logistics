@@ -1,16 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getSessionUser } from "@/lib/auth/session";
-import { LogoutButton } from "@/app/_components/logout-button";
 import { BrandMark } from "@/app/_components/brand-mark";
-
-const NAV_ITEMS = [
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/batches", label: "Chargen" },
-  { href: "/admin/products", label: "Produkte" },
-  { href: "/admin/users", label: "Benutzer" },
-  { href: "/admin/settings", label: "Einstellungen" },
-];
+import {
+  Sidebar,
+  type SidebarFooter,
+  type SidebarSection,
+} from "@/app/_components/sidebar";
+import { MobileNav } from "@/app/_components/mobile-nav";
 
 export default async function AdminLayout({
   children,
@@ -21,44 +19,63 @@ export default async function AdminLayout({
   if (!user) redirect("/login?next=/admin");
   if (user.role !== "ADMIN") redirect("/lager");
 
+  const t = await getTranslations("nav");
+  const SECTIONS: SidebarSection[] = [
+    {
+      label: t("operations"),
+      items: [
+        { href: "/admin/orders", label: t("orders"), icon: "orders" },
+        { href: "/admin/customers", label: t("customers"), icon: "customers" },
+        {
+          href: "/admin/allocations",
+          label: t("allocations"),
+          icon: "allocations",
+        },
+      ],
+    },
+    {
+      label: t("stock"),
+      items: [
+        { href: "/admin/batches", label: t("batches"), icon: "batches" },
+        { href: "/admin/products", label: t("products"), icon: "products" },
+      ],
+    },
+    {
+      label: t("system"),
+      items: [
+        { href: "/admin/users", label: t("users"), icon: "users" },
+        { href: "/admin/settings", label: t("settings"), icon: "settings" },
+      ],
+    },
+  ];
+
+  const footer: SidebarFooter = {
+    crossLink: { href: "/lager", label: t("lager"), icon: "lager" },
+    userEmail: user.email,
+  };
+
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="bg-brand-navy text-white shadow-[0_2px_0_0_var(--color-brand-burgundy)]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-8">
-            <Link href="/admin" className="flex items-center gap-3">
-              <BrandMark />
-              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 sm:inline">
-                Admin
-              </span>
-            </Link>
-            <nav className="flex items-center gap-6 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/70">
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="transition hover:text-white"
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <Link
-                href="/lager"
-                className="text-brand-burgundy transition hover:text-white"
-              >
-                Lager →
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <span className="hidden text-white/60 md:inline">{user.email}</span>
-            <LogoutButton />
+    <div className="flex min-h-screen w-full">
+      <MobileNav
+        sections={SECTIONS}
+        footer={footer}
+        variantLabel={t("admin")}
+        homeHref="/admin"
+      />
+      <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-brand-navy text-white shadow-[2px_0_0_0_var(--color-brand-burgundy)] md:flex print:hidden">
+        <div className="px-5 py-5">
+          <Link href="/admin" className="flex items-center">
+            <BrandMark />
+          </Link>
+          <div className="mt-1 ml-12 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+            {t("admin")}
           </div>
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
-        {children}
-      </main>
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          <Sidebar sections={SECTIONS} footer={footer} />
+        </div>
+      </aside>
+      <main className="flex-1 min-w-0 px-6 py-8 md:px-10">{children}</main>
     </div>
   );
 }

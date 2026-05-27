@@ -9,6 +9,7 @@ import {
 import { log } from "@/lib/logger";
 import { shopifyGraphQL } from "./client";
 import { numericIdFromGid } from "./sync";
+import { moneyDecimalToCents } from "./mappers";
 
 /**
  * Backfill existing orders from the shop into Firestore.
@@ -54,6 +55,33 @@ const PAGE_QUERY = /* GraphQL */ `
         cancelledAt
         displayFinancialStatus
         displayFulfillmentStatus
+        currencyCode
+        note
+        email
+        customer {
+          id
+          email
+          firstName
+          lastName
+        }
+        totalOutstandingSet {
+          shopMoney {
+            amount
+            currencyCode
+          }
+        }
+        currentTotalPriceSet {
+          shopMoney {
+            amount
+            currencyCode
+          }
+        }
+        shippingLines(first: 5) {
+          nodes {
+            title
+            code
+          }
+        }
         shippingAddress {
           firstName
           lastName
@@ -90,6 +118,15 @@ const PAGE_QUERY = /* GraphQL */ `
   }
 `;
 
+type GqlMoneyBag = {
+  shopMoney: { amount: string; currencyCode: string } | null;
+} | null;
+
+type GqlShippingLine = {
+  title: string;
+  code: string | null;
+};
+
 type GqlOrderNode = {
   id: string;
   name: string;
@@ -99,6 +136,18 @@ type GqlOrderNode = {
   cancelledAt: string | null;
   displayFinancialStatus: string | null;
   displayFulfillmentStatus: string | null;
+  currencyCode: string | null;
+  note: string | null;
+  email: string | null;
+  customer: {
+    id: string | null;
+    email: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
+  totalOutstandingSet: GqlMoneyBag;
+  currentTotalPriceSet: GqlMoneyBag;
+  shippingLines: { nodes: GqlShippingLine[] };
   shippingAddress: GqlAddress | null;
   lineItems: { nodes: GqlLineItem[] };
 };
@@ -200,6 +249,11 @@ export async function backfillOrders(
               phone: n.shippingAddress.phone,
             }
           : null,
+        shipping_method: (() => {
+          const line = n.shippingLines.nodes[0];
+          if (!line?.title) return null;
+          return { title: line.title, code: line.code ?? null };
+        })(),
         line_items: n.lineItems.nodes
           .filter((li) => li.variant?.id)
           .map((li) => {
@@ -233,6 +287,22 @@ export async function backfillOrders(
         shopify_financial_status: n.displayFinancialStatus ?? null,
         shopify_fulfillment_status: n.displayFulfillmentStatus ?? null,
         internal_status: internalStatus,
+        cod_amount_cents:
+          moneyDecimalToCents(
+            n.totalOutstandingSet?.shopMoney?.amount ?? null,
+          ) ??
+          moneyDecimalToCents(
+            n.currentTotalPriceSet?.shopMoney?.amount ?? null,
+          ),
+        currency:
+          n.currencyCode ??
+          n.totalOutstandingSet?.shopMoney?.currencyCode ??
+          null,
+        customer_note: n.note?.trim() ? n.note.trim() : null,
+        customer: mapCustomerFromGql(n),
+        total_price_cents: moneyDecimalToCents(
+          n.currentTotalPriceSet?.shopMoney?.amount ?? null,
+        ),
         created_at_shopify: new Date(n.createdAt),
       };
 
@@ -258,4 +328,24 @@ export async function backfillOrders(
 
   log.info("orders_backfill_done", { mirroredCount, pages, query: opts.query });
   return { mirroredCount, pages };
+}
+
+function mapCustomerFromGql(n: GqlOrderNode): {
+  shopify_id: string | null;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+} | null {
+  const c = n.customer;
+  const email = c?.email ?? n.email ?? null;
+  const first = c?.firstName ?? null;
+  const last = c?.lastName ?? null;
+  const sid = c?.id ? numericIdFromGid(c.id) : null;
+  if (!sid && !email && !first && !last) return null;
+  return {
+    shopify_id: sid,
+    email: email?.trim() ? email.trim().toLowerCase() : null,
+    first_name: first,
+    last_name: last,
+  };
 }

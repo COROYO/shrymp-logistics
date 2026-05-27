@@ -60,6 +60,7 @@ function toClientDhlConfig(c: DhlConfig | null): DhlConfigFormValue | null {
     default_dimensions_mm: c.default_dimensions_mm,
     gkp_username: c.gkp_username ?? null,
     gkp_password_set: !!c.gkp_password,
+    cod_account_reference: c.cod_account_reference ?? null,
     sandbox: c.sandbox,
   };
 }
@@ -270,6 +271,11 @@ export default async function SettingsPage({
           </DefItem>
           <DefItem label="GKP-Credentials">
             <Badge ok={!!(dhlCfg?.gkp_username && dhlCfg?.gkp_password)} />
+          </DefItem>
+          <DefItem label="Nachnahme-Kontoreferenz">
+            <span className="font-mono text-xs">
+              {dhlCfg?.cod_account_reference ?? "—"}
+            </span>
           </DefItem>
         </dl>
         <div className="mt-6">

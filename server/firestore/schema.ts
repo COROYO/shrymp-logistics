@@ -125,6 +125,12 @@ export const ShippingAddressSchema = z.object({
   phone: z.string().nullable().default(null),
 });
 
+/** Primary Shopify shipping line — drives COD / premium detection. */
+export const OrderShippingMethodSchema = z.object({
+  title: z.string(),
+  code: z.string().nullable().default(null),
+});
+
 /**
  * Persisted DHL shipment metadata, written after a successful
  * Parcel DE Shipping API call. The label PDF itself lives in Firebase Storage
@@ -151,6 +157,8 @@ export const OrderSchema = z.object({
   name: z.string(), // "#1001"
   tags: z.array(z.string()).default([]),
   shipping_address: ShippingAddressSchema.nullable().default(null),
+  /** First Shopify shipping line (Versandmethode). */
+  shipping_method: OrderShippingMethodSchema.nullable().default(null),
   line_items: z.array(OrderLineItemSchema),
   shopify_financial_status: z.string().nullable().default(null),
   shopify_fulfillment_status: z.string().nullable().default(null),
@@ -158,6 +166,36 @@ export const OrderSchema = z.object({
   stop_reason: z.string().optional(),
   allocation_run_id: z.string().optional(),
   dhl_shipment: OrderDhlShipmentSchema.optional(),
+  /**
+   * Outstanding amount in smallest currency unit (cents) — used as the
+   * Cash-on-Delivery (Nachnahme) amount when the shipping method indicates COD.
+   * Mirrors Shopify `totalOutstandingSet.amount`.
+   */
+  cod_amount_cents: z.number().int().nonnegative().nullable().default(null),
+  /** ISO-4217 currency code, e.g. "EUR". Mirrors Shopify `currencyCode`. */
+  currency: z.string().length(3).nullable().default(null),
+  /**
+   * Free-text customer note from Shopify checkout (`Order.note`). Shown in
+   * the UI as an icon next to the order number with the note revealed on hover.
+   */
+  customer_note: z.string().nullable().default(null),
+  /**
+   * Customer reference from Shopify. `shopify_id` is the stable identity
+   * (used for grouping in `/admin/customers`); when it's null, the UI
+   * groups by email instead. We don't run a separate `customers/`
+   * collection — customer info is denormalized onto each order.
+   */
+  customer: z
+    .object({
+      shopify_id: z.string().nullable().default(null),
+      email: z.string().nullable().default(null),
+      first_name: z.string().nullable().default(null),
+      last_name: z.string().nullable().default(null),
+    })
+    .nullable()
+    .default(null),
+  /** Order subtotal in cents (smallest unit) — used in customer history view. */
+  total_price_cents: z.number().int().nonnegative().nullable().default(null),
   created_at_shopify: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });
@@ -333,6 +371,12 @@ export const DhlConfigSchema = z.object({
   /** Geschäftskundenportal username + password for OAuth2 ROPC. */
   gkp_username: z.string().nullable().default(null),
   gkp_password: z.string().nullable().default(null),
+  /**
+   * Cash-on-Delivery account reference configured under
+   * "Versenden → Einstellungen → Nachnahme" in the DHL Geschäftskundenportal.
+   * If null, COD will not be offered.
+   */
+  cod_account_reference: z.string().max(35).nullable().default(null),
   /** Toggle sandbox vs. production (api-sandbox.dhl.com vs api-eu.dhl.com). */
   sandbox: z.boolean().default(true),
   updated_at: FirestoreTimestamp,
@@ -350,6 +394,7 @@ export type OrderInternalStatus = z.infer<typeof OrderInternalStatusSchema>;
 export type OrderLineItem = z.infer<typeof OrderLineItemSchema>;
 export type OrderLineItemBundle = z.infer<typeof OrderLineItemBundleSchema>;
 export type ShippingAddress = z.infer<typeof ShippingAddressSchema>;
+export type OrderShippingMethod = z.infer<typeof OrderShippingMethodSchema>;
 export type Allocation = z.infer<typeof AllocationSchema>;
 export type InventoryMovement = z.infer<typeof InventoryMovementSchema>;
 export type MovementType = z.infer<typeof MovementTypeSchema>;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { OrderInternalStatus } from "@/server/firestore/schema";
+import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 
 export type OrderLineItemBundleRef = {
   groupId: string;
@@ -38,6 +39,7 @@ export type OrderRow = {
   createdIso: string;
   itemCount: number;
   lineItems: OrderLineItemRow[];
+  customerNote: string | null;
 };
 
 const STATUS_BADGE: Record<OrderInternalStatus, string> = {
@@ -137,12 +139,15 @@ function Row({
           </button>
         </td>
         <td className="font-mono font-bold text-brand-navy">
-          <Link
-            href={`/admin/orders/${order.id}`}
-            className="hover:text-brand-burgundy"
-          >
-            {order.name}
-          </Link>
+          <span className="inline-flex items-center gap-1.5">
+            <OrderNoteIcon note={order.customerNote} />
+            <Link
+              href={`/admin/orders/${order.id}`}
+              className="hover:text-brand-burgundy"
+            >
+              {order.name}
+            </Link>
+          </span>
         </td>
         <td className="text-sm text-brand-navy/60">
           {order.createdIso

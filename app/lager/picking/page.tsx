@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Order } from "@/server/firestore/schema";
+import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +50,7 @@ async function loadQueue(): Promise<Row[]> {
 
 export default async function PickingQueuePage() {
   const rows = await loadQueue();
+  const t = await getTranslations("picking.queue");
   const shipCount = rows.filter((r) => r.internal_status === "SHIP").length;
   const pickingCount = rows.filter(
     (r) => r.internal_status === "PICKING",
@@ -57,34 +60,38 @@ export default async function PickingQueuePage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Picking</p>
-          <h1 className="h-display mt-1 text-3xl">Picking-Queue</h1>
+          <p className="eyebrow">{t("eyebrow")}</p>
+          <h1 className="h-display mt-1 text-3xl">{t("title")}</h1>
           <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
-            Express-Orders zuerst, danach nach Bestelldatum (älteste zuerst).
+            {t("intro")}
           </p>
         </div>
         <div className="flex gap-3 text-sm">
-          <Stat label="Ready" value={shipCount} accent="emerald" />
-          <Stat label="In Bearbeitung" value={pickingCount} accent="violet" />
+          <Stat label={t("stats.ready")} value={shipCount} accent="emerald" />
+          <Stat
+            label={t("stats.inProgress")}
+            value={pickingCount}
+            accent="violet"
+          />
         </div>
       </div>
 
       <div className="card overflow-hidden">
         {rows.length === 0 ? (
           <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
-            Keine Orders zum Picken. Schöner Tag.
+            {t("empty")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="table-brand">
               <thead>
                 <tr>
-                  <th>Order</th>
-                  <th>Erstellt</th>
-                  <th>Items</th>
-                  <th>Stadt</th>
-                  <th>Tags</th>
-                  <th>Status</th>
+                  <th>{t("table.order")}</th>
+                  <th>{t("table.created")}</th>
+                  <th>{t("table.items")}</th>
+                  <th>{t("table.city")}</th>
+                  <th>{t("table.tags")}</th>
+                  <th>{t("table.status")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -92,8 +99,8 @@ export default async function PickingQueuePage() {
                 {rows.map((o) => {
                   const cta =
                     o.internal_status === "PICKING"
-                      ? "Weiter packen →"
-                      : "Picken starten →";
+                      ? t("ctaContinue")
+                      : t("ctaStart");
                   return (
                     <tr
                       key={o.id}
@@ -102,7 +109,10 @@ export default async function PickingQueuePage() {
                       }
                     >
                       <td className="font-mono text-sm font-bold text-brand-navy">
-                        {o.name}
+                        <span className="inline-flex items-center gap-1.5">
+                          <OrderNoteIcon note={o.customer_note} />
+                          {o.name}
+                        </span>
                       </td>
                       <td className="text-sm text-brand-navy/60">
                         {o._createdIso
@@ -117,7 +127,7 @@ export default async function PickingQueuePage() {
                           {o.itemCount}
                         </span>{" "}
                         <span className="text-xs text-brand-navy/50">
-                          ({o.line_items.length} Pos.)
+                          ({o.line_items.length} {t("table.positions")})
                         </span>
                       </td>
                       <td className="text-xs text-brand-navy/70">
@@ -155,17 +165,17 @@ export default async function PickingQueuePage() {
                           href={`/lager/picking/${o.id}/slip`}
                           target="_blank"
                           className="mr-4 text-[11px] font-semibold uppercase tracking-wide text-brand-navy/50 hover:text-brand-burgundy"
-                          title="Packing-Slip drucken"
+                          title={t("linkSlip")}
                         >
-                          Slip
+                          {t("linkSlip")}
                         </Link>
                         <Link
                           href={`/lager/picking/${o.id}/print`}
                           target="_blank"
                           className="mr-4 text-[11px] font-semibold uppercase tracking-wide text-brand-navy/50 hover:text-brand-burgundy"
-                          title="Picklist drucken"
+                          title={t("linkPicklist")}
                         >
-                          Picklist
+                          {t("linkPicklist")}
                         </Link>
                         <Link
                           href={`/lager/picking/${o.id}`}

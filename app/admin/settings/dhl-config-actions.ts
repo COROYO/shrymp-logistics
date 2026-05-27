@@ -39,6 +39,7 @@ const InputSchema = z.object({
     .optional(),
   gkp_username: z.string().trim().min(1).nullable().optional(),
   gkp_password: z.string().min(1).nullable().optional(),
+  cod_account_reference: z.string().trim().max(35).nullable().optional(),
   sandbox: z.boolean(),
 });
 
@@ -76,6 +77,7 @@ export async function saveDhlConfigAction(
       | { length: unknown; width: unknown; height: unknown },
     gkp_username: emptyToNull(formData.get("gkp_username")),
     gkp_password: emptyToNull(formData.get("gkp_password")),
+    cod_account_reference: emptyToNull(formData.get("cod_account_reference")),
     sandbox: formData.get("sandbox") === "on",
   };
   const dimL = formData.get("dim_length");

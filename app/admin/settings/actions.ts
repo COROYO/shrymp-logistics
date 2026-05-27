@@ -65,6 +65,33 @@ export async function backfillOrdersAction(): Promise<
   }
 }
 
+/**
+ * Pull ALL historical orders (no `query` filter) to populate the customer
+ * history view. Idempotent — orders that already exist get merged with
+ * preserved `internal_status`.
+ */
+export async function backfillAllOrdersAction(): Promise<
+  | { ok: true; mirroredCount: number; pages: number }
+  | { ok: false; error: string }
+> {
+  try {
+    const { requireRole } = await import("@/lib/auth/session");
+    await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+  try {
+    const r = await backfillOrders({ query: "" });
+    revalidatePath("/admin/customers");
+    revalidatePath("/admin/orders");
+    return { ok: true, ...r };
+  } catch (e) {
+    const { log } = await import("@/lib/logger");
+    log.error("orders_full_backfill_failed", { error: String(e) });
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
 import { requireRole } from "@/lib/auth/session";
 import { ensureWebhookSubscription } from "@/server/shopify/mutations";
 import { runAllocationInFirestore } from "@/server/allocation/run";

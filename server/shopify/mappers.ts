@@ -2,6 +2,7 @@ import {
   type Order,
   type OrderInternalStatus,
   type OrderLineItem,
+  type OrderShippingMethod,
   type ShippingAddress,
 } from "@/server/firestore/schema";
 
@@ -20,8 +21,27 @@ export type ShopifyOrderPayload = {
   financial_status?: string | null;
   fulfillment_status?: string | null;
   cancelled_at?: string | null;
+  /** Decimal string in shop currency, e.g. "49.90". */
+  total_outstanding?: string | null;
+  current_total_price?: string | null;
+  currency?: string | null;
   shipping_address?: ShopifyAddressPayload | null;
+  shipping_lines?: ShopifyShippingLinePayload[];
+  /** Free-text customer note from checkout. */
+  note?: string | null;
+  email?: string | null;
+  customer?: {
+    id?: number | null;
+    email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
   line_items: ShopifyLineItemPayload[];
+};
+
+export type ShopifyShippingLinePayload = {
+  title?: string | null;
+  code?: string | null;
 };
 
 export type ShopifyAddressPayload = {
@@ -54,6 +74,19 @@ function parseTags(tags: string | string[]): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Convert a Shopify decimal money string ("49.90") into integer cents (4990).
+ * Returns null for null/undefined/empty/NaN inputs.
+ */
+export function moneyDecimalToCents(v: string | null | undefined): number | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const n = Number.parseFloat(s);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 100);
+}
+
 function mapAddress(
   a: ShopifyAddressPayload | null | undefined,
 ): ShippingAddress | null {
@@ -77,14 +110,24 @@ function mapLineItems(items: ShopifyLineItemPayload[]): OrderLineItem[] {
     .filter((li) => li.variant_id != null)
     .map((li) => ({
       id: String(li.id),
-      // Firestore variants collection uses the numeric id as doc id;
-      // see server/shopify/sync.ts (M3) for the contract.
       variant_id: String(li.variant_id),
       variant_gid: `gid://shopify/ProductVariant/${li.variant_id}`,
       qty: li.quantity,
       title: li.title,
       sku: li.sku ?? null,
     }));
+}
+
+/** Map the first Shopify shipping line to our persisted shipping_method. */
+export function mapShippingMethod(
+  lines: ShopifyShippingLinePayload[] | null | undefined,
+): OrderShippingMethod | null {
+  const first = lines?.[0];
+  if (!first?.title) return null;
+  return {
+    title: first.title,
+    code: first.code ?? null,
+  };
 }
 
 /**
@@ -108,10 +151,35 @@ export function mapShopifyOrderToFirestore(
     name: payload.name,
     tags: parseTags(payload.tags),
     shipping_address: mapAddress(payload.shipping_address),
+    shipping_method: mapShippingMethod(payload.shipping_lines),
     line_items: mapLineItems(payload.line_items),
     shopify_financial_status: payload.financial_status ?? null,
     shopify_fulfillment_status: payload.fulfillment_status ?? null,
     internal_status: internalStatus,
+    cod_amount_cents:
+      moneyDecimalToCents(payload.total_outstanding) ??
+      moneyDecimalToCents(payload.current_total_price),
+    currency: payload.currency ?? null,
+    customer_note: payload.note?.trim() ? payload.note.trim() : null,
+    customer: mapCustomerRef(payload),
+    total_price_cents: moneyDecimalToCents(payload.current_total_price),
     created_at_shopify: new Date(payload.created_at),
+  };
+}
+
+function mapCustomerRef(
+  payload: ShopifyOrderPayload,
+): { shopify_id: string | null; email: string | null; first_name: string | null; last_name: string | null } | null {
+  const c = payload.customer;
+  const email = c?.email ?? payload.email ?? null;
+  const first = c?.first_name ?? null;
+  const last = c?.last_name ?? null;
+  const sid = c?.id != null ? String(c.id) : null;
+  if (!sid && !email && !first && !last) return null;
+  return {
+    shopify_id: sid,
+    email: email?.trim() ? email.trim().toLowerCase() : null,
+    first_name: first,
+    last_name: last,
   };
 }

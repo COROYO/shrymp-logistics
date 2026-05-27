@@ -9,6 +9,7 @@ import {
 import { assertDhlReady, loadDhlConfig } from "./config";
 import { createOrders, downloadLabelPdf, DhlApiError } from "./client";
 import { buildShipmentOrderRequest } from "./request-builder";
+import { DhlServicesError } from "./services";
 import { uploadLabelPdf } from "./storage";
 import { log } from "@/lib/logger";
 
@@ -35,7 +36,8 @@ export class CreateLabelError extends Error {
       | "no_shipping_address"
       | "dhl_validation_failed"
       | "dhl_no_label_returned"
-      | "dhl_http_error",
+      | "dhl_http_error"
+      | "dhl_services_error",
     message?: string,
     public readonly details?: unknown,
   ) {
@@ -48,6 +50,12 @@ export type CreateLabelInput = {
   orderId: string;
   userId: string;
   weightG?: number;
+  /**
+   * Manual COD amount in cents, used when the order has tag NACHNAHME but no
+   * `cod_amount_cents` value (e.g. legacy / unpaid orders). Ignored for
+   * non-COD orders.
+   */
+  codAmountCents?: number | null;
 };
 
 export type CreateLabelResult = {
@@ -60,7 +68,7 @@ export type CreateLabelResult = {
 export async function createLabelForOrder(
   input: CreateLabelInput,
 ): Promise<CreateLabelResult> {
-  const { orderId, userId, weightG } = input;
+  const { orderId, userId, weightG, codAmountCents } = input;
   const db = adminDb();
 
   const cfg = await loadDhlConfig();
@@ -75,11 +83,20 @@ export async function createLabelForOrder(
     throw new CreateLabelError("no_shipping_address");
   }
 
-  const requestBody = buildShipmentOrderRequest({
-    order,
-    config: cfg,
-    weightG,
-  });
+  let requestBody;
+  try {
+    requestBody = buildShipmentOrderRequest({
+      order,
+      config: cfg,
+      weightG,
+      codAmountCents,
+    });
+  } catch (e) {
+    if (e instanceof DhlServicesError) {
+      throw new CreateLabelError("dhl_services_error", e.message, e.code);
+    }
+    throw e;
+  }
 
   let response;
   try {

@@ -1,0 +1,212 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "confirm": "Confirm",
+    "close": "Close",
+    "open": "Open",
+    "print": "Print",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "missing": "missing",
+    "dash": "—",
+    "search": "Search",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "amount": "Amount",
+    "quantity": "Quantity",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "createdAt": "Created",
+    "updatedAt": "Updated",
+    "total": "Total",
+    "items": "Items",
+    "tags": "Tags",
+    "logout": "Log out",
+    "language": "Language",
+    "error": "Error",
+    "success": "Success"
+  },
+  "nav": {
+    "admin": "Admin",
+    "lager": "Warehouse",
+    "operations": "Operations",
+    "stock": "Stock",
+    "system": "System",
+    "orders": "Orders",
+    "customers": "Customers",
+    "allocations": "Allocations",
+    "batches": "Batches",
+    "products": "Products",
+    "users": "Users",
+    "settings": "Settings",
+    "picking": "Picking",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "mainNav": "Main navigation"
+  },
+  "adminHome": {
+    "eyebrow": "Overview",
+    "title": "Monolith Caviar Back Office",
+    "intro": "Inbound, stock, orders, allocation runs. Pick an area.",
+    "open": "Open →",
+    "tiles": {
+      "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW overview" },
+      "batches": { "title": "Stock & Batches", "desc": "Inbound, best-before, FEFO list" },
+      "products": { "title": "Products", "desc": "Manage Shopify sync" },
+      "customers": { "title": "Customers", "desc": "Customer list + order history" },
+      "users": { "title": "Users", "desc": "Manage warehouse staff + admins" },
+      "settings": { "title": "Settings", "desc": "Shopify connection, webhooks, allocation" },
+      "lager": { "title": "Warehouse", "desc": "Open picking & packing view" }
+    }
+  },
+  "customers": {
+    "eyebrow": "Customers",
+    "title": "Customer list",
+    "intro": "Read-only. Aggregated from synced orders — every customer with at least one order shows up here.",
+    "stats": {
+      "customers": "Customers",
+      "totalRevenue": "Total revenue"
+    },
+    "table": {
+      "customer": "Customer",
+      "email": "Email",
+      "orderCount": "Orders",
+      "revenue": "Revenue",
+      "firstOrder": "First order",
+      "lastOrder": "Last order",
+      "history": "History →"
+    },
+    "empty": "No customers yet. Click <b>{action}</b> above to import existing orders.",
+    "backfill": {
+      "eyebrow": "Initial import",
+      "title": "Pull existing customer history from Shopify",
+      "intro": "Loads <b>all</b> orders (incl. already fulfilled ones) from Shopify — customer, email, note and order total. Idempotent: existing orders are merged, internal status (PACKED / SHIP …) is preserved. New orders going forward don't need this — the webhook brings customer info automatically.",
+      "button": "Pull customer history from Shopify",
+      "loading": "Loading…",
+      "success": "{count} orders synced across {pages} pages."
+    },
+    "detail": {
+      "back": "← Customer list",
+      "stats": {
+        "orders": "Orders",
+        "totalRevenue": "Total revenue",
+        "avgOrder": "Avg. order value"
+      },
+      "shopifyId": "Shopify ID {id}",
+      "lastAddress": "Last shipping address",
+      "history": "Order history",
+      "historySub": "All orders for this customer",
+      "table": {
+        "order": "Order",
+        "date": "Date",
+        "status": "Status",
+        "city": "City",
+        "items": "Items",
+        "amount": "Total"
+      }
+    }
+  },
+  "orderNote": {
+    "label": "Customer note",
+    "ariaLabel": "Customer note: {note}"
+  },
+  "picking": {
+    "queue": {
+      "eyebrow": "Picking",
+      "title": "Picking queue",
+      "intro": "Express orders first, then by order date (oldest first).",
+      "stats": {
+        "ready": "Ready",
+        "inProgress": "In progress"
+      },
+      "empty": "No orders to pick. Nice day.",
+      "table": {
+        "order": "Order",
+        "created": "Created",
+        "items": "Items",
+        "city": "City",
+        "tags": "Tags",
+        "status": "Status",
+        "positions": "pos."
+      },
+      "ctaContinue": "Continue packing →",
+      "ctaStart": "Start picking →",
+      "linkSlip": "🧾 Slip",
+      "linkPicklist": "📋 Picklist"
+    }
+  },
+  "packing": {
+    "shippingAddress": "Shipping address",
+    "contents": {
+      "eyebrow": "Contents",
+      "title": "What goes in the box",
+      "product": "Product",
+      "qty": "Qty",
+      "batches": "Batches"
+    },
+    "dhl": {
+      "eyebrow": "Shipping label",
+      "title": "Create DHL label",
+      "intro": "Creates a DHL parcel label (DE) directly via API. Once the label exists the order is automatically marked <b>packed + shipped</b> (stock decremented, fulfillment reported to Shopify).",
+      "weightLabel": "Parcel weight (grams)",
+      "codAmountLabel": "Cash-on-delivery amount (EUR)",
+      "codAmountPlaceholder": "49.90",
+      "createButton": "Create DHL label",
+      "creating": "Creating label…",
+      "domestic": "Domestic DE — DHL Paket (V01PAK)",
+      "internationalNotice": "International ({country}) — DHL Express",
+      "internationalButton": "DHL Express label",
+      "existingNumber": "DHL shipment number",
+      "existingSandbox": "SANDBOX",
+      "existingWeight": "Weight: {weight} g",
+      "openPdf": "Open label PDF",
+      "tracking": "Tracking",
+      "recreate": "Recreate label",
+      "recreating": "Creating…",
+      "recreateConfirm": "Really recreate? Click again",
+      "notConfiguredHint": "DHL is not configured yet. <link>In admin settings</link> add EKP number + sender address.",
+      "errors": {
+        "weightRange": "Weight in grams must be between 1 and 31500.",
+        "codMissing": "Cash-on-delivery amount is required. Enter the outstanding gross amount in EUR (e.g. 49.90).",
+        "codOverLimit": "Cash-on-delivery amount exceeds DHL limit of 3,500.00 EUR.",
+        "configNotConfigured": "DHL is not configured. Please add billing number + sender address in admin settings.",
+        "configBillingMissing": "Billing number (EKP) missing from DHL config.",
+        "configCredentialsMissing": "DHL business portal username/password missing from config.",
+        "configClientCredsMissing": "DHL_API_KEY/SECRET missing from env vars.",
+        "address": "Shipping address incomplete ({field}).",
+        "validationFailed": "DHL rejected the shipment. Please check address / weight (see logs for details).",
+        "noLabel": "DHL responded but returned no label.",
+        "codMissingAmount": "NACHNAHME tag set but no outstanding amount on the order. Check the order in Shopify or re-sync.",
+        "codMissingAccountRef": "Cash-on-delivery account reference missing — set it under admin settings → DHL.",
+        "codCurrency": "Cash-on-delivery is only available in EUR.",
+        "servicesGeneric": "DHL value-added service: {sub}",
+        "auth": "DHL authentication failed ({status}). Check credentials.",
+        "api": "DHL API error (HTTP {status}).",
+        "generic": "Error: {code}"
+      }
+    },
+    "finish": {
+      "eyebrow": "Finish",
+      "title": "Packed + shipped",
+      "intro": "Atomically decrements stock, reports fulfillment and inventory back to Shopify, and closes the order."
+    },
+    "alerts": {
+      "packed": "Order packed and posted.",
+      "wrongStatus": "Order is in status <b>{status}</b>. Pack confirmation is only possible from PICKING."
+    },
+    "reprintPicklist": "Reprint picklist"
+  },
+  "services": {
+    "cod": "Cash on delivery",
+    "codAmountMissing": "amount missing",
+    "premium": "Premium shipping"
+  }
+}

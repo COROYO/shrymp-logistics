@@ -133,6 +133,7 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
       createdIso: tsToIso(o.created_at_shopify),
       itemCount,
       lineItems: mergeDuplicateLineItems(rawItems),
+      customerNote: o.customer_note ?? null,
     };
   });
 }

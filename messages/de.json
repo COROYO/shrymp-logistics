@@ -1,0 +1,212 @@
+{
+  "common": {
+    "loading": "Lädt…",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "open": "Öffnen",
+    "print": "Drucken",
+    "yes": "Ja",
+    "no": "Nein",
+    "ok": "OK",
+    "missing": "fehlt",
+    "dash": "—",
+    "search": "Suchen",
+    "actions": "Aktionen",
+    "status": "Status",
+    "date": "Datum",
+    "amount": "Betrag",
+    "quantity": "Menge",
+    "name": "Name",
+    "email": "E-Mail",
+    "role": "Rolle",
+    "createdAt": "Erstellt",
+    "updatedAt": "Geändert",
+    "total": "Gesamt",
+    "items": "Artikel",
+    "tags": "Tags",
+    "logout": "Abmelden",
+    "language": "Sprache",
+    "error": "Fehler",
+    "success": "Erfolg"
+  },
+  "nav": {
+    "admin": "Admin",
+    "lager": "Lager",
+    "operations": "Operations",
+    "stock": "Bestand",
+    "system": "System",
+    "orders": "Orders",
+    "customers": "Kunden",
+    "allocations": "Zuordnungen",
+    "batches": "Chargen",
+    "products": "Produkte",
+    "users": "Benutzer",
+    "settings": "Einstellungen",
+    "picking": "Picking",
+    "openMenu": "Menü öffnen",
+    "closeMenu": "Menü schließen",
+    "mainNav": "Hauptnavigation"
+  },
+  "adminHome": {
+    "eyebrow": "Übersicht",
+    "title": "Monolith Caviar Backoffice",
+    "intro": "Wareneingang, Bestände, Orders, Allocation-Runs. Wähle einen Bereich aus.",
+    "open": "Öffnen →",
+    "tiles": {
+      "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW Übersicht" },
+      "batches": { "title": "Bestand & Chargen", "desc": "Wareneingang, MHD, FEFO-Liste" },
+      "products": { "title": "Produkte", "desc": "Shopify-Sync verwalten" },
+      "customers": { "title": "Kunden", "desc": "Kundenliste + Bestellhistorie" },
+      "users": { "title": "Benutzer", "desc": "Lager + Admins verwalten" },
+      "settings": { "title": "Einstellungen", "desc": "Shopify-Verbindung, Webhooks, Allocation" },
+      "lager": { "title": "Lager", "desc": "Picking & Packing-Ansicht öffnen" }
+    }
+  },
+  "customers": {
+    "eyebrow": "Kunden",
+    "title": "Kundenliste",
+    "intro": "Lese-Modus. Wird aus den synchronisierten Orders aggregiert — jeder Kunde mit mind. einer Bestellung erscheint hier.",
+    "stats": {
+      "customers": "Kunden",
+      "totalRevenue": "Umsatz (gesamt)"
+    },
+    "table": {
+      "customer": "Kunde",
+      "email": "E-Mail",
+      "orderCount": "Bestellungen",
+      "revenue": "Umsatz",
+      "firstOrder": "Erste Bestellung",
+      "lastOrder": "Letzte Bestellung",
+      "history": "Historie →"
+    },
+    "empty": "Noch keine Kunden. Klick oben auf <b>{action}</b>, um die bestehenden Orders zu importieren.",
+    "backfill": {
+      "eyebrow": "Initial-Import",
+      "title": "Bestehende Kundenhistorie aus Shopify holen",
+      "intro": "Lädt <b>alle</b> Orders (inkl. bereits fulfillter) aus Shopify nach — inklusive Kunde, E-Mail, Notiz und Bestellwert. Idempotent: bestehende Orders werden gemerged, der interne Status (PACKED / SHIP …) bleibt erhalten. Neue Orders ab jetzt brauchen das nicht mehr — der Webhook liefert die Kunden-Info automatisch mit.",
+      "button": "Kundenhistorie aus Shopify nachladen",
+      "loading": "Lade…",
+      "success": "{count} Orders aus {pages} Seiten synchronisiert."
+    },
+    "detail": {
+      "back": "← Kundenliste",
+      "stats": {
+        "orders": "Bestellungen",
+        "totalRevenue": "Umsatz (gesamt)",
+        "avgOrder": "Ø Bestellwert"
+      },
+      "shopifyId": "Shopify-ID {id}",
+      "lastAddress": "Letzte Lieferadresse",
+      "history": "Bestellhistorie",
+      "historySub": "Alle Orders dieses Kunden",
+      "table": {
+        "order": "Order",
+        "date": "Datum",
+        "status": "Status",
+        "city": "Stadt",
+        "items": "Items",
+        "amount": "Betrag"
+      }
+    }
+  },
+  "orderNote": {
+    "label": "Kundenkommentar",
+    "ariaLabel": "Kundenkommentar: {note}"
+  },
+  "picking": {
+    "queue": {
+      "eyebrow": "Picking",
+      "title": "Picking-Queue",
+      "intro": "Express-Orders zuerst, danach nach Bestelldatum (älteste zuerst).",
+      "stats": {
+        "ready": "Ready",
+        "inProgress": "In Bearbeitung"
+      },
+      "empty": "Keine Orders zum Picken. Schöner Tag.",
+      "table": {
+        "order": "Order",
+        "created": "Erstellt",
+        "items": "Items",
+        "city": "Stadt",
+        "tags": "Tags",
+        "status": "Status",
+        "positions": "Pos."
+      },
+      "ctaContinue": "Weiter packen →",
+      "ctaStart": "Picken starten →",
+      "linkSlip": "🧾 Slip",
+      "linkPicklist": "📋 Picklist"
+    }
+  },
+  "packing": {
+    "shippingAddress": "Lieferadresse",
+    "contents": {
+      "eyebrow": "Inhalt",
+      "title": "Was im Karton landen muss",
+      "product": "Produkt",
+      "qty": "Menge",
+      "batches": "Chargen"
+    },
+    "dhl": {
+      "eyebrow": "Versandetikett",
+      "title": "DHL-Etikett erzeugen",
+      "intro": "Erzeugt ein DHL-Paket-Etikett (DE) direkt über die API. Sobald das Etikett erstellt ist, wird die Order automatisch als <b>verpackt + versendet</b> markiert (Bestand abgebucht, Fulfillment an Shopify gemeldet).",
+      "weightLabel": "Paketgewicht (Gramm)",
+      "codAmountLabel": "Nachnahme-Betrag (EUR)",
+      "codAmountPlaceholder": "49,90",
+      "createButton": "DHL-Etikett erstellen",
+      "creating": "Erzeuge Etikett…",
+      "domestic": "Inland DE — DHL Paket (V01PAK)",
+      "internationalNotice": "Auslandsversand ({country}) — DHL Express",
+      "internationalButton": "DHL Express Etikett",
+      "existingNumber": "DHL Sendungsnummer",
+      "existingSandbox": "SANDBOX",
+      "existingWeight": "Gewicht: {weight} g",
+      "openPdf": "Etikett-PDF öffnen",
+      "tracking": "Tracking",
+      "recreate": "Etikett neu erstellen",
+      "recreating": "Erzeuge…",
+      "recreateConfirm": "Wirklich neu? Nochmal klicken",
+      "notConfiguredHint": "DHL ist noch nicht konfiguriert. <link>In den Admin-Einstellungen</link> EKP-Nummer + Absenderadresse pflegen.",
+      "errors": {
+        "weightRange": "Gewicht in Gramm muss zwischen 1 und 31500 liegen.",
+        "codMissing": "Nachnahme-Betrag fehlt. Bitte den offenen Bruttobetrag in EUR eintragen (z. B. 49,90).",
+        "codOverLimit": "Nachnahme-Betrag überschreitet DHL-Limit von 3.500,00 EUR.",
+        "configNotConfigured": "DHL ist noch nicht konfiguriert. Bitte in den Admin-Einstellungen Abrechnungsnummer + Absenderadresse pflegen.",
+        "configBillingMissing": "Abrechnungsnummer (EKP) fehlt in der DHL-Konfiguration.",
+        "configCredentialsMissing": "Geschäftskundenportal-Username/Passwort fehlen in der DHL-Konfiguration.",
+        "configClientCredsMissing": "DHL_API_KEY/SECRET fehlen in den ENV-Variablen.",
+        "address": "Lieferadresse unvollständig ({field}).",
+        "validationFailed": "DHL hat den Versandauftrag abgelehnt. Bitte Adresse / Gewicht prüfen (Details siehe Logs).",
+        "noLabel": "DHL hat zwar geantwortet, aber kein Etikett zurückgegeben.",
+        "codMissingAmount": "Nachnahme-Tag gesetzt, aber kein offener Betrag in der Order. Order in Shopify prüfen oder neu synchronisieren.",
+        "codMissingAccountRef": "Nachnahme-Kontoreferenz fehlt — bitte in den Admin-Einstellungen unter DHL pflegen.",
+        "codCurrency": "Nachnahme ist nur in EUR möglich.",
+        "servicesGeneric": "DHL-Sonderleistung: {sub}",
+        "auth": "DHL-Authentifizierung fehlgeschlagen ({status}). Credentials prüfen.",
+        "api": "DHL-API-Fehler (HTTP {status}).",
+        "generic": "Fehler: {code}"
+      }
+    },
+    "finish": {
+      "eyebrow": "Abschluss",
+      "title": "Verpackt + versendet",
+      "intro": "Bucht den Bestand atomar ab, meldet Fulfillment und Inventory an Shopify zurück und schließt die Order."
+    },
+    "alerts": {
+      "packed": "Order ist gepackt und gebucht.",
+      "wrongStatus": "Order ist in Status <b>{status}</b>. Pack-Bestätigung nur aus PICKING-Status möglich."
+    },
+    "reprintPicklist": "Picklist nochmal drucken"
+  },
+  "services": {
+    "cod": "Nachnahme",
+    "codAmountMissing": "Betrag fehlt",
+    "premium": "Premium-Versand"
+  }
+}

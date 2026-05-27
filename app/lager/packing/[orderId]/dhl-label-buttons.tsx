@@ -24,6 +24,7 @@ export function DhlLabelButtons({
   countryCode,
   existingShipment,
   defaultWeightG,
+  cod,
 }: {
   orderId: string;
   shopDomain: string;
@@ -36,6 +37,14 @@ export function DhlLabelButtons({
     sandbox: boolean;
   } | null;
   defaultWeightG: number;
+  /**
+   * COD context when the shipping method indicates Nachnahme.
+   * `defaultAmountCents` = best-effort amount from Shopify.
+   */
+  cod: {
+    required: boolean;
+    defaultAmountCents: number | null;
+  };
 }) {
   const isInternational = !!countryCode && countryCode.toUpperCase() !== "DE";
 
@@ -65,23 +74,54 @@ export function DhlLabelButtons({
         orderId={orderId}
         shipment={existingShipment}
         defaultWeightG={defaultWeightG}
+        cod={cod}
       />
     );
   }
 
-  return <CreateLabelPanel orderId={orderId} defaultWeightG={defaultWeightG} />;
+  return (
+    <CreateLabelPanel
+      orderId={orderId}
+      defaultWeightG={defaultWeightG}
+      cod={cod}
+    />
+  );
+}
+
+/** Parse a German-formatted EUR string ("12,34" or "12.34") to integer cents. */
+function parseEuroToCents(s: string): number | null {
+  const normalized = s.trim().replace(",", ".");
+  if (!normalized) return null;
+  const m = normalized.match(/^(-?\d+)(?:\.(\d{1,2}))?$/);
+  if (!m) return null;
+  const whole = parseInt(m[1] ?? "0", 10);
+  const frac = parseInt(((m[2] ?? "") + "00").slice(0, 2), 10);
+  if (!Number.isFinite(whole) || whole < 0) return null;
+  return whole * 100 + frac;
+}
+
+function centsToEuroInput(cents: number | null): string {
+  if (cents == null) return "";
+  const whole = Math.floor(cents / 100);
+  const frac = cents % 100;
+  return `${whole},${frac.toString().padStart(2, "0")}`;
 }
 
 function CreateLabelPanel({
   orderId,
   defaultWeightG,
+  cod,
 }: {
   orderId: string;
   defaultWeightG: number;
+  cod: { required: boolean; defaultAmountCents: number | null };
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [weight, setWeight] = useState<string>(String(defaultWeightG));
+  const [codAmount, setCodAmount] = useState<string>(
+    centsToEuroInput(cod.defaultAmountCents),
+  );
   const [err, setErr] = useState<string | null>(null);
 
   function handleCreate() {
@@ -91,8 +131,23 @@ function CreateLabelPanel({
       setErr("Gewicht in Gramm muss zwischen 1 und 31500 liegen.");
       return;
     }
+    let codCents: number | null = null;
+    if (cod.required) {
+      const parsed = parseEuroToCents(codAmount);
+      if (parsed == null || parsed <= 0) {
+        setErr(
+          "Nachnahme-Betrag fehlt. Bitte den offenen Bruttobetrag in EUR eintragen (z. B. 49,90).",
+        );
+        return;
+      }
+      if (parsed > 350000) {
+        setErr("Nachnahme-Betrag überschreitet DHL-Limit von 3.500,00 EUR.");
+        return;
+      }
+      codCents = parsed;
+    }
     startTransition(async () => {
-      const res = await createDhlLabelAction(orderId, w);
+      const res = await createDhlLabelAction(orderId, w, codCents);
       if (res.ok) {
         window.open(res.labelUrl, "_blank", "noopener,noreferrer");
         router.refresh();
@@ -122,6 +177,25 @@ function CreateLabelPanel({
             className="mt-1.5 w-32 rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
           />
         </div>
+        {cod.required ? (
+          <div>
+            <label
+              htmlFor="dhl-cod-amount"
+              className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy"
+            >
+              Nachnahme-Betrag (EUR)
+            </label>
+            <input
+              id="dhl-cod-amount"
+              type="text"
+              inputMode="decimal"
+              placeholder="49,90"
+              value={codAmount}
+              onChange={(e) => setCodAmount(e.target.value)}
+              className="mt-1.5 w-32 rounded-md border border-brand-burgundy/40 bg-white px-3 py-2 font-mono text-sm text-brand-ink shadow-sm transition focus:border-brand-burgundy focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20"
+            />
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={handleCreate}
@@ -147,6 +221,7 @@ function ExistingLabelPanel({
   orderId,
   shipment,
   defaultWeightG,
+  cod,
 }: {
   orderId: string;
   shipment: {
@@ -157,6 +232,7 @@ function ExistingLabelPanel({
     sandbox: boolean;
   };
   defaultWeightG: number;
+  cod: { required: boolean; defaultAmountCents: number | null };
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -170,7 +246,15 @@ function ExistingLabelPanel({
     }
     setErr(null);
     startTransition(async () => {
-      const res = await createDhlLabelAction(orderId, defaultWeightG);
+      // On recreate we don't expose a fresh COD input — reuse what Shopify
+      // sent (if any). If it's a COD order without amount, the action will
+      // return `cod_missing_amount` and the user can use the regular flow
+      // via "Etikett neu erstellen" by deleting the existing shipment.
+      const res = await createDhlLabelAction(
+        orderId,
+        defaultWeightG,
+        cod.required ? cod.defaultAmountCents : null,
+      );
       if (res.ok) {
         window.open(res.labelUrl, "_blank", "noopener,noreferrer");
         router.refresh();
@@ -267,6 +351,19 @@ function prettifyError(code: string): string {
   }
   if (code === "dhl_no_label_returned") {
     return "DHL hat zwar geantwortet, aber kein Etikett zurückgegeben.";
+  }
+  if (code.startsWith("dhl_services:")) {
+    const sub = code.slice("dhl_services:".length);
+    if (sub === "cod_missing_amount") {
+      return "Versandmethode ist Nachnahme, aber kein offener Betrag hinterlegt. Betrag manuell eingeben oder Order neu synchronisieren.";
+    }
+    if (sub === "cod_missing_account_reference") {
+      return "Nachnahme-Kontoreferenz fehlt — bitte in den Admin-Einstellungen unter DHL pflegen.";
+    }
+    if (sub === "cod_currency_not_eur") {
+      return "Nachnahme ist nur in EUR möglich.";
+    }
+    return `DHL-Sonderleistung: ${sub}`;
   }
   if (code.startsWith("dhl_auth:")) {
     return `DHL-Authentifizierung fehlgeschlagen (${code.slice("dhl_auth:".length)}). Credentials prüfen.`;

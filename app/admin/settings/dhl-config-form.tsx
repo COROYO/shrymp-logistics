@@ -30,6 +30,7 @@ export type DhlConfigFormValue = {
   };
   gkp_username: string | null;
   gkp_password_set: boolean;
+  cod_account_reference: string | null;
   sandbox: boolean;
 };
 
@@ -111,6 +112,25 @@ export function DhlConfigForm({
           />
           Sandbox-Endpunkt verwenden (api-sandbox.dhl.com)
         </label>
+      </div>
+
+      <div>
+        <p className="eyebrow">Nachnahme (Cash on Delivery)</p>
+        <p className="mt-1 text-xs text-brand-navy/60">
+          Kontoreferenz aus dem DHL Geschäftskundenportal (
+          <strong>Versenden → Einstellungen → Nachnahme</strong>). Wird
+          automatisch genutzt, wenn die Shopify-Versandmethode Nachnahme
+          enthält (z.&nbsp;B. &quot;DHL Paket Nachnahme&quot;).
+        </p>
+        <div className="mt-2">
+          <Field
+            label="COD Account Reference"
+            name="cod_account_reference"
+            defaultValue={current?.cod_account_reference ?? ""}
+            mono
+            placeholder="Referenz aus dem GKP"
+          />
+        </div>
       </div>
 
       <div>

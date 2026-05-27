@@ -29,6 +29,7 @@ const baseConfig: DhlConfig = {
   default_weight_g: 1000,
   gkp_username: "user",
   gkp_password: "pass",
+  cod_account_reference: "COD-REF-01",
   sandbox: true,
   updated_at: new Date(),
   updated_by_uid: null,
@@ -51,12 +52,33 @@ function shippingAddress(over: Partial<ShippingAddress> = {}): ShippingAddress {
 }
 
 function order(
-  over: Partial<Pick<Order, "id" | "name" | "shipping_address">> = {},
-): Pick<Order, "id" | "name" | "shipping_address"> {
+  over: Partial<
+    Pick<
+      Order,
+      | "id"
+      | "name"
+      | "shipping_address"
+      | "shipping_method"
+      | "cod_amount_cents"
+      | "currency"
+    >
+  > = {},
+): Pick<
+  Order,
+  | "id"
+  | "name"
+  | "shipping_address"
+  | "shipping_method"
+  | "cod_amount_cents"
+  | "currency"
+> {
   return {
     id: "1234567890",
     name: "#1042",
     shipping_address: shippingAddress(),
+    shipping_method: { title: "DHL Paket", code: null },
+    cod_amount_cents: null,
+    currency: "EUR",
     ...over,
   };
 }
@@ -210,9 +232,56 @@ describe("buildShipmentOrderRequest", () => {
   it("throws when no shipping address", () => {
     expect(() =>
       buildShipmentOrderRequest({
-        order: { id: "1", name: "#1", shipping_address: null },
+        order: {
+          id: "1",
+          name: "#1",
+          shipping_address: null,
+          shipping_method: null,
+          cod_amount_cents: null,
+          currency: "EUR",
+        },
         config: baseConfig,
       }),
     ).toThrow(AddressMappingError);
+  });
+
+  it("adds premium service when shipping method contains Premium", () => {
+    const req = buildShipmentOrderRequest({
+      order: order({
+        shipping_method: { title: "DHL Paket Premium", code: null },
+      }),
+      config: baseConfig,
+    });
+    expect(req.shipments[0]!.services?.premium).toBe(true);
+    expect(req.shipments[0]!.services?.cashOnDelivery).toBeUndefined();
+  });
+
+  it("adds COD service when shipping method is Nachnahme", () => {
+    const req = buildShipmentOrderRequest({
+      order: order({
+        shipping_method: { title: "DHL Paket Nachnahme", code: null },
+        cod_amount_cents: 4990,
+        currency: "EUR",
+      }),
+      config: baseConfig,
+    });
+    expect(req.shipments[0]!.services?.cashOnDelivery).toEqual({
+      amount: { currency: "EUR", value: 49.9 },
+      accountReference: "COD-REF-01",
+      transferNote1: "#1042",
+    });
+  });
+
+  it("matches Nachnahme case-insensitively in title", () => {
+    const req = buildShipmentOrderRequest({
+      order: order({
+        shipping_method: { title: "dhl nachnahme premium", code: null },
+        cod_amount_cents: 1200,
+        currency: "EUR",
+      }),
+      config: baseConfig,
+    });
+    expect(req.shipments[0]!.services?.premium).toBe(true);
+    expect(req.shipments[0]!.services?.cashOnDelivery?.amount.value).toBe(12);
   });
 });

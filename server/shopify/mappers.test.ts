@@ -93,4 +93,20 @@ describe("mapShopifyOrderToFirestore", () => {
     );
     expect(doc.shipping_address).toBeNull();
   });
+
+  it("maps shipping method from first shipping line", () => {
+    const doc = mapShopifyOrderToFirestore(
+      {
+        ...baseOrder,
+        shipping_lines: [
+          { title: "DHL Paket Nachnahme", code: "dhl_cod" },
+        ],
+      },
+      null,
+    );
+    expect(doc.shipping_method).toEqual({
+      title: "DHL Paket Nachnahme",
+      code: "dhl_cod",
+    });
+  });
 });

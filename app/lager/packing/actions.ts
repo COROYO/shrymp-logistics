@@ -4,9 +4,12 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
 import {
   confirmPacking,
+  startPicking,
   TransitionError,
   type TrackingInput,
 } from "@/server/picking/transitions";
+import { adminDb } from "@/server/firestore/admin";
+import { Collections, type Order } from "@/server/firestore/schema";
 import {
   createLabelForOrder,
   CreateLabelError,
@@ -15,6 +18,7 @@ import { DhlConfigError } from "@/server/dhl/config";
 import { DhlAuthError } from "@/server/dhl/auth";
 import { DhlApiError } from "@/server/dhl/client";
 import { AddressMappingError } from "@/server/dhl/request-builder";
+import { DhlServicesError } from "@/server/dhl/services";
 import { log } from "@/lib/logger";
 
 const TrackingSchema = z
@@ -64,6 +68,14 @@ const WeightSchema = z
   .max(31500)
   .optional();
 
+const CodAmountCentsSchema = z
+  .number()
+  .int()
+  .min(1)
+  .max(350000) // DHL hard cap: 3500 EUR per shipment
+  .nullable()
+  .optional();
+
 export type CreateDhlLabelActionResult =
   | {
       ok: true;
@@ -83,6 +95,7 @@ export type CreateDhlLabelActionResult =
 export async function createDhlLabelAction(
   orderId: string,
   weightG?: number,
+  codAmountCents?: number | null,
 ): Promise<CreateDhlLabelActionResult> {
   let user;
   try {
@@ -94,13 +107,47 @@ export async function createDhlLabelAction(
   const parsed = WeightSchema.safeParse(weightG);
   if (!parsed.success) return { ok: false, error: "invalid_weight" };
 
+  const parsedCod = CodAmountCentsSchema.safeParse(codAmountCents);
+  if (!parsedCod.success) return { ok: false, error: "invalid_cod_amount" };
+
   try {
     const res = await createLabelForOrder({
       orderId,
       userId: user.uid,
       weightG: parsed.data,
+      codAmountCents: parsedCod.data ?? null,
     });
+
+    // ---- Auto-pack on label creation ----
+    // Once the label is printed, the order is leaving the warehouse — treat
+    // it as packed: mark Shopify fulfilled, decrement stock, etc. Best-effort
+    // so a failure here doesn't roll back the label that was already created.
+    try {
+      const orderSnap = await adminDb()
+        .collection(Collections.Orders)
+        .doc(orderId)
+        .get();
+      const order = orderSnap.data() as Order | undefined;
+      if (order && order.internal_status !== "PACKED") {
+        if (order.internal_status === "SHIP" || order.internal_status === "NEW") {
+          await startPicking(orderId, user.uid);
+        }
+        await confirmPacking(orderId, user.uid, {
+          carrier: "DHL",
+          number: res.shipmentNo,
+          url: res.trackingUrl,
+        });
+      }
+    } catch (autoPackErr) {
+      log.warn("auto_pack_after_label_failed", {
+        orderId,
+        error: String(autoPackErr),
+      });
+    }
+
     revalidatePath(`/lager/packing/${orderId}`);
+    revalidatePath("/lager/picking");
+    revalidatePath("/admin/orders");
     return {
       ok: true,
       shipmentNo: res.shipmentNo,
@@ -114,6 +161,12 @@ export async function createDhlLabelAction(
     }
     if (e instanceof AddressMappingError) {
       return { ok: false, error: `address:${e.code}` };
+    }
+    if (e instanceof DhlServicesError) {
+      return { ok: false, error: `dhl_services:${e.code}` };
+    }
+    if (e instanceof CreateLabelError && e.code === "dhl_services_error") {
+      return { ok: false, error: `dhl_services:${e.message}`, details: e.details };
     }
     if (e instanceof DhlAuthError) {
       return { ok: false, error: `dhl_auth:${e.status}` };

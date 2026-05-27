@@ -12,7 +12,10 @@ import {
 } from "@/server/firestore/schema";
 import { signLabel } from "@/server/dhl/storage";
 import { ConfirmPackingForm } from "./confirm-packing-form";
+import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 import { DhlLabelButtons } from "./dhl-label-buttons";
+import { DhlServicesBadges } from "./dhl-services-badges";
+import { summarizeDhlServices } from "@/server/dhl/request-builder";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +148,7 @@ export default async function PackingPage({
   if (!data) notFound();
   const { order, allocsByLi, shopDomain, dhlConfig, dhlShipmentForUi } = data;
   const defaultWeightG = dhlConfig?.default_weight_g ?? 1000;
+  const dhlServices = summarizeDhlServices(order);
 
   const isPacking = order.internal_status === "PICKING";
   const isPacked = order.internal_status === "PACKED";
@@ -160,7 +164,10 @@ export default async function PackingPage({
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
-            {order.name}
+            <span className="inline-flex items-center gap-2">
+              <OrderNoteIcon note={order.customer_note} />
+              {order.name}
+            </span>
           </h1>
           <span
             className={
@@ -264,9 +271,12 @@ export default async function PackingPage({
           DHL-Etikett erzeugen
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Öffnet das externe DHL-Tool in einem neuen Tab. Etikett dort drucken,
-          anschließend hier &quot;Verpackt + versendet&quot; klicken.
+          Erzeugt ein DHL-Paket-Etikett (DE) direkt über die API. Sobald das
+          Etikett erstellt ist, wird die Order automatisch als{" "}
+          <strong>verpackt + versendet</strong> markiert (Bestand abgebucht,
+          Fulfillment an Shopify gemeldet).
         </p>
+        <DhlServicesBadges services={dhlServices} />
         <div className="mt-4">
           <DhlLabelButtons
             orderId={order.id}
@@ -274,6 +284,10 @@ export default async function PackingPage({
             countryCode={order.shipping_address?.country_code ?? null}
             existingShipment={dhlShipmentForUi}
             defaultWeightG={defaultWeightG}
+            cod={{
+              required: dhlServices.cod,
+              defaultAmountCents: dhlServices.codAmountCents,
+            }}
           />
         </div>
         {!dhlConfig &&
