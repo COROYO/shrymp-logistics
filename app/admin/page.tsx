@@ -50,6 +50,15 @@ export default function AdminHome() {
             Shopify-Verbindung, Webhooks, Backfill, Allocation
           </p>
         </Link>
+        <Link
+          href="/lager"
+          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
+        >
+          <h2 className="text-sm font-semibold">Lager</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Picking &amp; Packing-Ansicht öffnen
+          </p>
+        </Link>
       </div>
     </div>
   );
