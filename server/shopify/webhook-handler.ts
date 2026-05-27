@@ -10,6 +10,7 @@ import { log } from "@/lib/logger";
 import { mapShopifyOrderToFirestore, type ShopifyOrderPayload } from "./mappers";
 import { TOPICS, type ShopifyTopic } from "./topics";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+import { fetchOrderBundleGroups } from "./bundles";
 
 /**
  * Result of dispatching a verified, deduped webhook event.
@@ -62,6 +63,25 @@ async function mirrorOrder(
     prev?.internal_status ?? null;
 
   const doc = mapShopifyOrderToFirestore(payload, previousStatus);
+
+  // The REST webhook payload does not carry `LineItemGroup` info, so re-fetch
+  // bundle metadata via GraphQL and inline it onto each line item before
+  // writing. Best-effort: if the GraphQL call fails we mirror without bundle
+  // info rather than dropping the webhook entirely.
+  try {
+    const bundles = await fetchOrderBundleGroups(doc.shopify_gid);
+    if (bundles.size > 0) {
+      doc.line_items = doc.line_items.map((li) => {
+        const b = bundles.get(li.id);
+        return b ? { ...li, bundle: b } : li;
+      });
+    }
+  } catch (e) {
+    log.warn("bundle_enrich_failed", {
+      orderId: doc.id,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
 
   await ref.set(
     {

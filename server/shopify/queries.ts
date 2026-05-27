@@ -19,11 +19,22 @@ const PRODUCTS_PAGE_QUERY = /* GraphQL */ `
         handle
         status
         updatedAt
+        featuredMedia {
+          preview {
+            image {
+              url(transform: { maxWidth: 400, maxHeight: 400 })
+            }
+          }
+        }
         variants(first: 100) {
           nodes {
             id
             title
             sku
+            price
+            image {
+              url(transform: { maxWidth: 400, maxHeight: 400 })
+            }
             inventoryItem {
               id
             }
@@ -40,6 +51,7 @@ export type ShopifyProductNode = {
   handle: string;
   status: "ACTIVE" | "DRAFT" | "ARCHIVED";
   updatedAt: string;
+  featuredMedia: { preview: { image: { url: string } | null } | null } | null;
   variants: { nodes: ShopifyVariantNode[] };
 };
 
@@ -47,6 +59,8 @@ export type ShopifyVariantNode = {
   id: string;
   title: string;
   sku: string | null;
+  price: string | null; // decimal string, e.g. "49.90"
+  image: { url: string } | null;
   inventoryItem: { id: string } | null;
 };
 

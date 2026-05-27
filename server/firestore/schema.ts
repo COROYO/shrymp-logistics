@@ -27,6 +27,7 @@ export const ProductSchema = z.object({
   title: z.string(),
   handle: z.string(),
   status: z.enum(["ACTIVE", "DRAFT", "ARCHIVED"]).default("ACTIVE"),
+  image_url: z.string().url().nullable().default(null),
   updated_at_shopify: FirestoreTimestamp.optional(),
   synced_at: FirestoreTimestamp,
 });
@@ -38,6 +39,12 @@ export const VariantSchema = z.object({
   inventory_item_gid: z.string(),
   sku: z.string().nullable().default(null),
   title: z.string(),
+  /** Variant-specific image, falls undefined fällt UI zurück auf product.image_url. */
+  image_url: z.string().url().nullable().default(null),
+  /** Verkaufspreis in der Default-Währung, als Smallest-Unit-Integer (z.B. 4990 für 49,90 EUR). */
+  price_cents: z.number().int().nonnegative().nullable().default(null),
+  /** Währungscode (z.B. EUR, USD), three-letter ISO. */
+  currency: z.string().length(3).nullable().default(null),
   on_hand_total: z.number().int().nonnegative().default(0),
   reserved_total: z.number().int().nonnegative().default(0),
   available: z.number().int().default(0),
@@ -67,9 +74,26 @@ export const OrderInternalStatusSchema = z.enum([
   "NEW",
   "SHIP",
   "STOP",
+  "PICKING", // Mitarbeiter:in hat die Order in der Hand — Allocation darf nicht anfassen
   "PACKED",
   "CANCELLED",
 ]);
+
+/**
+ * If the line item is part of a Shopify Bundle, `bundle` references the parent
+ * `LineItemGroup`. Multiple line items on the same order can share the same
+ * `group_id` to indicate they are components of the same bundle parent.
+ *
+ * Standalone (non-bundle) line items leave `bundle` undefined.
+ */
+export const OrderLineItemBundleSchema = z.object({
+  group_id: z.string(),
+  product_id: z.string().nullable().default(null),
+  variant_id: z.string().nullable().default(null),
+  variant_sku: z.string().nullable().default(null),
+  title: z.string(),
+  quantity: z.number().int().positive(),
+});
 
 export const OrderLineItemSchema = z.object({
   id: z.string(), // shopify line item id
@@ -78,6 +102,7 @@ export const OrderLineItemSchema = z.object({
   qty: z.number().int().positive(),
   title: z.string(),
   sku: z.string().nullable().default(null),
+  bundle: OrderLineItemBundleSchema.optional(),
 });
 
 export const ShippingAddressSchema = z.object({
@@ -254,6 +279,7 @@ export type BatchStatus = z.infer<typeof BatchStatusSchema>;
 export type Order = z.infer<typeof OrderSchema>;
 export type OrderInternalStatus = z.infer<typeof OrderInternalStatusSchema>;
 export type OrderLineItem = z.infer<typeof OrderLineItemSchema>;
+export type OrderLineItemBundle = z.infer<typeof OrderLineItemBundleSchema>;
 export type ShippingAddress = z.infer<typeof ShippingAddressSchema>;
 export type Allocation = z.infer<typeof AllocationSchema>;
 export type InventoryMovement = z.infer<typeof InventoryMovementSchema>;

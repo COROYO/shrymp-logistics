@@ -1,5 +1,41 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { backfillOrders } from "@/server/shopify/sync-orders";
+import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+
+function normalizeBaseUrl(s: string): string {
+  const trimmed = s.trim().replace(/\/$/, "");
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+export async function backfillOrdersAction(): Promise<
+  | { ok: true; mirroredCount: number; pages: number }
+  | { ok: false; error: string }
+> {
+  try {
+    const { requireRole } = await import("@/lib/auth/session");
+    await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+  try {
+    // Default: pull all unfulfilled, uncancelled orders. Adjust the query
+    // string if you want a different cut.
+    const r = await backfillOrders({
+      query: "fulfillment_status:unfulfilled AND status:open",
+    });
+    // Run allocation once everything is mirrored.
+    await enqueueAllocationRun({ triggeredBy: "MANUAL" });
+    revalidatePath("/admin/orders");
+    return { ok: true, ...r };
+  } catch (e) {
+    const { log } = await import("@/lib/logger");
+    log.error("orders_backfill_failed", { error: String(e) });
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
 import { requireRole } from "@/lib/auth/session";
 import { ensureWebhookSubscription } from "@/server/shopify/mutations";
 import { runAllocationInFirestore } from "@/server/allocation/run";
@@ -27,7 +63,7 @@ export async function registerWebhooksAction(
   }
   if (!baseUrl) return { ok: false, error: "missing APP_BASE_URL env" };
 
-  const callbackUrl = `${baseUrl.replace(/\/$/, "")}/api/webhooks/shopify`;
+  const callbackUrl = `${normalizeBaseUrl(baseUrl)}/api/webhooks/shopify`;
 
   try {
     const results = [];

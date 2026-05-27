@@ -97,8 +97,18 @@ function getAdminApp(): App {
   return cachedApp;
 }
 
+let dbSettingsApplied = false;
+
 export function adminDb(): Firestore {
-  return getFirestore(getAdminApp());
+  const db = getFirestore(getAdminApp());
+  if (!dbSettingsApplied) {
+    // Treat any field set to `undefined` as "drop on write" rather than
+    // throwing — matches our schema convention where optional fields are
+    // simply omitted from documents.
+    db.settings({ ignoreUndefinedProperties: true });
+    dbSettingsApplied = true;
+  }
+  return db;
 }
 
 export function adminAuth(): Auth {

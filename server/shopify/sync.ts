@@ -23,6 +23,17 @@ export function numericIdFromGid(gid: string): string {
   return gid.slice(i + 1);
 }
 
+/** Parse Shopify's decimal-string price ("49.90") to integer cents (4990). */
+export function parsePriceToCents(s: string | null | undefined): number | null {
+  if (!s) return null;
+  const m = s.trim().match(/^(-?\d+)(?:\.(\d{1,2}))?$/);
+  if (!m) return null;
+  const whole = parseInt(m[1] ?? "0", 10);
+  const fracPart = m[2] ?? "";
+  const frac = parseInt((fracPart + "00").slice(0, 2), 10);
+  return whole * 100 + (whole < 0 ? -frac : frac);
+}
+
 const FIRESTORE_BATCH_MAX = 450; // hard limit is 500, leave headroom
 
 /**
@@ -72,6 +83,9 @@ export async function syncProductsAndVariants(): Promise<{
   for await (const p of iterateAllProducts()) {
     const productId = numericIdFromGid(p.id);
 
+    const productImage =
+      p.featuredMedia?.preview?.image?.url ?? null;
+
     const productDoc: Omit<Product, "synced_at" | "updated_at_shopify"> & {
       synced_at: FirebaseFirestore.FieldValue;
       updated_at_shopify: Date;
@@ -81,6 +95,7 @@ export async function syncProductsAndVariants(): Promise<{
       title: p.title,
       handle: p.handle,
       status: p.status,
+      image_url: productImage,
       updated_at_shopify: new Date(p.updatedAt),
       synced_at: FieldValue.serverTimestamp(),
     };
@@ -101,6 +116,8 @@ export async function syncProductsAndVariants(): Promise<{
         continue;
       }
 
+      const priceCents = parsePriceToCents(v.price);
+
       const variantDoc: Omit<
         Variant,
         "updated_at" | "on_hand_total" | "reserved_total" | "available"
@@ -113,6 +130,12 @@ export async function syncProductsAndVariants(): Promise<{
         inventory_item_gid: inventoryItemGid,
         sku: v.sku ?? null,
         title: v.title,
+        image_url: v.image?.url ?? null,
+        price_cents: priceCents,
+        // Shopify GraphQL `price` on ProductVariant doesn't expose currency
+        // directly; we don't read it here (would require shop.currencyCode).
+        // currency stays nullable — UI falls back to the EUR locale.
+        currency: null,
         updated_at: FieldValue.serverTimestamp(),
       };
 

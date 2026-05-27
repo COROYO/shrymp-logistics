@@ -4,7 +4,10 @@ import {
   Collections,
   type Order,
   type OrderInternalStatus,
+  type Product,
+  type Variant,
 } from "@/server/firestore/schema";
+import { OrdersTable, type OrderRow } from "./orders-table";
 
 export const dynamic = "force-dynamic";
 
@@ -13,51 +16,120 @@ const FILTERS: Filter[] = [
   "ALL",
   "NEW",
   "SHIP",
+  "PICKING",
   "STOP",
   "PACKED",
   "CANCELLED",
 ];
 
-async function loadOrders(
-  filter: Filter,
-): Promise<(Order & { _createdIso: string })[]> {
-  const db = adminDb();
-  let q = db
-    .collection(Collections.Orders)
-    .orderBy("created_at_shopify", "desc")
-    .limit(100);
-  if (filter !== "ALL") {
-    q = db
-      .collection(Collections.Orders)
-      .where("internal_status", "==", filter)
-      .orderBy("created_at_shopify", "desc")
-      .limit(100);
-  }
-  const snap = await q.get();
-  return snap.docs.map((d) => {
-    const data = d.data() as Order;
-    const ts = data.created_at_shopify as unknown as
-      | { toDate?(): Date; seconds?: number }
-      | undefined;
-    let iso = "";
-    if (ts && typeof (ts as { toDate?: unknown }).toDate === "function") {
-      iso = (ts as { toDate(): Date }).toDate().toISOString();
-    } else if (ts && typeof (ts as { seconds?: number }).seconds === "number") {
-      iso = new Date(
-        (ts as { seconds: number }).seconds * 1000,
-      ).toISOString();
-    }
-    return { ...data, _createdIso: iso };
-  });
+function tsToIso(t: unknown): string {
+  if (!t) return "";
+  const o = t as { toDate?(): Date; seconds?: number };
+  if (typeof o.toDate === "function") return o.toDate().toISOString();
+  if (typeof o.seconds === "number")
+    return new Date(o.seconds * 1000).toISOString();
+  return "";
 }
 
-const STATUS_BADGE: Record<OrderInternalStatus, string> = {
-  NEW: "bg-zinc-100 text-zinc-700",
-  SHIP: "bg-emerald-100 text-emerald-800",
-  STOP: "bg-amber-100 text-amber-800",
-  PACKED: "bg-sky-100 text-sky-800",
-  CANCELLED: "bg-zinc-200 text-zinc-600",
-};
+async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
+  const db = adminDb();
+
+  const baseCol = db.collection(Collections.Orders);
+  const q =
+    filter === "ALL"
+      ? baseCol.orderBy("created_at_shopify", "desc").limit(100)
+      : baseCol
+          .where("internal_status", "==", filter)
+          .orderBy("created_at_shopify", "desc")
+          .limit(100);
+
+  const snap = await q.get();
+  const orders = snap.docs.map((d) => d.data() as Order);
+  if (orders.length === 0) return [];
+
+  const variantIds = Array.from(
+    new Set(
+      orders.flatMap((o) => o.line_items.map((li) => li.variant_id)),
+    ),
+  ).filter(Boolean);
+
+  const variantById = new Map<string, Variant>();
+  if (variantIds.length > 0) {
+    const variantRefs = variantIds.map((id) =>
+      db.collection(Collections.Variants).doc(id),
+    );
+    const variantSnaps = await db.getAll(...variantRefs);
+    for (const v of variantSnaps) {
+      if (v.exists) variantById.set(v.id, v.data() as Variant);
+    }
+  }
+
+  const productIds = Array.from(
+    new Set(
+      Array.from(variantById.values())
+        .map((v) => v.product_id)
+        .filter(Boolean),
+    ),
+  );
+  const productById = new Map<string, Product>();
+  if (productIds.length > 0) {
+    const productRefs = productIds.map((id) =>
+      db.collection(Collections.Products).doc(id),
+    );
+    const productSnaps = await db.getAll(...productRefs);
+    for (const p of productSnaps) {
+      if (p.exists) productById.set(p.id, p.data() as Product);
+    }
+  }
+
+  return orders.map<OrderRow>((o) => {
+    const itemCount = o.line_items.reduce((sum, li) => sum + li.qty, 0);
+    return {
+      id: o.id,
+      name: o.name,
+      status: o.internal_status,
+      tags: o.tags,
+      stopReason: o.stop_reason ?? null,
+      createdIso: tsToIso(o.created_at_shopify),
+      itemCount,
+      lineItems: o.line_items.map((li) => {
+        const variant = variantById.get(li.variant_id);
+        const product = variant
+          ? productById.get(variant.product_id)
+          : undefined;
+        const imageUrl = product?.image_url ?? null;
+        const imageMissingReason = imageUrl
+          ? null
+          : !variant
+            ? "no_variant"
+            : !product
+              ? "no_product"
+              : "no_image";
+        return {
+          id: li.id,
+          title: product?.title ?? li.title,
+          variantTitle: variant?.title ?? "",
+          sku: li.sku ?? variant?.sku ?? null,
+          qty: li.qty,
+          imageUrl,
+          imageMissingReason,
+          variantId: li.variant_id,
+          onHand: variant?.on_hand_total ?? 0,
+          reserved: variant?.reserved_total ?? 0,
+          available: variant?.available ?? 0,
+          bundle: li.bundle
+            ? {
+                groupId: li.bundle.group_id,
+                title: li.bundle.title,
+                quantity: li.bundle.quantity,
+                variantSku: li.bundle.variant_sku,
+              }
+            : null,
+        };
+      }),
+    };
+  });
+}
 
 export default async function OrdersPage({
   searchParams,
@@ -69,7 +141,7 @@ export default async function OrdersPage({
     ? (status as Filter)
     : "ALL";
 
-  const orders = await loadOrders(filter);
+  const rows = await loadOrderRows(filter);
 
   return (
     <div className="space-y-6">
@@ -77,7 +149,8 @@ export default async function OrdersPage({
         <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
         <p className="mt-1 text-sm text-zinc-600">
           Letzte 100 Bestellungen aus Shopify. Status wird vom
-          Allocation-Run automatisch gesetzt.
+          Allocation-Run automatisch gesetzt. Klicke auf den Pfeil, um die
+          Produkte und Bestände einer Order zu prüfen.
         </p>
       </div>
 
@@ -101,73 +174,7 @@ export default async function OrdersPage({
       </nav>
 
       <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
-        {orders.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-zinc-500">
-            Keine Bestellungen.
-          </p>
-        ) : (
-          <table className="w-full divide-y divide-zinc-200 text-sm">
-            <thead className="bg-zinc-50 text-left">
-              <tr>
-                <th className="px-4 py-2 font-medium">Order</th>
-                <th className="px-4 py-2 font-medium">Erstellt</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Items</th>
-                <th className="px-4 py-2 font-medium">Tags</th>
-                <th className="px-4 py-2 font-medium">Stop-Grund</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {orders.map((o) => {
-                const itemCount = o.line_items.reduce(
-                  (sum, li) => sum + li.qty,
-                  0,
-                );
-                return (
-                  <tr key={o.id}>
-                    <td className="px-4 py-2 font-mono">{o.name}</td>
-                    <td className="px-4 py-2 text-zinc-500">
-                      {o._createdIso
-                        ? new Date(o._createdIso).toLocaleString("de-DE")
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
-                          STATUS_BADGE[o.internal_status]
-                        }`}
-                      >
-                        {o.internal_status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      {itemCount} ({o.line_items.length} LineItems)
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {o.tags.map((t) => (
-                          <span
-                            key={t}
-                            className={`rounded px-1.5 py-0.5 text-xs ${
-                              t === "EXPRESS_DHL"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-zinc-100 text-zinc-700"
-                            }`}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2 text-xs text-zinc-500">
-                      {o.stop_reason ?? ""}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <OrdersTable orders={rows} />
       </div>
     </div>
   );

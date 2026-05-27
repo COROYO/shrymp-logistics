@@ -2,6 +2,7 @@ import { adminDb } from "@/server/firestore/admin";
 import { Collections, ConfigDocs } from "@/server/firestore/schema";
 import { RegisterWebhooksButton } from "./register-webhooks-button";
 import { RunAllocationButton } from "./run-allocation-button";
+import { BackfillOrdersButton } from "./backfill-orders-button";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,9 @@ export default async function SettingsPage({
       ) : null}
 
       <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Shopify App (Custom Distribution)</h2>
+        <h2 className="text-sm font-semibold">
+          Shopify App (Custom Distribution)
+        </h2>
         <p className="mt-1 text-xs text-zinc-500">
           Die App authentifiziert sich mit Client ID + Client Secret. Beim
           ersten Install klickt der Shop-Owner den vom Partner Dashboard
@@ -82,12 +85,14 @@ export default async function SettingsPage({
             </span>
           </DefItem>
           <DefItem label="Gewährte Scopes">
-            <span className="font-mono text-xs">
+            <span className="font-mono text-xs break-all">
               {status.token_scope ?? "—"}
             </span>
           </DefItem>
           <DefItem label="API Version">
-            <span className="font-mono">{status.api_version ?? env.apiVersion ?? "—"}</span>
+            <span className="font-mono">
+              {status.api_version ?? env.apiVersion ?? "—"}
+            </span>
           </DefItem>
           <DefItem label="Erwarteter Shop (env)">
             <span className="font-mono text-xs">{env.shopDomain ?? "—"}</span>
@@ -107,11 +112,22 @@ export default async function SettingsPage({
               <li>
                 <strong>App URL</strong> und{" "}
                 <strong>Allowed redirection URL(s)</strong> beide auf{" "}
-                <code>{env.appUrl ? `${stripScheme(env.appUrl)}/api/shopify/callback` : "<APP_BASE_URL>/api/shopify/callback"}</code>{" "}
+                <code>
+                  {env.appUrl
+                    ? `${stripScheme(env.appUrl)}/api/shopify/callback`
+                    : "<APP_BASE_URL>/api/shopify/callback"}
+                </code>{" "}
                 setzen.
               </li>
-              <li>Den Install-Link aus dem Partner Dashboard öffnen (einmaliger Klick).</li>
-              <li>Shopify ruft danach automatisch <code>/api/shopify/callback</code> auf — Token landet hier in Firestore.</li>
+              <li>
+                Den Install-Link aus dem Partner Dashboard öffnen (einmaliger
+                Klick).
+              </li>
+              <li>
+                Shopify ruft danach automatisch{" "}
+                <code>/api/shopify/callback</code> auf — Token landet hier in
+                Firestore.
+              </li>
             </ol>
           </div>
         ) : null}
@@ -127,6 +143,18 @@ export default async function SettingsPage({
         </p>
         <div className="mt-4">
           <RegisterWebhooksButton baseUrl={env.appUrl} />
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-zinc-200 bg-white p-6">
+        <h2 className="text-sm font-semibold">Orders nachladen (Backfill)</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Pullt alle <em>offenen, unfulfilled</em> Orders aus Shopify in unsere
+          Datenbank. Nötig nach dem ersten App-Install — Webhooks feuern nur
+          für neue/geänderte Orders, nicht rückwirkend.
+        </p>
+        <div className="mt-4">
+          <BackfillOrdersButton />
         </div>
       </section>
 

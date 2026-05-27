@@ -4,6 +4,8 @@ import { adminDb } from "@/server/firestore/admin";
 import { Collections } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+import { queueInventoryPush } from "./sync-to-shopify";
+import { processOutbox } from "@/server/shopify/outbox";
 
 export type ReceiveBatchInput = {
   variantId: string;
@@ -91,10 +93,22 @@ export async function receiveBatch(
     qty: input.qty,
   });
 
+  // Push new inventory level to Shopify (idempotent via outbox).
+  await queueInventoryPush(
+    input.variantId,
+    "received",
+    `monolith-lager://batch/${batchRef.id}/inbound`,
+  );
+
   await enqueueAllocationRun({
     triggeredBy: "INBOUND",
     triggerEventId: batchRef.id,
   });
+
+  // Immediate outbox drain so the user sees Shopify update fast.
+  processOutbox(20).catch((e) =>
+    log.warn("inbound_outbox_drain_failed", { error: String(e) }),
+  );
 
   return { batchId: batchRef.id, newOnHandTotal };
 }
