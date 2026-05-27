@@ -1,10 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { confirmPackingAction } from "../actions";
 
 export function ConfirmPackingForm({ orderId }: { orderId: string }) {
   const router = useRouter();
+  const t = useTranslations("confirmPacking");
   const [pending, startTransition] = useTransition();
   const [carrier, setCarrier] = useState("DHL");
   const [number, setNumber] = useState("");
@@ -41,7 +43,7 @@ export function ConfirmPackingForm({ orderId }: { orderId: string }) {
             htmlFor="carrier"
             className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70"
           >
-            Versanddienst (optional)
+            {t("carrier")}
           </label>
           <input
             id="carrier"
@@ -57,7 +59,7 @@ export function ConfirmPackingForm({ orderId }: { orderId: string }) {
             htmlFor="number"
             className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70"
           >
-            Tracking-Nr (optional)
+            {t("tracking")}
           </label>
           <input
             id="number"
@@ -65,7 +67,7 @@ export function ConfirmPackingForm({ orderId }: { orderId: string }) {
             value={number}
             onChange={(e) => setNumber(e.target.value)}
             maxLength={80}
-            placeholder="Leer lassen wenn noch keine Nr"
+            placeholder={t("trackingPlaceholder")}
             className="mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
           />
         </div>
@@ -81,15 +83,11 @@ export function ConfirmPackingForm({ orderId }: { orderId: string }) {
             : "bg-brand-burgundy hover:bg-brand-burgundy-dark"
         }`}
       >
-        {pending
-          ? "Buche…"
-          : confirming
-            ? "Sicher? Nochmal klicken zum Bestätigen"
-            : "Verpackt + versendet"}
+        {pending ? t("submitting") : confirming ? t("confirm") : t("submit")}
       </button>
       {err ? (
         <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-3 py-2 text-sm text-brand-burgundy-dark">
-          Fehler: {err}
+          {t("errorPrefix")} {err}
         </div>
       ) : null}
     </div>

@@ -207,6 +207,336 @@
   "services": {
     "cod": "Наложенный платёж",
     "codAmountMissing": "сумма отсутствует",
-    "premium": "Премиум-доставка"
+    "premium": "Премиум-доставка",
+    "shippingMethod": "Способ доставки"
+  },
+  "packingPage": {
+    "backToPicklist": "← К листу сборки",
+    "notConfigured": "DHL ещё не настроен. <link>В админ-настройках</link> укажите EKP и адрес отправителя."
+  },
+  "pickingDetail": {
+    "back": "← Очередь сборки",
+    "express": "Express",
+    "address": "Адрес доставки",
+    "items": {
+      "eyebrow": "Лист сборки · FEFO",
+      "positions": "{count, plural, one {# позиция} few {# позиции} other {# позиций}}",
+      "product": "Товар",
+      "sku": "SKU",
+      "qty": "Кол-во",
+      "charge": "Партия",
+      "noCharge": "Партия не назначена",
+      "qtyUnit": "шт",
+      "printPicklist": "Печать листа сборки",
+      "printSlip": "Накладная"
+    },
+    "actions": {
+      "startPicking": "Начать сборку",
+      "continueToPack": "Сборка завершена — к упаковке →",
+      "cancel": "Отменить сборку",
+      "cancelConfirm": "Точно отменить сборку? Заказ вернётся в очередь.",
+      "errorPrefix": "Ошибка:"
+    },
+    "wrongStatus": "Заказ в статусе <b>{status}</b>, сборка невозможна."
+  },
+  "confirmPacking": {
+    "tracking": "Трек-номер (необязательно)",
+    "trackingPlaceholder": "Оставьте пустым, если номера ещё нет",
+    "carrier": "Перевозчик (необязательно)",
+    "carrierPlaceholder": "DHL",
+    "url": "Ссылка отслеживания (необязательно)",
+    "submit": "Упаковано + отправлено",
+    "submitting": "Фиксируем…",
+    "confirm": "Уверены? Нажмите ещё раз",
+    "errorPrefix": "Ошибка:"
+  },
+  "ordersAdmin": {
+    "eyebrow": "Заказы",
+    "title": "Заказы",
+    "intro": "Обзор всех заказов с внутренним статусом.",
+    "filters": {
+      "all": "Все",
+      "new": "Новые",
+      "ship": "SHIP",
+      "stop": "STOP",
+      "picking": "Сборка",
+      "packed": "Упаковано",
+      "cancelled": "Отменены",
+      "express": "Express"
+    },
+    "table": {
+      "expand": "Детали",
+      "order": "Заказ",
+      "created": "Создан",
+      "status": "Статус",
+      "items": "Позиции",
+      "tags": "Теги",
+      "stopReason": "Причина STOP",
+      "actions": "Действия",
+      "viewDetail": "Детали →",
+      "product": "Товар",
+      "variant": "Вариант",
+      "skuLbl": "SKU",
+      "qty": "Кол-во",
+      "onHand": "На складе",
+      "reserved": "Зарезервировано",
+      "available": "Доступно",
+      "bundle": "Набор: {title} ×{qty}"
+    },
+    "empty": "Нет заказов в этом фильтре."
+  },
+  "orderDetail": {
+    "back": "← Заказы",
+    "address": "Адрес доставки",
+    "noAddress": "Адрес доставки не указан.",
+    "items": "Позиции",
+    "allocations": "Распределение",
+    "noAllocations": "Распределений пока нет.",
+    "stopReason": "Причина STOP",
+    "shopifyStatus": "Статус Shopify",
+    "internalStatus": "Внутренний статус",
+    "financialStatus": "Оплата",
+    "fulfillmentStatus": "Фулфилмент",
+    "customerNote": "Комментарий клиента"
+  },
+  "products": {
+    "eyebrow": "Каталог",
+    "title": "Товары",
+    "intro": "Синхронизировано из Shopify. Нажмите на изображение для деталей.",
+    "syncButton": "Синхронизировать из Shopify",
+    "syncing": "Синхронизация…",
+    "syncSuccess": "Обновлено {products} товаров, {variants} вариантов.",
+    "table": {
+      "product": "Товар",
+      "handle": "Handle",
+      "status": "Статус",
+      "variants": "Варианты",
+      "updated": "Обновлено",
+      "bundle": "Набор",
+      "yes": "Да"
+    },
+    "empty": "Товаров пока нет. Нажмите <b>{action}</b>, чтобы импортировать каталог Shopify."
+  },
+  "batches": {
+    "eyebrow": "Запас",
+    "title": "Запас и партии",
+    "intro": "Обзор всех вариантов с остатками, партиями и приёмкой.",
+    "search": "Поиск (SKU, товар, вариант)",
+    "table": {
+      "product": "Товар",
+      "variant": "Вариант",
+      "sku": "SKU",
+      "onHand": "На складе",
+      "reserved": "Зарезервировано",
+      "available": "Доступно",
+      "actions": "Действия"
+    },
+    "empty": "Товары не найдены.",
+    "panel": {
+      "title": "Партии",
+      "newBatch": "Создать новую партию",
+      "chargeNumber": "Номер партии",
+      "chargeNumberPlaceholder": "напр. CHG-2026-001",
+      "expiry": "Срок годности",
+      "qty": "Кол-во",
+      "note": "Заметка (необязательно)",
+      "create": "Оприходовать",
+      "creating": "Сохраняем…",
+      "existingTitle": "Существующие партии",
+      "expires": "Срок годности",
+      "remaining": "Остаток",
+      "edit": "Редактировать",
+      "archive": "Архивировать",
+      "save": "Сохранить",
+      "cancel": "Отмена",
+      "archiveConfirm": "Точно архивировать партию? Запас вернётся обратно.",
+      "noBatches": "Партий для этого варианта ещё нет."
+    }
+  },
+  "users": {
+    "eyebrow": "Пользователи",
+    "title": "Управление пользователями",
+    "intro": "Склад и админы. Действия над собой заблокированы.",
+    "stats": {
+      "admins": "Админы",
+      "lager": "Склад",
+      "disabled": "Отключены",
+      "noRole": "Без роли"
+    },
+    "newUser": {
+      "title": "Создать пользователя",
+      "email": "E-mail",
+      "password": "Пароль",
+      "passwordHint": "Минимум 8 символов",
+      "displayName": "Отображаемое имя (необязательно)",
+      "role": "Роль",
+      "submit": "Создать",
+      "submitting": "Создаём…",
+      "successMsg": "Пользователь создан (UID {uid}…)"
+    },
+    "table": {
+      "user": "Пользователь",
+      "email": "E-mail",
+      "role": "Роль",
+      "status": "Статус",
+      "actions": "Действия",
+      "you": "Вы",
+      "active": "Активен",
+      "disabled": "Отключён"
+    },
+    "actions": {
+      "promote": "↑ Админ",
+      "demote": "↓ Склад",
+      "resetPassword": "Сбросить пароль",
+      "disable": "Отключить",
+      "enable": "Включить",
+      "delete": "Удалить",
+      "newPassword": "Новый пароль",
+      "save": "Сохранить",
+      "saving": "Сохраняем…",
+      "cancel": "Отмена",
+      "deleteConfirm": "Точно удалить пользователя?"
+    },
+    "errors": {
+      "self_action_forbidden": "Действие над собой не разрешено.",
+      "user_not_found": "Пользователь не найден.",
+      "email_already_exists": "E-mail уже используется.",
+      "weak_password": "Пароль слишком короткий (мин. 8 символов).",
+      "invalid_email": "Некорректный e-mail.",
+      "would_lose_last_admin": "Нельзя удалить последнего админа."
+    }
+  },
+  "allocations": {
+    "eyebrow": "Распределение",
+    "title": "Распределение партий по заказам",
+    "intro": "Какая партия привязана к какому заказу. Сначала непотреблённые, потреблённые — приглушёнными.",
+    "table": {
+      "order": "Заказ",
+      "lineItem": "Позиция",
+      "variant": "Вариант",
+      "charge": "Партия",
+      "qty": "Кол-во",
+      "created": "Создано",
+      "consumed": "Потреблено",
+      "runId": "Run ID"
+    },
+    "open": "Открыто",
+    "consumedBadge": "Потреблено",
+    "empty": "Распределений пока нет."
+  },
+  "settings": {
+    "eyebrow": "Система",
+    "title": "Настройки",
+    "installed": "Приложение Shopify успешно установлено. Access-токен сохранён в Firestore.",
+    "shopify": {
+      "eyebrow": "Подключение Shopify",
+      "title": "Custom Distribution App",
+      "intro": "Приложение аутентифицируется по Client ID + Client Secret. При первой установке владелец магазина открывает ссылку установки из Partner Dashboard — Shopify вызывает <code>/api/shopify/callback</code>, токен попадает в Firestore.",
+      "clientId": "Client ID (env)",
+      "clientSecret": "Client Secret (env)",
+      "tokenInstalled": "Приложение установлено (токен в Firestore)",
+      "installedFor": "Установлено для магазина",
+      "scopes": "Выданные scopes",
+      "apiVersion": "Версия API",
+      "expectedShop": "Ожидаемый магазин (env)",
+      "locationGid": "Location GID",
+      "locationFallback": "— (устанавливается при синхронизации товаров)",
+      "notInstalled": "Ещё не установлено.",
+      "steps": {
+        "openDashboard": "Откройте настройки приложения в Partner Dashboard.",
+        "setUrls": "Установите <b>App URL</b> и <b>Allowed redirection URL(s)</b> на <code>{url}</code>.",
+        "openInstallLink": "Откройте ссылку установки из Partner Dashboard (один клик).",
+        "shopifyCallback": "Shopify затем автоматически вызовет <code>/api/shopify/callback</code> — токен попадёт в Firestore."
+      }
+    },
+    "webhooks": {
+      "eyebrow": "Webhooks",
+      "title": "Регистрация подписок",
+      "intro": "Регистрирует подписки на webhook-и Shopify (orders/create, orders/updated, orders/cancelled, inventory_levels/update, app/uninstalled). Идемпотентно. Требует установки приложения.",
+      "button": "Зарегистрировать webhook-и",
+      "loading": "Регистрируем…",
+      "success": "Активно подписок: {count}."
+    },
+    "inventory": {
+      "eyebrow": "Запас",
+      "title": "Отправить остатки в Shopify",
+      "intro": "Записывает текущее значение <code>available</code> (= <code>on_hand_total − reserved_total</code>) для каждого варианта в Shopify через <code>inventorySetOnHandQuantities</code>. Нужно после первой приёмки или если ручные правки в Shopify создали расхождения. Отдельные мутации и так пушатся после каждого события.",
+      "button": "Отправить остатки",
+      "loading": "Отправляем…",
+      "success": "{variants} вариантов, {chunks} частей в очереди."
+    },
+    "ordersBackfill": {
+      "eyebrow": "Заказы",
+      "title": "Подгрузить заказы (backfill)",
+      "intro": "Загружает все <em>открытые, невыполненные</em> заказы из Shopify в нашу БД. Нужно после первой установки — webhook-и срабатывают только на новые/изменённые заказы.",
+      "button": "Запустить backfill",
+      "loading": "Загрузка…",
+      "success": "Загружено {count} заказов на {pages} страницах."
+    },
+    "allocation": {
+      "eyebrow": "Распределение",
+      "title": "Запустить распределение",
+      "queueConfigured": "Очередь настроена",
+      "targetUrl": "Target URL",
+      "button": "Запустить сейчас",
+      "loading": "Запускаем…"
+    },
+    "badge": {
+      "ok": "OK",
+      "missing": "нет"
+    }
+  },
+  "picklistPrint": {
+    "header": "Monolith Caviar · Лист сборки",
+    "subTitle": "FEFO · {datetime}",
+    "express": "Express",
+    "brand": "Ikrinka",
+    "brandSub": "Premium Quality",
+    "address": "Адрес доставки",
+    "tags": "Теги",
+    "product": "Товар",
+    "sku": "SKU",
+    "qty": "Кол-во",
+    "charge": "Партия · Срок годности",
+    "noAllocation": "— нет распределения —",
+    "expiry": "Срок годности",
+    "qtyUnit": "шт",
+    "footerOrderId": "ID заказа:",
+    "footerStatus": "Статус:"
+  },
+  "packingSlip": {
+    "eyebrow": "Ikrinka · Premium Quality",
+    "brand": "Monolith Caviar",
+    "companyLine": "Ikrinka GmbH · Musterstraße 1 · 10115 Berlin · Германия",
+    "contactEmail": "kontakt@monolithcaviar.de",
+    "title": "Накладная",
+    "orderDate": "Дата заказа",
+    "shippingAddress": "Адрес доставки",
+    "greeting": "Здравствуйте, {name}!",
+    "fallbackName": "клиент",
+    "intro": "благодарим за заказ. Ниже все позиции с номером партии и сроком годности — сохраните для прослеживаемости пищевой продукции.",
+    "product": "Товар",
+    "qty": "Кол-во",
+    "charge": "Партия",
+    "expiry": "Срок годности",
+    "noCharge": "—",
+    "noteKeep": "Сохраните накладную с номерами партий и сроками годности на случай вопросов по заказу.",
+    "noteContact": "Если есть вопросы — пишите на <strong>{email}</strong>.",
+    "signature": "Спасибо и приятной дегустации!\nВаша команда Monolith",
+    "footerOrder": "Накладная к заказу <mono>{order}</mono>",
+    "footerLegal": "Ikrinka GmbH · VAT ID DE… · HRB … · Управляющий директор: …"
+  },
+  "login": {
+    "title": "Вход",
+    "intro": "Войдите с помощью учётной записи Firebase.",
+    "email": "E-mail",
+    "password": "Пароль",
+    "submit": "Войти",
+    "submitting": "Входим…",
+    "errors": {
+      "invalid_credentials": "Неверный e-mail или пароль.",
+      "no_role": "У этой учётной записи ещё нет роли. Обратитесь к админу.",
+      "generic": "Не удалось войти."
+    }
   }
 }

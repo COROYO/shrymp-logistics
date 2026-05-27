@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
@@ -90,6 +91,7 @@ export default async function PrintPicklist({
   if (!data) notFound();
   const { order, allocsByLi } = data;
   const isExpress = order.tags.includes("EXPRESS_DHL");
+  const t = await getTranslations("picklistPrint");
   const now = new Date().toLocaleString("de-DE", {
     dateStyle: "short",
     timeStyle: "short",
@@ -109,32 +111,32 @@ export default async function PrintPicklist({
       <header className="flex items-end justify-between border-b-[3px] border-brand-burgundy pb-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-burgundy">
-            Monolith Caviar · Picklist
+            {t("header")}
           </p>
           <h1 className="mt-1 font-mono text-3xl font-bold tracking-tight text-brand-navy">
             {order.name}
           </h1>
           <p className="mt-1 text-xs text-brand-navy/70">
-            FEFO · {now}
+            {t("subTitle", { datetime: now })}
             {isExpress ? (
               <span className="ml-2 inline-block bg-brand-burgundy px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                Express
+                {t("express")}
               </span>
             ) : null}
           </p>
         </div>
         <div className="text-right text-xs text-brand-navy/70">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-navy">
-            Ikrinka
+            {t("brand")}
           </p>
-          <p>Premium Quality</p>
+          <p>{t("brandSub")}</p>
         </div>
       </header>
 
       <section className="mt-6 grid grid-cols-2 gap-6">
         <div>
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
-            Lieferadresse
+            {t("address")}
           </h2>
           <address className="mt-1 not-italic text-sm leading-snug">
             <strong>
@@ -163,7 +165,7 @@ export default async function PrintPicklist({
         </div>
         <div>
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
-            Tags
+            {t("tags")}
           </h2>
           <div className="mt-1 text-sm">{order.tags.join(", ") || "—"}</div>
         </div>
@@ -173,16 +175,16 @@ export default async function PrintPicklist({
         <thead>
           <tr className="border-b-2 border-brand-navy bg-brand-navy text-left text-white">
             <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
-              Produkt
+              {t("product")}
             </th>
             <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
-              SKU
+              {t("sku")}
             </th>
             <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.1em]">
-              Menge
+              {t("qty")}
             </th>
             <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
-              Charge · MHD
+              {t("charge")}
             </th>
             <th className="w-8 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
               ✓
@@ -208,7 +210,7 @@ export default async function PrintPicklist({
                 <td className="px-3 py-3 pr-4">
                   {allocs.length === 0 ? (
                     <span className="text-xs italic text-brand-burgundy">
-                      — keine Allokation —
+                      {t("noAllocation")}
                     </span>
                   ) : (
                     <div className="space-y-1">
@@ -221,9 +223,11 @@ export default async function PrintPicklist({
                             {a.chargeNumber}
                           </span>
                           {" · "}
-                          MHD {a.expiryDateIso ?? "—"}
+                          {t("expiry")} {a.expiryDateIso ?? "—"}
                           {" · "}
-                          <span className="font-bold">{a.qty} Stk</span>
+                          <span className="font-bold">
+                            {a.qty} {t("qtyUnit")}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -239,7 +243,8 @@ export default async function PrintPicklist({
       </table>
 
       <footer className="mt-12 border-t border-zinc-300 pt-2 text-[10px] text-brand-navy/60">
-        Order-ID: <span className="font-mono">{order.id}</span> · Status:{" "}
+        {t("footerOrderId")}{" "}
+        <span className="font-mono">{order.id}</span> · {t("footerStatus")}{" "}
         {order.internal_status}
       </footer>
     </div>

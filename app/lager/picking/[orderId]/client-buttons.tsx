@@ -1,13 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  cancelPickingAction,
-  startPickingAction,
-} from "../actions";
+import { useTranslations } from "next-intl";
+import { cancelPickingAction, startPickingAction } from "../actions";
 
 export function StartPickingButton({ orderId }: { orderId: string }) {
   const router = useRouter();
+  const t = useTranslations("pickingDetail.actions");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -31,11 +30,11 @@ export function StartPickingButton({ orderId }: { orderId: string }) {
         disabled={pending}
         className="btn-primary"
       >
-        {pending ? "…" : "Picken starten"}
+        {pending ? "…" : t("startPicking")}
       </button>
       {err ? (
         <p className="mt-2 text-xs font-medium text-brand-burgundy">
-          Fehler: {err}
+          {t("errorPrefix")} {err}
         </p>
       ) : null}
     </div>
@@ -44,12 +43,12 @@ export function StartPickingButton({ orderId }: { orderId: string }) {
 
 export function CancelPickingButton({ orderId }: { orderId: string }) {
   const router = useRouter();
+  const t = useTranslations("pickingDetail.actions");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
   function handleClick() {
-    if (!confirm("Picking wirklich abbrechen? Die Order geht zurück in die Queue."))
-      return;
+    if (!confirm(t("cancelConfirm"))) return;
     setErr(null);
     startTransition(async () => {
       const res = await cancelPickingAction(orderId);
@@ -69,11 +68,11 @@ export function CancelPickingButton({ orderId }: { orderId: string }) {
         disabled={pending}
         className="btn-ghost"
       >
-        {pending ? "…" : "Picken abbrechen"}
+        {pending ? "…" : t("cancel")}
       </button>
       {err ? (
         <p className="mt-2 text-xs font-medium text-brand-burgundy">
-          Fehler: {err}
+          {t("errorPrefix")} {err}
         </p>
       ) : null}
     </div>

@@ -9,6 +9,7 @@ import {
 } from "@/server/firestore/schema";
 import { StartPickingButton, CancelPickingButton } from "./client-buttons";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -164,6 +165,7 @@ export default async function PickingDetailPage({
   const isPickable = order.internal_status === "SHIP";
   const isPicking = order.internal_status === "PICKING";
   const isExpress = order.tags.includes("EXPRESS_DHL");
+  const t = await getTranslations("pickingDetail");
 
   return (
     <div className="space-y-8">
@@ -172,7 +174,7 @@ export default async function PickingDetailPage({
           href="/lager/picking"
           className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
         >
-          ← Picking-Queue
+          {t("back")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
@@ -186,12 +188,14 @@ export default async function PickingDetailPage({
           >
             {order.internal_status}
           </span>
-          {isExpress ? <span className="chip chip-burgundy">Express</span> : null}
+          {isExpress ? (
+            <span className="chip chip-burgundy">{t("express")}</span>
+          ) : null}
         </div>
       </div>
 
       <section className="card p-5">
-        <h2 className="eyebrow">Lieferadresse</h2>
+        <h2 className="eyebrow">{t("address")}</h2>
         <address className="mt-2 not-italic text-sm leading-relaxed text-brand-ink">
           {order.shipping_address?.first_name}{" "}
           {order.shipping_address?.last_name}
@@ -219,10 +223,9 @@ export default async function PickingDetailPage({
       <section className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4">
           <div>
-            <p className="eyebrow">Picklist · FEFO</p>
+            <p className="eyebrow">{t("items.eyebrow")}</p>
             <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-              {lineItems.length} Position
-              {lineItems.length === 1 ? "" : "en"}
+              {t("items.positions", { count: lineItems.length })}
             </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -231,14 +234,14 @@ export default async function PickingDetailPage({
               target="_blank"
               className="btn-ghost"
             >
-              Picklist drucken
+              {t("items.printPicklist")}
             </Link>
             <Link
               href={`/lager/picking/${order.id}/slip`}
               target="_blank"
               className="btn-ghost"
             >
-              Packing-Slip
+              {t("items.printSlip")}
             </Link>
           </div>
         </div>
@@ -246,10 +249,10 @@ export default async function PickingDetailPage({
           <table className="table-brand">
             <thead>
               <tr>
-                <th>Produkt</th>
-                <th>SKU</th>
-                <th className="text-right">Menge</th>
-                <th>Charge</th>
+                <th>{t("items.product")}</th>
+                <th>{t("items.sku")}</th>
+                <th className="text-right">{t("items.qty")}</th>
+                <th>{t("items.charge")}</th>
               </tr>
             </thead>
             <tbody>
@@ -272,7 +275,7 @@ export default async function PickingDetailPage({
                   <td>
                     {li.allocations.length === 0 ? (
                       <span className="chip chip-amber">
-                        Keine Charge zugewiesen
+                        {t("items.noCharge")}
                       </span>
                     ) : (
                       <div className="space-y-1">
@@ -285,7 +288,7 @@ export default async function PickingDetailPage({
                               {a.chargeNumber}
                             </span>
                             <span className="font-semibold text-brand-navy">
-                              {a.qty} Stk
+                              {a.qty} {t("items.qtyUnit")}
                             </span>
                           </div>
                         ))}
@@ -307,15 +310,17 @@ export default async function PickingDetailPage({
               href={`/lager/packing/${order.id}`}
               className="btn-primary"
             >
-              Picking abgeschlossen — weiter zum Packen →
+              {t("actions.continueToPack")}
             </Link>
             <CancelPickingButton orderId={order.id} />
           </>
         ) : null}
         {!isPickable && !isPicking ? (
           <span className="text-sm text-brand-navy/60">
-            Order ist in Status <strong>{order.internal_status}</strong>, nicht
-            picking-bar.
+            {t.rich("wrongStatus", {
+              status: order.internal_status,
+              b: (chunks) => <strong>{chunks}</strong>,
+            })}
           </span>
         ) : null}
       </div>

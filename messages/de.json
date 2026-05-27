@@ -207,6 +207,336 @@
   "services": {
     "cod": "Nachnahme",
     "codAmountMissing": "Betrag fehlt",
-    "premium": "Premium-Versand"
+    "premium": "Premium-Versand",
+    "shippingMethod": "Versandmethode"
+  },
+  "packingPage": {
+    "backToPicklist": "← Zurück zur Picklist",
+    "notConfigured": "DHL ist noch nicht konfiguriert. <link>In den Admin-Einstellungen</link> EKP-Nummer + Absenderadresse pflegen."
+  },
+  "pickingDetail": {
+    "back": "← Picking-Queue",
+    "express": "Express",
+    "address": "Lieferadresse",
+    "items": {
+      "eyebrow": "Picklist · FEFO",
+      "positions": "{count, plural, one {# Position} other {# Positionen}}",
+      "product": "Produkt",
+      "sku": "SKU",
+      "qty": "Menge",
+      "charge": "Charge",
+      "noCharge": "Keine Charge zugewiesen",
+      "qtyUnit": "Stk",
+      "printPicklist": "Picklist drucken",
+      "printSlip": "Packing-Slip"
+    },
+    "actions": {
+      "startPicking": "Picken starten",
+      "continueToPack": "Picking abgeschlossen — weiter zum Packen →",
+      "cancel": "Picken abbrechen",
+      "cancelConfirm": "Picking wirklich abbrechen? Die Order geht zurück in die Queue.",
+      "errorPrefix": "Fehler:"
+    },
+    "wrongStatus": "Order ist in Status <b>{status}</b>, nicht picking-bar."
+  },
+  "confirmPacking": {
+    "tracking": "Tracking-Nr (optional)",
+    "trackingPlaceholder": "Leer lassen wenn noch keine Nr",
+    "carrier": "Versanddienst (optional)",
+    "carrierPlaceholder": "DHL",
+    "url": "Tracking-URL (optional)",
+    "submit": "Verpackt + versendet",
+    "submitting": "Buche…",
+    "confirm": "Sicher? Nochmal klicken zum Bestätigen",
+    "errorPrefix": "Fehler:"
+  },
+  "ordersAdmin": {
+    "eyebrow": "Orders",
+    "title": "Orders",
+    "intro": "Übersicht aller Orders mit internem Status.",
+    "filters": {
+      "all": "Alle",
+      "new": "Neu",
+      "ship": "SHIP",
+      "stop": "STOP",
+      "picking": "Picking",
+      "packed": "Packed",
+      "cancelled": "Storniert",
+      "express": "Express"
+    },
+    "table": {
+      "expand": "Details",
+      "order": "Order",
+      "created": "Erstellt",
+      "status": "Status",
+      "items": "Items",
+      "tags": "Tags",
+      "stopReason": "STOP-Grund",
+      "actions": "Aktionen",
+      "viewDetail": "Detail →",
+      "product": "Produkt",
+      "variant": "Variante",
+      "skuLbl": "SKU",
+      "qty": "Menge",
+      "onHand": "Lager",
+      "reserved": "Reserviert",
+      "available": "Verfügbar",
+      "bundle": "Bundle: {title} ×{qty}"
+    },
+    "empty": "Keine Orders im gewählten Filter."
+  },
+  "orderDetail": {
+    "back": "← Orders",
+    "address": "Lieferadresse",
+    "noAddress": "Keine Lieferadresse hinterlegt.",
+    "items": "Items",
+    "allocations": "Zuordnungen / Allocations",
+    "noAllocations": "Noch keine Zuordnungen.",
+    "stopReason": "STOP-Grund",
+    "shopifyStatus": "Shopify-Status",
+    "internalStatus": "Interner Status",
+    "financialStatus": "Zahlung",
+    "fulfillmentStatus": "Fulfillment",
+    "customerNote": "Kundenkommentar"
+  },
+  "products": {
+    "eyebrow": "Katalog",
+    "title": "Produkte",
+    "intro": "Aus Shopify synchronisiert. Klick auf das Bild für Detail.",
+    "syncButton": "Aus Shopify synchronisieren",
+    "syncing": "Synchronisiere…",
+    "syncSuccess": "{products} Produkte, {variants} Varianten aktualisiert.",
+    "table": {
+      "product": "Produkt",
+      "handle": "Handle",
+      "status": "Status",
+      "variants": "Varianten",
+      "updated": "Aktualisiert",
+      "bundle": "Bundle",
+      "yes": "Ja"
+    },
+    "empty": "Noch keine Produkte. Klick auf <b>{action}</b>, um Shopify-Katalog zu importieren."
+  },
+  "batches": {
+    "eyebrow": "Bestand",
+    "title": "Bestand & Chargen",
+    "intro": "Übersicht aller Varianten mit Beständen, Chargen und Wareneingang.",
+    "search": "Suchen (SKU, Produkt, Variante)",
+    "table": {
+      "product": "Produkt",
+      "variant": "Variante",
+      "sku": "SKU",
+      "onHand": "Lager",
+      "reserved": "Reserviert",
+      "available": "Verfügbar",
+      "actions": "Aktionen"
+    },
+    "empty": "Keine Produkte gefunden.",
+    "panel": {
+      "title": "Chargen",
+      "newBatch": "Neue Charge anlegen",
+      "chargeNumber": "Chargennummer",
+      "chargeNumberPlaceholder": "z.B. CHG-2026-001",
+      "expiry": "MHD",
+      "qty": "Menge",
+      "note": "Notiz (optional)",
+      "create": "Wareneingang buchen",
+      "creating": "Buche…",
+      "existingTitle": "Vorhandene Chargen",
+      "expires": "MHD",
+      "remaining": "Rest",
+      "edit": "Bearbeiten",
+      "archive": "Archivieren",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "archiveConfirm": "Charge wirklich archivieren? Bestand fließt zurück.",
+      "noBatches": "Noch keine Chargen für diese Variante."
+    }
+  },
+  "users": {
+    "eyebrow": "Benutzer",
+    "title": "Benutzer verwalten",
+    "intro": "Lager und Admins für die App. Eigene Aktionen sind blockiert.",
+    "stats": {
+      "admins": "Admins",
+      "lager": "Lager",
+      "disabled": "Deaktiviert",
+      "noRole": "Ohne Rolle"
+    },
+    "newUser": {
+      "title": "Neuen Benutzer anlegen",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "passwordHint": "Mind. 8 Zeichen",
+      "displayName": "Anzeigename (optional)",
+      "role": "Rolle",
+      "submit": "Anlegen",
+      "submitting": "Lege an…",
+      "successMsg": "User angelegt (UID {uid}…)"
+    },
+    "table": {
+      "user": "Benutzer",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "status": "Status",
+      "actions": "Aktionen",
+      "you": "Du",
+      "active": "Aktiv",
+      "disabled": "Deaktiviert"
+    },
+    "actions": {
+      "promote": "↑ Admin",
+      "demote": "↓ Lager",
+      "resetPassword": "Passwort zurücksetzen",
+      "disable": "Deaktivieren",
+      "enable": "Aktivieren",
+      "delete": "Löschen",
+      "newPassword": "Neues Passwort",
+      "save": "Speichern",
+      "saving": "Speichere…",
+      "cancel": "Abbrechen",
+      "deleteConfirm": "Benutzer wirklich löschen?"
+    },
+    "errors": {
+      "self_action_forbidden": "Eigene Aktion nicht erlaubt.",
+      "user_not_found": "Benutzer nicht gefunden.",
+      "email_already_exists": "E-Mail wird bereits verwendet.",
+      "weak_password": "Passwort zu kurz (mind. 8 Zeichen).",
+      "invalid_email": "Ungültige E-Mail.",
+      "would_lose_last_admin": "Letzten Admin nicht entfernen."
+    }
+  },
+  "allocations": {
+    "eyebrow": "Zuordnungen",
+    "title": "Charge-zu-Order Zuordnungen",
+    "intro": "Welche Charge wurde welcher Order zugewiesen. Nicht-konsumierte zuerst, konsumierte ausgegraut.",
+    "table": {
+      "order": "Order",
+      "lineItem": "Position",
+      "variant": "Variante",
+      "charge": "Charge",
+      "qty": "Menge",
+      "created": "Erstellt",
+      "consumed": "Konsumiert",
+      "runId": "Run-ID"
+    },
+    "open": "Offen",
+    "consumedBadge": "Konsumiert",
+    "empty": "Noch keine Zuordnungen."
+  },
+  "settings": {
+    "eyebrow": "System",
+    "title": "Einstellungen",
+    "installed": "Shopify-App erfolgreich installiert. Access-Token in Firestore gespeichert.",
+    "shopify": {
+      "eyebrow": "Shopify-Verbindung",
+      "title": "Custom Distribution App",
+      "intro": "Die App authentifiziert sich mit Client ID + Client Secret. Beim ersten Install klickt der Shop-Owner den vom Partner Dashboard generierten Install-Link — Shopify ruft daraufhin <code>/api/shopify/callback</code> auf, der Token landet in Firestore.",
+      "clientId": "Client ID (env)",
+      "clientSecret": "Client Secret (env)",
+      "tokenInstalled": "App installiert (Token in Firestore)",
+      "installedFor": "Installiert für Shop",
+      "scopes": "Gewährte Scopes",
+      "apiVersion": "API Version",
+      "expectedShop": "Erwarteter Shop (env)",
+      "locationGid": "Location GID",
+      "locationFallback": "— (wird beim Produkt-Sync gesetzt)",
+      "notInstalled": "Noch nicht installiert.",
+      "steps": {
+        "openDashboard": "Im Partner Dashboard die App-Settings öffnen.",
+        "setUrls": "<b>App URL</b> und <b>Allowed redirection URL(s)</b> beide auf <code>{url}</code> setzen.",
+        "openInstallLink": "Den Install-Link aus dem Partner Dashboard öffnen (einmaliger Klick).",
+        "shopifyCallback": "Shopify ruft danach automatisch <code>/api/shopify/callback</code> auf — Token landet hier in Firestore."
+      }
+    },
+    "webhooks": {
+      "eyebrow": "Webhooks",
+      "title": "Subscriptions registrieren",
+      "intro": "Registriert Webhook-Subscriptions bei Shopify (orders/create, orders/updated, orders/cancelled, inventory_levels/update, app/uninstalled). Idempotent. Setzt voraus, dass die App installiert ist.",
+      "button": "Webhooks registrieren",
+      "loading": "Registriere…",
+      "success": "{count} Subscriptions aktiv."
+    },
+    "inventory": {
+      "eyebrow": "Bestand",
+      "title": "Bestände nach Shopify pushen",
+      "intro": "Schreibt für jede Variante den aktuellen <code>available</code>-Wert (= <code>on_hand_total − reserved_total</code>) per <code>inventorySetOnHandQuantities</code> nach Shopify. Nötig nach dem ersten Wareneingang oder wenn manuelle Shopify-Inventory-Edits Drift erzeugt haben. Einzel-Mutationen pushen sowieso schon nach jedem Event.",
+      "button": "Bestand pushen",
+      "loading": "Pushe…",
+      "success": "{variants} Varianten, {chunks} Chunks queued."
+    },
+    "ordersBackfill": {
+      "eyebrow": "Orders",
+      "title": "Orders nachladen (Backfill)",
+      "intro": "Pullt alle <em>offenen, unfulfilled</em> Orders aus Shopify in unsere Datenbank. Nötig nach dem ersten App-Install — Webhooks feuern nur für neue/geänderte Orders, nicht rückwirkend.",
+      "button": "Backfill starten",
+      "loading": "Lade…",
+      "success": "{count} Orders in {pages} Seiten geladen."
+    },
+    "allocation": {
+      "eyebrow": "Allocation",
+      "title": "Allocation-Run starten",
+      "queueConfigured": "Queue konfiguriert",
+      "targetUrl": "Target URL",
+      "button": "Allocation jetzt laufen lassen",
+      "loading": "Starte…"
+    },
+    "badge": {
+      "ok": "OK",
+      "missing": "fehlt"
+    }
+  },
+  "picklistPrint": {
+    "header": "Monolith Caviar · Picklist",
+    "subTitle": "FEFO · {datetime}",
+    "express": "Express",
+    "brand": "Ikrinka",
+    "brandSub": "Premium Quality",
+    "address": "Lieferadresse",
+    "tags": "Tags",
+    "product": "Produkt",
+    "sku": "SKU",
+    "qty": "Menge",
+    "charge": "Charge · MHD",
+    "noAllocation": "— keine Allokation —",
+    "expiry": "MHD",
+    "qtyUnit": "Stk",
+    "footerOrderId": "Order-ID:",
+    "footerStatus": "Status:"
+  },
+  "packingSlip": {
+    "eyebrow": "Ikrinka · Premium Quality",
+    "brand": "Monolith Caviar",
+    "companyLine": "Ikrinka GmbH · Musterstraße 1 · 10115 Berlin",
+    "contactEmail": "kontakt@monolithcaviar.de",
+    "title": "Lieferschein",
+    "orderDate": "Bestelldatum",
+    "shippingAddress": "Lieferadresse",
+    "greeting": "Liebe:r {name},",
+    "fallbackName": "Kunde:in",
+    "intro": "vielen Dank für deine Bestellung. Anbei findest du den Inhalt deiner Lieferung mit Chargennummern und Mindesthaltbarkeitsdatum zur Rückverfolgbarkeit.",
+    "product": "Produkt",
+    "qty": "Menge",
+    "charge": "Charge",
+    "expiry": "MHD",
+    "noCharge": "—",
+    "noteKeep": "Bewahre den Lieferschein bitte mit der Charge und dem MHD auf, falls du Rückfragen zur Lieferung hast.",
+    "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
+    "signature": "Vielen Dank und guten Appetit!\nDein Monolith-Team",
+    "footerOrder": "Lieferschein zu Bestellung <mono>{order}</mono>",
+    "footerLegal": "Ikrinka GmbH · USt-IdNr. DE… · HRB … · Geschäftsführung: …"
+  },
+  "login": {
+    "title": "Anmelden",
+    "intro": "Mit Firebase-Benutzerkonto anmelden.",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "submit": "Anmelden",
+    "submitting": "Melde an…",
+    "errors": {
+      "invalid_credentials": "E-Mail oder Passwort falsch.",
+      "no_role": "Dieser Account hat noch keine Rolle. Admin kontaktieren.",
+      "generic": "Anmeldung fehlgeschlagen."
+    }
   }
 }

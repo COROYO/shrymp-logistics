@@ -207,6 +207,336 @@
   "services": {
     "cod": "Cash on delivery",
     "codAmountMissing": "amount missing",
-    "premium": "Premium shipping"
+    "premium": "Premium shipping",
+    "shippingMethod": "Shipping method"
+  },
+  "packingPage": {
+    "backToPicklist": "← Back to picklist",
+    "notConfigured": "DHL is not configured yet. <link>In admin settings</link> add EKP number + sender address."
+  },
+  "pickingDetail": {
+    "back": "← Picking queue",
+    "express": "Express",
+    "address": "Shipping address",
+    "items": {
+      "eyebrow": "Picklist · FEFO",
+      "positions": "{count, plural, one {# position} other {# positions}}",
+      "product": "Product",
+      "sku": "SKU",
+      "qty": "Qty",
+      "charge": "Batch",
+      "noCharge": "No batch assigned",
+      "qtyUnit": "pcs",
+      "printPicklist": "Print picklist",
+      "printSlip": "Packing slip"
+    },
+    "actions": {
+      "startPicking": "Start picking",
+      "continueToPack": "Picking done — continue to packing →",
+      "cancel": "Cancel picking",
+      "cancelConfirm": "Really cancel picking? The order will go back to the queue.",
+      "errorPrefix": "Error:"
+    },
+    "wrongStatus": "Order is in status <b>{status}</b>, not pickable."
+  },
+  "confirmPacking": {
+    "tracking": "Tracking number (optional)",
+    "trackingPlaceholder": "Leave blank if no number yet",
+    "carrier": "Carrier (optional)",
+    "carrierPlaceholder": "DHL",
+    "url": "Tracking URL (optional)",
+    "submit": "Packed + shipped",
+    "submitting": "Posting…",
+    "confirm": "Sure? Click again to confirm",
+    "errorPrefix": "Error:"
+  },
+  "ordersAdmin": {
+    "eyebrow": "Orders",
+    "title": "Orders",
+    "intro": "Overview of all orders with internal status.",
+    "filters": {
+      "all": "All",
+      "new": "New",
+      "ship": "SHIP",
+      "stop": "STOP",
+      "picking": "Picking",
+      "packed": "Packed",
+      "cancelled": "Cancelled",
+      "express": "Express"
+    },
+    "table": {
+      "expand": "Details",
+      "order": "Order",
+      "created": "Created",
+      "status": "Status",
+      "items": "Items",
+      "tags": "Tags",
+      "stopReason": "STOP reason",
+      "actions": "Actions",
+      "viewDetail": "Detail →",
+      "product": "Product",
+      "variant": "Variant",
+      "skuLbl": "SKU",
+      "qty": "Qty",
+      "onHand": "On hand",
+      "reserved": "Reserved",
+      "available": "Available",
+      "bundle": "Bundle: {title} ×{qty}"
+    },
+    "empty": "No orders in this filter."
+  },
+  "orderDetail": {
+    "back": "← Orders",
+    "address": "Shipping address",
+    "noAddress": "No shipping address provided.",
+    "items": "Items",
+    "allocations": "Allocations",
+    "noAllocations": "No allocations yet.",
+    "stopReason": "STOP reason",
+    "shopifyStatus": "Shopify status",
+    "internalStatus": "Internal status",
+    "financialStatus": "Payment",
+    "fulfillmentStatus": "Fulfillment",
+    "customerNote": "Customer note"
+  },
+  "products": {
+    "eyebrow": "Catalog",
+    "title": "Products",
+    "intro": "Synced from Shopify. Click image for detail.",
+    "syncButton": "Sync from Shopify",
+    "syncing": "Syncing…",
+    "syncSuccess": "{products} products, {variants} variants updated.",
+    "table": {
+      "product": "Product",
+      "handle": "Handle",
+      "status": "Status",
+      "variants": "Variants",
+      "updated": "Updated",
+      "bundle": "Bundle",
+      "yes": "Yes"
+    },
+    "empty": "No products yet. Click <b>{action}</b> to import the Shopify catalog."
+  },
+  "batches": {
+    "eyebrow": "Stock",
+    "title": "Stock & batches",
+    "intro": "Overview of all variants with stock, batches and inbound.",
+    "search": "Search (SKU, product, variant)",
+    "table": {
+      "product": "Product",
+      "variant": "Variant",
+      "sku": "SKU",
+      "onHand": "On hand",
+      "reserved": "Reserved",
+      "available": "Available",
+      "actions": "Actions"
+    },
+    "empty": "No products found.",
+    "panel": {
+      "title": "Batches",
+      "newBatch": "Create new batch",
+      "chargeNumber": "Batch number",
+      "chargeNumberPlaceholder": "e.g. CHG-2026-001",
+      "expiry": "Best-before",
+      "qty": "Qty",
+      "note": "Note (optional)",
+      "create": "Book inbound",
+      "creating": "Booking…",
+      "existingTitle": "Existing batches",
+      "expires": "Best-before",
+      "remaining": "Remaining",
+      "edit": "Edit",
+      "archive": "Archive",
+      "save": "Save",
+      "cancel": "Cancel",
+      "archiveConfirm": "Really archive this batch? Stock will flow back.",
+      "noBatches": "No batches for this variant yet."
+    }
+  },
+  "users": {
+    "eyebrow": "Users",
+    "title": "User management",
+    "intro": "Warehouse + admins. Self-actions are blocked.",
+    "stats": {
+      "admins": "Admins",
+      "lager": "Warehouse",
+      "disabled": "Disabled",
+      "noRole": "No role"
+    },
+    "newUser": {
+      "title": "Create new user",
+      "email": "Email",
+      "password": "Password",
+      "passwordHint": "Min. 8 characters",
+      "displayName": "Display name (optional)",
+      "role": "Role",
+      "submit": "Create",
+      "submitting": "Creating…",
+      "successMsg": "User created (UID {uid}…)"
+    },
+    "table": {
+      "user": "User",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "actions": "Actions",
+      "you": "You",
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "actions": {
+      "promote": "↑ Admin",
+      "demote": "↓ Warehouse",
+      "resetPassword": "Reset password",
+      "disable": "Disable",
+      "enable": "Enable",
+      "delete": "Delete",
+      "newPassword": "New password",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "deleteConfirm": "Really delete this user?"
+    },
+    "errors": {
+      "self_action_forbidden": "Self-action not allowed.",
+      "user_not_found": "User not found.",
+      "email_already_exists": "Email already in use.",
+      "weak_password": "Password too short (min. 8 chars).",
+      "invalid_email": "Invalid email.",
+      "would_lose_last_admin": "Cannot remove the last admin."
+    }
+  },
+  "allocations": {
+    "eyebrow": "Allocations",
+    "title": "Batch-to-order allocations",
+    "intro": "Which batch was assigned to which order. Unconsumed first, consumed grayed out.",
+    "table": {
+      "order": "Order",
+      "lineItem": "Line item",
+      "variant": "Variant",
+      "charge": "Batch",
+      "qty": "Qty",
+      "created": "Created",
+      "consumed": "Consumed",
+      "runId": "Run ID"
+    },
+    "open": "Open",
+    "consumedBadge": "Consumed",
+    "empty": "No allocations yet."
+  },
+  "settings": {
+    "eyebrow": "System",
+    "title": "Settings",
+    "installed": "Shopify app installed successfully. Access token stored in Firestore.",
+    "shopify": {
+      "eyebrow": "Shopify connection",
+      "title": "Custom Distribution App",
+      "intro": "The app authenticates with Client ID + Client Secret. On first install the shop owner clicks the install link from the Partner Dashboard — Shopify then calls <code>/api/shopify/callback</code>, the token lands in Firestore.",
+      "clientId": "Client ID (env)",
+      "clientSecret": "Client Secret (env)",
+      "tokenInstalled": "App installed (token in Firestore)",
+      "installedFor": "Installed for shop",
+      "scopes": "Granted scopes",
+      "apiVersion": "API version",
+      "expectedShop": "Expected shop (env)",
+      "locationGid": "Location GID",
+      "locationFallback": "— (set during product sync)",
+      "notInstalled": "Not installed yet.",
+      "steps": {
+        "openDashboard": "Open the app settings in the Partner Dashboard.",
+        "setUrls": "Set <b>App URL</b> and <b>Allowed redirection URL(s)</b> both to <code>{url}</code>.",
+        "openInstallLink": "Open the install link from the Partner Dashboard (one click).",
+        "shopifyCallback": "Shopify will then call <code>/api/shopify/callback</code> automatically — token lands here in Firestore."
+      }
+    },
+    "webhooks": {
+      "eyebrow": "Webhooks",
+      "title": "Register subscriptions",
+      "intro": "Registers webhook subscriptions with Shopify (orders/create, orders/updated, orders/cancelled, inventory_levels/update, app/uninstalled). Idempotent. Requires the app to be installed.",
+      "button": "Register webhooks",
+      "loading": "Registering…",
+      "success": "{count} subscriptions active."
+    },
+    "inventory": {
+      "eyebrow": "Stock",
+      "title": "Push stock to Shopify",
+      "intro": "Writes the current <code>available</code> value (= <code>on_hand_total − reserved_total</code>) per variant to Shopify via <code>inventorySetOnHandQuantities</code>. Needed after the first inbound or when manual Shopify inventory edits cause drift. Per-event mutations already push after every event.",
+      "button": "Push stock",
+      "loading": "Pushing…",
+      "success": "{variants} variants, {chunks} chunks queued."
+    },
+    "ordersBackfill": {
+      "eyebrow": "Orders",
+      "title": "Reload orders (backfill)",
+      "intro": "Pulls all <em>open, unfulfilled</em> orders from Shopify into our database. Needed after the first app install — webhooks only fire for new/changed orders, not retroactively.",
+      "button": "Start backfill",
+      "loading": "Loading…",
+      "success": "{count} orders loaded across {pages} pages."
+    },
+    "allocation": {
+      "eyebrow": "Allocation",
+      "title": "Run allocation",
+      "queueConfigured": "Queue configured",
+      "targetUrl": "Target URL",
+      "button": "Run allocation now",
+      "loading": "Starting…"
+    },
+    "badge": {
+      "ok": "OK",
+      "missing": "missing"
+    }
+  },
+  "picklistPrint": {
+    "header": "Monolith Caviar · Picklist",
+    "subTitle": "FEFO · {datetime}",
+    "express": "Express",
+    "brand": "Ikrinka",
+    "brandSub": "Premium Quality",
+    "address": "Shipping address",
+    "tags": "Tags",
+    "product": "Product",
+    "sku": "SKU",
+    "qty": "Qty",
+    "charge": "Batch · Best-before",
+    "noAllocation": "— no allocation —",
+    "expiry": "Best-before",
+    "qtyUnit": "pcs",
+    "footerOrderId": "Order ID:",
+    "footerStatus": "Status:"
+  },
+  "packingSlip": {
+    "eyebrow": "Ikrinka · Premium Quality",
+    "brand": "Monolith Caviar",
+    "companyLine": "Ikrinka GmbH · Musterstraße 1 · 10115 Berlin · Germany",
+    "contactEmail": "kontakt@monolithcaviar.de",
+    "title": "Delivery note",
+    "orderDate": "Order date",
+    "shippingAddress": "Shipping address",
+    "greeting": "Dear {name},",
+    "fallbackName": "customer",
+    "intro": "thank you for your order. Below you'll find every item with its batch number and best-before date for food traceability.",
+    "product": "Product",
+    "qty": "Qty",
+    "charge": "Batch",
+    "expiry": "Best-before",
+    "noCharge": "—",
+    "noteKeep": "Please keep this delivery note with the batch numbers and best-before dates in case you have any questions about your order.",
+    "noteContact": "Any questions? Reach us at <strong>{email}</strong>.",
+    "signature": "Thank you and enjoy!\nYour Monolith team",
+    "footerOrder": "Delivery note for order <mono>{order}</mono>",
+    "footerLegal": "Ikrinka GmbH · VAT ID DE… · HRB … · Managing Director: …"
+  },
+  "login": {
+    "title": "Sign in",
+    "intro": "Sign in with your Firebase account.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "errors": {
+      "invalid_credentials": "Email or password is incorrect.",
+      "no_role": "This account has no role yet. Contact an admin.",
+      "generic": "Sign-in failed."
+    }
   }
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import type { OrderInternalStatus } from "@/server/firestore/schema";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 
@@ -52,6 +53,7 @@ const STATUS_BADGE: Record<OrderInternalStatus, string> = {
 };
 
 export function OrdersTable({ orders }: { orders: OrderRow[] }) {
+  const t = useTranslations("ordersAdmin");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const toggle = (id: string) => {
@@ -66,7 +68,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
   if (orders.length === 0) {
     return (
       <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
-        Keine Bestellungen.
+        {t("empty")}
       </p>
     );
   }
@@ -77,12 +79,12 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
         <thead>
           <tr>
             <th className="w-10"></th>
-            <th>Order</th>
-            <th>Erstellt</th>
-            <th>Status</th>
-            <th>Items</th>
-            <th>Tags</th>
-            <th>Stop-Grund</th>
+            <th>{t("table.order")}</th>
+            <th>{t("table.created")}</th>
+            <th>{t("table.status")}</th>
+            <th>{t("table.items")}</th>
+            <th>{t("table.tags")}</th>
+            <th>{t("table.stopReason")}</th>
           </tr>
         </thead>
         <tbody>

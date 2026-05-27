@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
@@ -178,17 +179,25 @@ export default async function OrdersPage({
     : "ALL";
 
   const rows = await loadOrderRows(filter);
+  const t = await getTranslations("ordersAdmin");
+
+  const filterLabel = (f: Filter): string => {
+    if (f === "ALL") return t("filters.all");
+    if (f === "NEW") return t("filters.new");
+    if (f === "SHIP") return t("filters.ship");
+    if (f === "STOP") return t("filters.stop");
+    if (f === "PICKING") return t("filters.picking");
+    if (f === "PACKED") return t("filters.packed");
+    if (f === "CANCELLED") return t("filters.cancelled");
+    return f;
+  };
 
   return (
     <div className="space-y-8">
       <div>
-        <p className="eyebrow">Bestellungen</p>
-        <h1 className="h-display mt-1 text-3xl">Orders</h1>
-        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
-          Letzte 100 Bestellungen aus Shopify. Status wird vom Allocation-Run
-          automatisch gesetzt. Klicke auf den Pfeil, um die Produkte und
-          Bestände einer Order zu prüfen.
-        </p>
+        <p className="eyebrow">{t("eyebrow")}</p>
+        <h1 className="h-display mt-1 text-3xl">{t("title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
       </div>
 
       <nav className="flex flex-wrap items-center gap-2 text-sm">
@@ -204,7 +213,7 @@ export default async function OrdersPage({
                   : "border border-zinc-200 bg-white text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"
               }`}
             >
-              {f}
+              {filterLabel(f)}
             </Link>
           );
         })}

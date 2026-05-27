@@ -13,6 +13,7 @@ import {
 import { signLabel } from "@/server/dhl/storage";
 import { ConfirmPackingForm } from "./confirm-packing-form";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { getTranslations } from "next-intl/server";
 import { DhlLabelButtons } from "./dhl-label-buttons";
 import { DhlServicesBadges } from "./dhl-services-badges";
 import { summarizeDhlServices } from "@/server/dhl/request-builder";
@@ -152,6 +153,11 @@ export default async function PackingPage({
 
   const isPacking = order.internal_status === "PICKING";
   const isPacked = order.internal_status === "PACKED";
+  const [t, tPack, tPage] = await Promise.all([
+    getTranslations("packing"),
+    getTranslations("packing.contents"),
+    getTranslations("packingPage"),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -160,7 +166,7 @@ export default async function PackingPage({
           href={`/lager/picking/${order.id}`}
           className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
         >
-          ← Zurück zur Picklist
+          {tPage("backToPicklist")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
@@ -184,7 +190,7 @@ export default async function PackingPage({
       </div>
 
       <section className="card p-5">
-        <h2 className="eyebrow">Lieferadresse</h2>
+        <h2 className="eyebrow">{t("shippingAddress")}</h2>
         <address className="mt-2 not-italic text-base leading-relaxed text-brand-ink">
           <strong>
             {order.shipping_address?.first_name}{" "}
@@ -213,18 +219,18 @@ export default async function PackingPage({
 
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">
-          <p className="eyebrow">Inhalt</p>
+          <p className="eyebrow">{tPack("eyebrow")}</p>
           <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-            Was im Karton landen muss
+            {tPack("title")}
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="table-brand">
             <thead>
               <tr>
-                <th>Produkt</th>
-                <th className="text-right">Menge</th>
-                <th>Chargen</th>
+                <th>{tPack("product")}</th>
+                <th className="text-right">{tPack("qty")}</th>
+                <th>{tPack("batches")}</th>
               </tr>
             </thead>
             <tbody>
@@ -266,15 +272,12 @@ export default async function PackingPage({
       </section>
 
       <section className="card p-6">
-        <p className="eyebrow">Versandetikett</p>
+        <p className="eyebrow">{t("dhl.eyebrow")}</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          DHL-Etikett erzeugen
+          {t("dhl.title")}
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Erzeugt ein DHL-Paket-Etikett (DE) direkt über die API. Sobald das
-          Etikett erstellt ist, wird die Order automatisch als{" "}
-          <strong>verpackt + versendet</strong> markiert (Bestand abgebucht,
-          Fulfillment an Shopify gemeldet).
+          {t.rich("dhl.intro", { b: (chunks) => <strong>{chunks}</strong> })}
         </p>
         <DhlServicesBadges services={dhlServices} />
         <div className="mt-4">
@@ -293,14 +296,16 @@ export default async function PackingPage({
         {!dhlConfig &&
         (order.shipping_address?.country_code ?? "").toUpperCase() === "DE" ? (
           <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            DHL ist noch nicht konfiguriert.{" "}
-            <Link
-              href="/admin/settings"
-              className="font-semibold underline underline-offset-2"
-            >
-              In den Admin-Einstellungen
-            </Link>{" "}
-            EKP-Nummer + Absenderadresse pflegen.
+            {tPage.rich("notConfigured", {
+              link: (chunks) => (
+                <Link
+                  href="/admin/settings"
+                  className="font-semibold underline underline-offset-2"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
           </div>
         ) : null}
       </section>
@@ -311,32 +316,31 @@ export default async function PackingPage({
           target="_blank"
           className="btn-ghost"
         >
-          Picklist nochmal drucken
+          {t("reprintPicklist")}
         </Link>
       </div>
 
       {isPacking ? (
         <section className="card p-6">
-          <p className="eyebrow">Abschluss</p>
+          <p className="eyebrow">{t("finish.eyebrow")}</p>
           <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-            Verpackt + versendet
+            {t("finish.title")}
           </h2>
-          <p className="mt-1 text-xs text-brand-navy/60">
-            Bucht den Bestand atomar ab, meldet Fulfillment und Inventory an
-            Shopify zurück und schließt die Order.
-          </p>
+          <p className="mt-1 text-xs text-brand-navy/60">{t("finish.intro")}</p>
           <div className="mt-5">
             <ConfirmPackingForm orderId={order.id} />
           </div>
         </section>
       ) : isPacked ? (
         <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Order ist gepackt und gebucht.
+          {t("alerts.packed")}
         </div>
       ) : (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Order ist in Status <strong>{order.internal_status}</strong>.
-          Pack-Bestätigung nur aus PICKING-Status möglich.
+          {t.rich("alerts.wrongStatus", {
+            status: order.internal_status,
+            b: (chunks) => <strong>{chunks}</strong>,
+          })}
         </div>
       )}
     </div>

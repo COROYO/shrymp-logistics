@@ -1,3 +1,5 @@
+"use client";
+import { useTranslations } from "next-intl";
 import type { DhlServicesSummary } from "@/server/dhl/request-builder";
 
 /** Format integer cents as "12,34 EUR" for display. */
@@ -14,6 +16,7 @@ export function DhlServicesBadges({
 }: {
   services: DhlServicesSummary;
 }) {
+  const t = useTranslations("services");
   if (!services.cod && !services.premium && !services.shippingMethodTitle) {
     return null;
   }
@@ -22,7 +25,7 @@ export function DhlServicesBadges({
     <div className="mt-4 space-y-2">
       {services.shippingMethodTitle ? (
         <p className="text-xs text-brand-navy/70">
-          Versandmethode:{" "}
+          {t("shippingMethod")}:{" "}
           <span className="font-semibold text-brand-navy">
             {services.shippingMethodTitle}
           </span>
@@ -31,14 +34,14 @@ export function DhlServicesBadges({
       <div className="flex flex-wrap gap-2">
         {services.cod ? (
           <span className="chip chip-amber">
-            Nachnahme
+            {t("cod")}
             {services.codAmountCents != null
               ? ` · ${formatMoneyCents(services.codAmountCents, services.codCurrency ?? "EUR")}`
-              : " · Betrag fehlt"}
+              : ` · ${t("codAmountMissing")}`}
           </span>
         ) : null}
         {services.premium ? (
-          <span className="chip chip-violet">Premium-Versand</span>
+          <span className="chip chip-violet">{t("premium")}</span>
         ) : null}
       </div>
     </div>
