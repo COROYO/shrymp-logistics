@@ -1,205 +1,163 @@
-import Link from "next/link";
 import { adminDb } from "@/server/firestore/admin";
-import { Collections } from "@/server/firestore/schema";
-import { NewBatchForm, type VariantOption } from "./new-batch-form";
+import {
+  Collections,
+  type Batch,
+  type Product,
+  type Variant,
+} from "@/server/firestore/schema";
+import { ProductAccordion, type ProductRow } from "./product-accordion";
 
 export const dynamic = "force-dynamic";
 
-type BatchRow = {
-  id: string;
-  variant_id: string;
-  variant_label: string;
-  charge_number: string;
-  expiry_date_iso: string | null;
-  remaining_qty: number;
-  initial_qty: number;
-  status: string;
-};
-
-async function loadVariantOptions(): Promise<VariantOption[]> {
-  const db = adminDb();
-  const [variantsSnap, productsSnap] = await Promise.all([
-    db.collection(Collections.Variants).get(),
-    db.collection(Collections.Products).get(),
-  ]);
-
-  const productTitleById = new Map<string, string>();
-  for (const p of productsSnap.docs) {
-    productTitleById.set(p.id, (p.data().title as string | undefined) ?? p.id);
-  }
-
-  const options: VariantOption[] = variantsSnap.docs.map((v) => {
-    const d = v.data();
-    const productTitle =
-      productTitleById.get(d.product_id as string) ?? d.product_id ?? "?";
-    const variantTitle = (d.title as string | undefined) ?? "—";
-    const sku = (d.sku as string | undefined) ?? null;
-    const label = `${productTitle} · ${variantTitle}${sku ? ` (${sku})` : ""}`;
-    return { id: v.id, label };
-  });
-  options.sort((a, b) => a.label.localeCompare(b.label));
-  return options;
+function tsToIso(t: unknown): string | null {
+  if (!t) return null;
+  const o = t as { toDate?(): Date; seconds?: number };
+  if (typeof o.toDate === "function")
+    return o.toDate().toISOString().slice(0, 10);
+  if (typeof o.seconds === "number")
+    return new Date(o.seconds * 1000).toISOString().slice(0, 10);
+  return null;
 }
 
-async function loadRecentBatches(): Promise<BatchRow[]> {
+async function loadProductRows(): Promise<ProductRow[]> {
   const db = adminDb();
-  // No composite-orderby on expiry_date here — keep simple, sort in-memory.
-  const snap = await db
-    .collection(Collections.Batches)
-    .where("status", "==", "ACTIVE")
-    .limit(50)
-    .get();
+  const [productsSnap, variantsSnap, batchesSnap] = await Promise.all([
+    db.collection(Collections.Products).get(),
+    db.collection(Collections.Variants).get(),
+    db
+      .collection(Collections.Batches)
+      .where("status", "==", "ACTIVE")
+      .get(),
+  ]);
 
-  if (snap.empty) return [];
+  const products: Record<string, Product> = {};
+  for (const p of productsSnap.docs) products[p.id] = p.data() as Product;
 
-  const variantIds = Array.from(
-    new Set(snap.docs.map((d) => d.data().variant_id as string)),
-  );
-  const variantLabels = await Promise.all(
-    variantIds.map(async (vid) => {
-      const v = await db.collection(Collections.Variants).doc(vid).get();
-      if (!v.exists) return [vid, vid] as const;
-      const d = v.data() ?? {};
-      const productId = d.product_id as string | undefined;
-      let productTitle = productId ?? "?";
-      if (productId) {
-        const p = await db
-          .collection(Collections.Products)
-          .doc(productId)
-          .get();
-        if (p.exists)
-          productTitle =
-            (p.data()?.title as string | undefined) ?? productId;
-      }
-      const label = `${productTitle} · ${(d.title as string | undefined) ?? "—"}`;
-      return [vid, label] as const;
-    }),
-  );
-  const labelByVariant = new Map(variantLabels);
+  const variantsByProduct: Record<string, Variant[]> = {};
+  for (const v of variantsSnap.docs) {
+    const data = v.data() as Variant;
+    (variantsByProduct[data.product_id] ??= []).push(data);
+  }
 
-  const rows: BatchRow[] = snap.docs.map((d) => {
-    const data = d.data();
-    const expiry = data.expiry_date as
-      | { toDate(): Date }
-      | { seconds: number }
-      | undefined;
-    let iso: string | null = null;
-    if (expiry && "toDate" in expiry) {
-      iso = expiry.toDate().toISOString().slice(0, 10);
-    } else if (expiry && "seconds" in expiry) {
-      iso = new Date(expiry.seconds * 1000).toISOString().slice(0, 10);
-    }
-    return {
-      id: d.id,
-      variant_id: data.variant_id as string,
-      variant_label:
-        labelByVariant.get(data.variant_id as string) ?? data.variant_id,
-      charge_number: data.charge_number as string,
-      expiry_date_iso: iso,
-      remaining_qty: (data.remaining_qty as number | undefined) ?? 0,
-      initial_qty: (data.initial_qty as number | undefined) ?? 0,
-      status: (data.status as string | undefined) ?? "ACTIVE",
-    };
-  });
+  const batchesByVariant: Record<string, Batch[]> = {};
+  for (const b of batchesSnap.docs) {
+    const data = b.data() as Batch;
+    (batchesByVariant[data.variant_id] ??= []).push(data);
+  }
 
-  rows.sort((a, b) => {
-    if (a.expiry_date_iso === b.expiry_date_iso) {
-      return a.variant_label.localeCompare(b.variant_label);
-    }
-    if (!a.expiry_date_iso) return 1;
-    if (!b.expiry_date_iso) return -1;
-    return a.expiry_date_iso.localeCompare(b.expiry_date_iso);
-  });
+  const rows: ProductRow[] = Object.values(products)
+    .filter((p) => p.status !== "ARCHIVED")
+    .map((p) => {
+      const variants = (variantsByProduct[p.id] ?? [])
+        .map((v) => {
+          const batches = (batchesByVariant[v.id] ?? [])
+            .map((b) => ({
+              id: b.id,
+              chargeNumber: b.charge_number,
+              expiryDateIso: tsToIso(b.expiry_date) ?? "",
+              remainingQty: b.remaining_qty,
+              initialQty: b.initial_qty,
+              status: b.status,
+              notes: b.notes ?? null,
+            }))
+            .sort((a, b) => {
+              if (a.expiryDateIso === b.expiryDateIso) {
+                return a.chargeNumber.localeCompare(b.chargeNumber);
+              }
+              if (!a.expiryDateIso) return 1;
+              if (!b.expiryDateIso) return -1;
+              return a.expiryDateIso.localeCompare(b.expiryDateIso);
+            });
+          const onHand =
+            (v.on_hand_total as number | undefined) ??
+            batches.reduce((s, b) => s + b.remainingQty, 0);
+          const reserved = (v.reserved_total as number | undefined) ?? 0;
+          return {
+            id: v.id,
+            title: v.title,
+            sku: v.sku ?? null,
+            priceCents: v.price_cents ?? null,
+            currency: v.currency ?? null,
+            imageUrl: v.image_url ?? null,
+            onHand,
+            reserved,
+            available: onHand - reserved,
+            batches,
+          };
+        })
+        .sort((a, b) => a.title.localeCompare(b.title));
+
+      const totalOnHand = variants.reduce((s, v) => s + v.onHand, 0);
+      const totalAvailable = variants.reduce((s, v) => s + v.available, 0);
+
+      return {
+        id: p.id,
+        title: p.title,
+        handle: p.handle,
+        imageUrl: p.image_url ?? null,
+        status: p.status,
+        variants,
+        totalOnHand,
+        totalAvailable,
+        batchCount: variants.reduce((s, v) => s + v.batches.length, 0),
+      };
+    })
+    .sort((a, b) => a.title.localeCompare(b.title));
 
   return rows;
 }
 
 export default async function BatchesPage() {
-  const [variants, batches] = await Promise.all([
-    loadVariantOptions(),
-    loadRecentBatches(),
-  ]);
+  const rows = await loadProductRows();
+  const totals = {
+    products: rows.length,
+    activeBatches: rows.reduce((s, r) => s + r.batchCount, 0),
+    onHand: rows.reduce((s, r) => s + r.totalOnHand, 0),
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Wareneingang</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Bestand &amp; Chargen
+        </h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Neue Charge mit MHD anlegen. Triggert automatisch eine
-          Re-Allokation aller offenen Bestellungen.
+          Pro Variante eine FEFO-sortierte Liste der aktiven Chargen. Jede
+          Änderung wird sofort transaktional gebucht und an Shopify
+          zurückgeschrieben (Outbox).
         </p>
       </div>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Neue Charge erfassen</h2>
-        {variants.length === 0 ? (
-          <p className="mt-2 text-sm text-amber-700">
-            Es sind noch keine Varianten synchronisiert.{" "}
-            <Link
-              href="/admin/products"
-              className="underline hover:no-underline"
-            >
-              Zuerst Produkte synchronisieren
-            </Link>
-            .
-          </p>
-        ) : (
-          <div className="mt-4">
-            <NewBatchForm variants={variants} />
-          </div>
-        )}
-      </section>
+      <dl className="grid gap-3 sm:grid-cols-3 text-sm">
+        <Stat label="Produkte" value={totals.products} />
+        <Stat label="Aktive Chargen" value={totals.activeBatches} />
+        <Stat label="Bestand gesamt (Stk)" value={totals.onHand} />
+      </dl>
 
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-6 py-3">
-          <h2 className="text-sm font-semibold">
-            Aktive Chargen ({batches.length})
-          </h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            FEFO-Reihenfolge (älteste MHD zuerst)
-          </p>
+      {rows.length === 0 ? (
+        <div className="rounded-md border border-zinc-200 bg-white px-6 py-8 text-sm text-zinc-500">
+          Noch keine Produkte synchronisiert. Erst <a href="/admin/products" className="underline">Produkte syncen</a>.
         </div>
-        {batches.length === 0 ? (
-          <p className="px-6 py-6 text-sm text-zinc-500">
-            Noch keine aktiven Chargen.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full divide-y divide-zinc-200 text-sm">
-              <thead className="bg-zinc-50">
-                <tr className="text-left">
-                  <th className="px-6 py-2 font-medium">MHD</th>
-                  <th className="px-6 py-2 font-medium">Variante</th>
-                  <th className="px-6 py-2 font-medium">Charge</th>
-                  <th className="px-6 py-2 font-medium text-right">
-                    Restmenge
-                  </th>
-                  <th className="px-6 py-2 font-medium text-right">
-                    Wareneingang
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {batches.map((b) => (
-                  <tr key={b.id}>
-                    <td className="px-6 py-2 font-mono">
-                      {b.expiry_date_iso ?? "—"}
-                    </td>
-                    <td className="px-6 py-2">{b.variant_label}</td>
-                    <td className="px-6 py-2 font-mono">{b.charge_number}</td>
-                    <td className="px-6 py-2 text-right font-semibold">
-                      {b.remaining_qty}
-                    </td>
-                    <td className="px-6 py-2 text-right text-zinc-500">
-                      {b.initial_qty}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      ) : (
+        <ProductAccordion rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-4">
+      <dt className="text-xs uppercase tracking-wide text-zinc-500">
+        {label}
+      </dt>
+      <dd className="mt-1 text-lg font-semibold">{value}</dd>
     </div>
   );
 }

@@ -7,7 +7,11 @@ import {
   type Product,
   type Variant,
 } from "@/server/firestore/schema";
-import { OrdersTable, type OrderRow } from "./orders-table";
+import {
+  OrdersTable,
+  type OrderLineItemRow,
+  type OrderRow,
+} from "./orders-table";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +88,42 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
 
   return orders.map<OrderRow>((o) => {
     const itemCount = o.line_items.reduce((sum, li) => sum + li.qty, 0);
+    const rawItems: OrderLineItemRow[] = o.line_items.map((li) => {
+      const variant = variantById.get(li.variant_id);
+      const product = variant
+        ? productById.get(variant.product_id)
+        : undefined;
+      const imageUrl = product?.image_url ?? null;
+      const imageMissingReason = imageUrl
+        ? null
+        : !variant
+          ? "no_variant"
+          : !product
+            ? "no_product"
+            : "no_image";
+      return {
+        id: li.id,
+        title: product?.title ?? li.title,
+        variantTitle: variant?.title ?? "",
+        sku: li.sku ?? variant?.sku ?? null,
+        qty: li.qty,
+        imageUrl,
+        imageMissingReason,
+        variantId: li.variant_id,
+        onHand: variant?.on_hand_total ?? 0,
+        reserved: variant?.reserved_total ?? 0,
+        available: variant?.available ?? 0,
+        mergedFromIds: [li.id],
+        bundle: li.bundle
+          ? {
+              groupId: li.bundle.group_id,
+              title: li.bundle.title,
+              quantity: li.bundle.quantity,
+              variantSku: li.bundle.variant_sku,
+            }
+          : null,
+      };
+    });
     return {
       id: o.id,
       name: o.name,
@@ -92,43 +132,38 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
       stopReason: o.stop_reason ?? null,
       createdIso: tsToIso(o.created_at_shopify),
       itemCount,
-      lineItems: o.line_items.map((li) => {
-        const variant = variantById.get(li.variant_id);
-        const product = variant
-          ? productById.get(variant.product_id)
-          : undefined;
-        const imageUrl = product?.image_url ?? null;
-        const imageMissingReason = imageUrl
-          ? null
-          : !variant
-            ? "no_variant"
-            : !product
-              ? "no_product"
-              : "no_image";
-        return {
-          id: li.id,
-          title: product?.title ?? li.title,
-          variantTitle: variant?.title ?? "",
-          sku: li.sku ?? variant?.sku ?? null,
-          qty: li.qty,
-          imageUrl,
-          imageMissingReason,
-          variantId: li.variant_id,
-          onHand: variant?.on_hand_total ?? 0,
-          reserved: variant?.reserved_total ?? 0,
-          available: variant?.available ?? 0,
-          bundle: li.bundle
-            ? {
-                groupId: li.bundle.group_id,
-                title: li.bundle.title,
-                quantity: li.bundle.quantity,
-                variantSku: li.bundle.variant_sku,
-              }
-            : null,
-        };
-      }),
+      lineItems: mergeDuplicateLineItems(rawItems),
     };
   });
+}
+
+/**
+ * Merge line items that share the same `(bundle.groupId, sku, title)`. Bundle
+ * components are only merged within the same bundle so the parent → child
+ * relationship stays intact, and standalone items only merge with other
+ * standalone items.
+ */
+function mergeDuplicateLineItems(
+  items: OrderLineItemRow[],
+): OrderLineItemRow[] {
+  const merged: OrderLineItemRow[] = [];
+  const idxByKey = new Map<string, number>();
+  for (const li of items) {
+    const key = `${li.bundle?.groupId ?? "_"}|${li.sku ?? "_"}|${li.title}`;
+    const existingIdx = idxByKey.get(key);
+    if (existingIdx === undefined) {
+      idxByKey.set(key, merged.length);
+      merged.push(li);
+      continue;
+    }
+    const existing = merged[existingIdx]!;
+    merged[existingIdx] = {
+      ...existing,
+      qty: existing.qty + li.qty,
+      mergedFromIds: [...existing.mergedFromIds, li.id],
+    };
+  }
+  return merged;
 }
 
 export default async function OrdersPage({

@@ -24,6 +24,8 @@ export type OrderLineItemRow = {
   onHand: number;
   reserved: number;
   available: number;
+  /** Original Shopify line-item ids that were folded into this row. */
+  mergedFromIds: string[];
   bundle: OrderLineItemBundleRef | null;
 };
 
@@ -343,7 +345,17 @@ function ItemRow({
         </div>
       </td>
       <td className="px-3 py-2">
-        <div className="font-medium">{li.title}</div>
+        <div className="flex items-center gap-1.5 font-medium">
+          {li.title}
+          {li.mergedFromIds.length > 1 ? (
+            <span
+              className="rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
+              title={`Aus ${li.mergedFromIds.length} Positionen zusammengeführt: ${li.mergedFromIds.join(", ")}`}
+            >
+              ×{li.mergedFromIds.length}
+            </span>
+          ) : null}
+        </div>
         {li.variantTitle && li.variantTitle !== "Default Title" ? (
           <div className="text-xs text-zinc-500">{li.variantTitle}</div>
         ) : null}
@@ -380,7 +392,11 @@ function StockBadge({
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    // SSR-hydration flip — running this synchronously is intentional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const TOOLTIP_WIDTH = 176;
   const updatePos = () => {
