@@ -30,6 +30,9 @@ export default async function AdminLayout({
               <Link href="/admin/products" className="hover:text-zinc-900">
                 Produkte
               </Link>
+              <Link href="/admin/users" className="hover:text-zinc-900">
+                Benutzer
+              </Link>
               <Link href="/admin/settings" className="hover:text-zinc-900">
                 Einstellungen
               </Link>

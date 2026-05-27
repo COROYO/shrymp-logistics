@@ -228,13 +228,22 @@ export default async function PickingDetailPage({
             Picklist · FEFO ({lineItems.length} Position
             {lineItems.length === 1 ? "" : "en"})
           </h2>
-          <Link
-            href={`/lager/picking/${order.id}/print`}
-            target="_blank"
-            className="text-xs underline text-zinc-600 hover:text-zinc-900"
-          >
-            Drucken
-          </Link>
+          <div className="flex items-center gap-4 text-xs">
+            <Link
+              href={`/lager/picking/${order.id}/print`}
+              target="_blank"
+              className="underline text-zinc-600 hover:text-zinc-900"
+            >
+              Picklist drucken
+            </Link>
+            <Link
+              href={`/lager/picking/${order.id}/slip`}
+              target="_blank"
+              className="underline text-zinc-600 hover:text-zinc-900"
+            >
+              Packing-Slip drucken
+            </Link>
+          </div>
         </div>
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left">

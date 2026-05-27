@@ -131,7 +131,23 @@ export default async function PickingQueuePage() {
                         {o.internal_status}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 text-right whitespace-nowrap">
+                      <Link
+                        href={`/lager/picking/${o.id}/slip`}
+                        target="_blank"
+                        className="text-xs text-zinc-500 hover:text-zinc-900 hover:underline mr-3"
+                        title="Packing-Slip drucken"
+                      >
+                        🧾 Slip
+                      </Link>
+                      <Link
+                        href={`/lager/picking/${o.id}/print`}
+                        target="_blank"
+                        className="text-xs text-zinc-500 hover:text-zinc-900 hover:underline mr-3"
+                        title="Picklist drucken"
+                      >
+                        📋 Picklist
+                      </Link>
                       <Link
                         href={`/lager/picking/${o.id}`}
                         className="text-sm font-medium text-zinc-900 hover:underline"

@@ -35,6 +35,13 @@ export default function AdminHome() {
           <p className="mt-1 text-xs text-zinc-500">Shopify-Sync verwalten</p>
         </Link>
         <Link
+          href="/admin/users"
+          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
+        >
+          <h2 className="text-sm font-semibold">Benutzer</h2>
+          <p className="mt-1 text-xs text-zinc-500">Lager + Admins verwalten</p>
+        </Link>
+        <Link
           href="/admin/settings"
           className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
         >
