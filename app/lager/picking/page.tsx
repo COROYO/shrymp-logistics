@@ -1,18 +1,11 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Order } from "@/server/firestore/schema";
-import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { QueueTable, type QueueRow } from "./queue-table";
 
 export const dynamic = "force-dynamic";
 
-type Row = Order & {
-  _createdIso: string;
-  itemCount: number;
-  isExpress: boolean;
-};
-
-async function loadQueue(): Promise<Row[]> {
+async function loadQueue(): Promise<QueueRow[]> {
   const db = adminDb();
   const snap = await db
     .collection(Collections.Orders)
@@ -20,7 +13,7 @@ async function loadQueue(): Promise<Row[]> {
     .limit(200)
     .get();
 
-  const rows: Row[] = snap.docs.map((d) => {
+  const rows: QueueRow[] = snap.docs.map((d) => {
     const data = d.data() as Order;
     const ts = data.created_at_shopify as unknown as
       | { toDate?(): Date; seconds?: number }
@@ -32,17 +25,24 @@ async function loadQueue(): Promise<Row[]> {
       iso = new Date((ts as { seconds: number }).seconds * 1000).toISOString();
     }
     const itemCount = data.line_items.reduce((sum, li) => sum + li.qty, 0);
+    const isExpress = data.tags.includes("EXPRESS_DHL");
     return {
-      ...data,
-      _createdIso: iso,
+      id: data.id,
+      name: data.name,
+      createdIso: iso,
       itemCount,
-      isExpress: data.tags.includes("EXPRESS_DHL"),
+      positionCount: data.line_items.length,
+      city: data.shipping_address?.city ?? null,
+      tags: data.tags,
+      internal_status: data.internal_status as "SHIP" | "PICKING",
+      isExpress,
+      customerNote: data.customer_note ?? null,
     };
   });
 
   rows.sort((a, b) => {
     if (a.isExpress !== b.isExpress) return a.isExpress ? -1 : 1;
-    return a._createdIso.localeCompare(b._createdIso);
+    return a.createdIso.localeCompare(b.createdIso);
   });
 
   return rows;
@@ -76,122 +76,13 @@ export default async function PickingQueuePage() {
         </div>
       </div>
 
-      <div className="card overflow-hidden">
-        {rows.length === 0 ? (
-          <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
-            {t("empty")}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table-brand">
-              <thead>
-                <tr>
-                  <th>{t("table.order")}</th>
-                  <th>{t("table.created")}</th>
-                  <th>{t("table.items")}</th>
-                  <th>{t("table.city")}</th>
-                  <th>{t("table.tags")}</th>
-                  <th>{t("table.status")}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((o) => {
-                  const cta =
-                    o.internal_status === "PICKING"
-                      ? t("ctaContinue")
-                      : t("ctaStart");
-                  return (
-                    <tr
-                      key={o.id}
-                      className={
-                        o.isExpress ? "bg-brand-burgundy-soft/40" : undefined
-                      }
-                    >
-                      <td className="font-mono text-sm font-bold text-brand-navy">
-                        <span className="inline-flex items-center gap-1.5">
-                          <OrderNoteIcon note={o.customer_note} />
-                          {o.name}
-                        </span>
-                      </td>
-                      <td className="text-sm text-brand-navy/60">
-                        {o._createdIso
-                          ? new Date(o._createdIso).toLocaleString("de-DE", {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })
-                          : "—"}
-                      </td>
-                      <td className="text-sm">
-                        <span className="font-semibold text-brand-navy">
-                          {o.itemCount}
-                        </span>{" "}
-                        <span className="text-xs text-brand-navy/50">
-                          ({o.line_items.length} {t("table.positions")})
-                        </span>
-                      </td>
-                      <td className="text-xs text-brand-navy/70">
-                        {o.shipping_address?.city ?? "—"}
-                      </td>
-                      <td>
-                        <div className="flex flex-wrap gap-1">
-                          {o.tags.slice(0, 3).map((t) => (
-                            <span
-                              key={t}
-                              className={
-                                t === "EXPRESS_DHL"
-                                  ? "chip chip-burgundy"
-                                  : "chip chip-soft"
-                              }
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            o.internal_status === "PICKING"
-                              ? "chip chip-violet"
-                              : "chip chip-emerald"
-                          }
-                        >
-                          {o.internal_status}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap text-right">
-                        <Link
-                          href={`/lager/picking/${o.id}/slip`}
-                          target="_blank"
-                          className="mr-4 text-[11px] font-semibold uppercase tracking-wide text-brand-navy/50 hover:text-brand-burgundy"
-                          title={t("linkSlip")}
-                        >
-                          {t("linkSlip")}
-                        </Link>
-                        <Link
-                          href={`/lager/picking/${o.id}/print`}
-                          target="_blank"
-                          className="mr-4 text-[11px] font-semibold uppercase tracking-wide text-brand-navy/50 hover:text-brand-burgundy"
-                          title={t("linkPicklist")}
-                        >
-                          {t("linkPicklist")}
-                        </Link>
-                        <Link
-                          href={`/lager/picking/${o.id}`}
-                          className="text-sm font-semibold text-brand-burgundy hover:text-brand-burgundy-dark"
-                        >
-                          {cta}
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <div className="card px-6 py-10 text-center text-sm text-brand-navy/60">
+          {t("empty")}
+        </div>
+      ) : (
+        <QueueTable rows={rows} />
+      )}
     </div>
   );
 }
@@ -205,8 +96,7 @@ function Stat({
   value: number;
   accent: "emerald" | "violet";
 }) {
-  const dot =
-    accent === "emerald" ? "bg-emerald-500" : "bg-violet-500";
+  const dot = accent === "emerald" ? "bg-emerald-500" : "bg-violet-500";
   return (
     <div className="card flex items-center gap-3 px-4 py-2">
       <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />

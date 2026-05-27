@@ -1,8 +1,11 @@
 "use client";
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { triggerProductSyncAction } from "./actions";
 
 export function ProductSyncButton() {
+  const t = useTranslations("products.sync");
+  const tCommon = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -14,7 +17,10 @@ export function ProductSyncButton() {
       const res = await triggerProductSyncAction();
       if (res.ok) {
         setMsg(
-          `Sync OK · ${res.productCount} Produkte · ${res.variantCount} Varianten · Location ${res.locationGid}`,
+          t("success", {
+            products: res.productCount,
+            variants: res.variantCount,
+          }),
         );
       } else {
         setErr(res.error);
@@ -30,7 +36,7 @@ export function ProductSyncButton() {
         disabled={pending}
         className="btn-primary"
       >
-        {pending ? "Synchronisiere…" : "Jetzt synchronisieren"}
+        {pending ? t("loading") : t("button")}
       </button>
       {msg ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -39,7 +45,7 @@ export function ProductSyncButton() {
       ) : null}
       {err ? (
         <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-3 py-2 text-sm text-brand-burgundy-dark">
-          Fehler: {err}
+          {tCommon("error")}: {err}
         </div>
       ) : null}
     </div>

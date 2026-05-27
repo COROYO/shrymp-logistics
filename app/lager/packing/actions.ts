@@ -33,6 +33,87 @@ export type ConfirmPackingActionResult =
   | { ok: true }
   | { ok: false; error: string };
 
+/**
+ * Bulk mark-as-packed for the picking queue. For each order:
+ *   - If status is SHIP → call startPicking first
+ *   - If status is PICKING → straight to confirmPacking
+ *   - Otherwise → record as skipped, no error
+ *
+ * Best-effort: one failed order doesn't roll back the others. Returns a
+ * per-order result so the UI can show what worked.
+ */
+export type BulkConfirmResult = {
+  results: Array<{
+    orderId: string;
+    ok: boolean;
+    error?: string;
+  }>;
+  successCount: number;
+  failureCount: number;
+};
+
+export async function bulkConfirmPackingAction(
+  orderIds: string[],
+): Promise<BulkConfirmResult> {
+  let user;
+  try {
+    user = await requireRole("LAGER", "ADMIN");
+  } catch {
+    return {
+      results: orderIds.map((id) => ({ orderId: id, ok: false, error: "forbidden" })),
+      successCount: 0,
+      failureCount: orderIds.length,
+    };
+  }
+
+  const db = adminDb();
+  const results: BulkConfirmResult["results"] = [];
+
+  for (const orderId of orderIds) {
+    try {
+      const snap = await db.collection(Collections.Orders).doc(orderId).get();
+      if (!snap.exists) {
+        results.push({ orderId, ok: false, error: "not_found" });
+        continue;
+      }
+      const order = snap.data() as Order;
+
+      if (order.internal_status === "PACKED") {
+        // Idempotent: already packed = success.
+        results.push({ orderId, ok: true });
+        continue;
+      }
+
+      if (order.internal_status === "SHIP" || order.internal_status === "NEW") {
+        await startPicking(orderId, user.uid);
+      } else if (order.internal_status !== "PICKING") {
+        results.push({
+          orderId,
+          ok: false,
+          error: `wrong_status:${order.internal_status}`,
+        });
+        continue;
+      }
+
+      await confirmPacking(orderId, user.uid, undefined);
+      results.push({ orderId, ok: true });
+    } catch (e) {
+      const msg = e instanceof TransitionError ? e.message : String(e);
+      log.warn("bulk_confirm_packing_failed", { orderId, error: msg });
+      results.push({ orderId, ok: false, error: msg });
+    }
+  }
+
+  revalidatePath("/lager/picking");
+  revalidatePath("/admin/orders");
+  const successCount = results.filter((r) => r.ok).length;
+  return {
+    results,
+    successCount,
+    failureCount: results.length - successCount,
+  };
+}
+
 export async function confirmPackingAction(
   orderId: string,
   tracking: TrackingInput | null,

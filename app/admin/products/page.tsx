@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, ConfigDocs } from "@/server/firestore/schema";
 import { ProductSyncButton } from "./sync-button";
@@ -44,38 +45,35 @@ async function getStats() {
 
 export default async function ProductsPage() {
   const stats = await getStats();
+  const t = await getTranslations("products");
   return (
     <div className="space-y-8">
       <div>
-        <p className="eyebrow">Stammdaten</p>
-        <h1 className="h-display mt-1 text-3xl">Produkte</h1>
-        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
-          Shopify-Katalog spiegeln. Bestände werden separat über Wareneingang
-          gepflegt, hier nur Stammdaten.
-        </p>
+        <p className="eyebrow">{t("eyebrow")}</p>
+        <h1 className="h-display mt-1 text-3xl">{t("title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
       </div>
 
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Produkte" value={stats.productCount} />
-        <Stat label="Varianten" value={stats.variantCount} />
-        <Stat label="Shop-Domain" value={stats.shopDomain ?? "—"} mono />
+        <Stat label={t("stats.products")} value={stats.productCount} />
+        <Stat label={t("stats.variants")} value={stats.variantCount} />
+        <Stat label={t("stats.shopDomain")} value={stats.shopDomain ?? "—"} mono />
         <Stat
-          label="Letzter Sync"
+          label={t("stats.lastSync")}
           value={
             stats.updatedAtIso
               ? new Date(stats.updatedAtIso).toLocaleString("de-DE")
-              : "nie"
+              : t("stats.never")
           }
         />
       </dl>
 
       <section className="card p-6">
-        <p className="eyebrow">Synchronisation</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">Voll-Sync</h2>
-        <p className="mt-1 text-xs text-brand-navy/60">
-          Lädt alle Produkte und Varianten aus Shopify nach Firestore. Bestehende
-          Bestände (on_hand_total, reserved_total) werden nicht überschrieben.
-        </p>
+        <p className="eyebrow">{t("sync.eyebrow")}</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          {t("sync.title")}
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">{t("sync.intro")}</p>
         <div className="mt-4">
           <ProductSyncButton />
         </div>

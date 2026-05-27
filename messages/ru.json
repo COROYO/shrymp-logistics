@@ -140,7 +140,20 @@
       "ctaContinue": "Продолжить упаковку →",
       "ctaStart": "Начать сборку →",
       "linkSlip": "🧾 Накладная",
-      "linkPicklist": "📋 Лист сборки"
+      "linkPicklist": "📋 Лист сборки",
+      "selectAll": "Выбрать все",
+      "selectRow": "Выбрать заказ",
+      "bulk": {
+        "selected": "Выбрано: {count}",
+        "clear": "Снять выделение",
+        "printSlips": "Печать {count} накладных",
+        "markPacked": "Отметить как отправленные",
+        "marking": "Обработка…",
+        "confirmMark": "Точно отметить {count} заказов как упакованные + отправленные? Запас будет списан, фулфилмент отправлен в Shopify.",
+        "successAll": "Успешно завершено: {count}.",
+        "successPartial": "Успешно: {ok}, ошибок: {fail}.",
+        "showErrors": "Показать ошибки"
+      }
     }
   },
   "packing": {
@@ -270,87 +283,133 @@
       "created": "Создан",
       "status": "Статус",
       "items": "Позиции",
+      "lineItems": "позиций",
       "tags": "Теги",
       "stopReason": "Причина STOP",
       "actions": "Действия",
       "viewDetail": "Детали →",
+      "image": "Фото",
       "product": "Товар",
       "variant": "Вариант",
       "skuLbl": "SKU",
-      "qty": "Кол-во",
+      "qty": "Заказано",
       "onHand": "На складе",
       "reserved": "Зарезервировано",
       "available": "Доступно",
-      "bundle": "Набор: {title} ×{qty}"
+      "stock": "Остаток",
+      "noLineItems": "Позиций нет.",
+      "bundleBadge": "Набор",
+      "bundles": "наборов",
+      "components": "компонентов",
+      "mergedFrom": "Объединено из {count} позиций: {ids}",
+      "imageMissing": {
+        "noVariant": "Вариант не в Firestore — запустите синхронизацию товаров",
+        "noProduct": "Товар не в Firestore — запустите синхронизацию товаров",
+        "noImage": "У товара нет featuredMedia в Shopify",
+        "noVariantShort": "нет варианта",
+        "noProductShort": "нет товара",
+        "noneShort": "без фото"
+      }
     },
     "empty": "Нет заказов в этом фильтре."
   },
   "orderDetail": {
     "back": "← Заказы",
+    "metaOrderId": "ID заказа",
+    "metaShopifyGid": "Shopify GID",
+    "metaCreated": "Создан",
     "address": "Адрес доставки",
-    "noAddress": "Адрес доставки не указан.",
-    "items": "Позиции",
-    "allocations": "Распределение",
-    "noAllocations": "Распределений пока нет.",
-    "stopReason": "Причина STOP",
     "shopifyStatus": "Статус Shopify",
-    "internalStatus": "Внутренний статус",
-    "financialStatus": "Оплата",
-    "fulfillmentStatus": "Фулфилмент",
-    "customerNote": "Комментарий клиента"
+    "financial": "Оплата",
+    "fulfillment": "Фулфилмент",
+    "stopReason": "Причина STOP",
+    "allocationRun": "Allocation-Run",
+    "allocationsEyebrow": "Распределение",
+    "lineItemsTitle": "{count, plural, one {# позиция} few {# позиции} other {# позиций}} ({allocs, plural, one {# резерв} few {# резерва} other {# резервов}})",
+    "table": {
+      "position": "Позиция",
+      "sku": "SKU",
+      "qty": "Заказано",
+      "allocations": "Распределение",
+      "variant": "Вариант",
+      "none": "— нет —",
+      "consumed": "✓ потреблено {when}",
+      "reserved": "зарезервировано"
+    },
+    "audit": {
+      "eyebrow": "Журнал",
+      "title": "Движения запаса ({count})",
+      "empty": "Движений нет.",
+      "when": "Когда",
+      "type": "Тип",
+      "qty": "Кол-во",
+      "charge": "Партия",
+      "user": "Пользователь"
+    }
   },
   "products": {
     "eyebrow": "Каталог",
     "title": "Товары",
-    "intro": "Синхронизировано из Shopify. Нажмите на изображение для деталей.",
-    "syncButton": "Синхронизировать из Shopify",
-    "syncing": "Синхронизация…",
-    "syncSuccess": "Обновлено {products} товаров, {variants} вариантов.",
-    "table": {
-      "product": "Товар",
-      "handle": "Handle",
-      "status": "Статус",
+    "intro": "Зеркало каталога Shopify. Остатки ведутся отдельно через приёмку — здесь только справочник.",
+    "stats": {
+      "products": "Товары",
       "variants": "Варианты",
-      "updated": "Обновлено",
-      "bundle": "Набор",
-      "yes": "Да"
+      "shopDomain": "Домен магазина",
+      "lastSync": "Последняя синхронизация",
+      "never": "никогда"
     },
-    "empty": "Товаров пока нет. Нажмите <b>{action}</b>, чтобы импортировать каталог Shopify."
+    "sync": {
+      "eyebrow": "Синхронизация",
+      "title": "Полная синхронизация",
+      "intro": "Загружает все товары и варианты из Shopify в Firestore. Существующие остатки (on_hand_total, reserved_total) не перезаписываются.",
+      "button": "Синхронизировать из Shopify",
+      "loading": "Синхронизация…",
+      "success": "Обновлено {products} товаров, {variants} вариантов."
+    }
   },
   "batches": {
-    "eyebrow": "Запас",
+    "eyebrow": "Инвентарь",
     "title": "Запас и партии",
-    "intro": "Обзор всех вариантов с остатками, партиями и приёмкой.",
-    "search": "Поиск (SKU, товар, вариант)",
-    "table": {
-      "product": "Товар",
-      "variant": "Вариант",
-      "sku": "SKU",
-      "onHand": "На складе",
-      "reserved": "Зарезервировано",
-      "available": "Доступно",
-      "actions": "Действия"
+    "intro": "По каждому варианту FEFO-список активных партий. Каждое изменение фиксируется транзакционно и отправляется в Shopify (outbox).",
+    "stats": {
+      "products": "Товары",
+      "activeBatches": "Активные партии",
+      "onHandTotal": "Всего на складе (шт)"
     },
-    "empty": "Товары не найдены.",
+    "emptyNoSync": "Товары ещё не синхронизированы. Сначала <link>синхронизируйте товары</link>.",
+    "accordion": {
+      "onHand": "На складе",
+      "available": "Доступно",
+      "reserved": "Зарезервировано",
+      "batches": "Партии",
+      "noVariants": "Варианты не синхронизированы.",
+      "openVariant": "Управлять партиями",
+      "closeVariant": "Закрыть",
+      "price": "Цена",
+      "search": "Поиск товара, варианта или SKU…",
+      "filterCount": "{filtered} из {total}",
+      "variantsCharges": "{variants, plural, one {# вариант} few {# варианта} other {# вариантов}} · {batches, plural, one {# партия} few {# партии} other {# партий}}"
+    },
     "panel": {
-      "title": "Партии",
-      "newBatch": "Создать новую партию",
-      "chargeNumber": "Номер партии",
-      "chargeNumberPlaceholder": "напр. CHG-2026-001",
+      "skuLabel": "SKU",
+      "onHandShort": "На скл.",
+      "reservedShort": "Резерв",
+      "availShort": "Дост.",
+      "charge": "Партия",
       "expiry": "Срок годности",
-      "qty": "Кол-во",
-      "note": "Заметка (необязательно)",
-      "create": "Оприходовать",
-      "creating": "Сохраняем…",
-      "existingTitle": "Существующие партии",
-      "expires": "Срок годности",
       "remaining": "Остаток",
+      "initial": "Начальный",
+      "note": "Заметка",
+      "noActiveBatch": "Активных партий пока нет.",
       "edit": "Редактировать",
       "archive": "Архивировать",
       "save": "Сохранить",
       "cancel": "Отмена",
-      "archiveConfirm": "Точно архивировать партию? Запас вернётся обратно.",
-      "noBatches": "Партий для этого варианта ещё нет."
+      "newBatch": "+ Новая партия",
+      "archiveConfirm": "Архивировать партию {charge}? Остаток {qty} будет списан.",
+      "chargeNoPlaceholder": "Номер партии",
+      "qtyPlaceholder": "Кол-во",
+      "notePlaceholder": "Заметка (необязательно)"
     }
   },
   "users": {

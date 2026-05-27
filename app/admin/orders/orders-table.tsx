@@ -114,6 +114,7 @@ function Row({
   isOpen: boolean;
   onToggle: () => void;
 }) {
+  const t = useTranslations("ordersAdmin");
   return (
     <>
       <tr className={isOpen ? "bg-brand-navy-50" : undefined}>
@@ -122,7 +123,7 @@ function Row({
             type="button"
             onClick={onToggle}
             aria-expanded={isOpen}
-            aria-label={isOpen ? "Zuklappen" : "Aufklappen"}
+            aria-label={t("table.expand")}
             className="flex h-7 w-7 items-center justify-center rounded text-brand-navy/50 transition hover:bg-brand-navy hover:text-white"
           >
             <svg
@@ -164,7 +165,7 @@ function Row({
             {order.itemCount}
           </span>{" "}
           <span className="text-xs text-brand-navy/50">
-            ({order.lineItems.length} LineItems)
+            ({order.lineItems.length} {t("table.lineItems")})
           </span>
         </td>
         <td>
@@ -227,9 +228,12 @@ function groupLineItemsByBundle(items: OrderLineItemRow[]): LineItemGroup[] {
 }
 
 function LineItems({ items }: { items: OrderLineItemRow[] }) {
+  const t = useTranslations("ordersAdmin");
   if (items.length === 0) {
     return (
-      <p className="px-2 py-3 text-xs text-brand-navy/60">Keine Line Items.</p>
+      <p className="px-2 py-3 text-xs text-brand-navy/60">
+        {t("table.noLineItems")}
+      </p>
     );
   }
   const groups = groupLineItemsByBundle(items);
@@ -238,11 +242,11 @@ function LineItems({ items }: { items: OrderLineItemRow[] }) {
       <table className="w-full text-sm">
         <thead className="bg-brand-cream text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
           <tr>
-            <th className="w-16 px-3 py-2">Bild</th>
-            <th className="px-3 py-2">Produkt</th>
-            <th className="px-3 py-2">SKU</th>
-            <th className="px-3 py-2 text-right">Bestellt</th>
-            <th className="px-3 py-2 text-right">Bestand</th>
+            <th className="w-16 px-3 py-2">{t("table.image")}</th>
+            <th className="px-3 py-2">{t("table.product")}</th>
+            <th className="px-3 py-2">{t("table.skuLbl")}</th>
+            <th className="px-3 py-2 text-right">{t("table.qty")}</th>
+            <th className="px-3 py-2 text-right">{t("table.stock")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-100">
@@ -270,13 +274,14 @@ function BundleSection({
   bundle: OrderLineItemBundleRef;
   items: OrderLineItemRow[];
 }) {
+  const t = useTranslations("ordersAdmin");
   return (
     <>
       <tr className="bg-indigo-50/60">
         <td colSpan={5} className="px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-              Bundle
+              {t("table.bundleBadge")}
             </span>
             <span className="font-semibold text-indigo-900">
               {bundle.title}
@@ -291,8 +296,7 @@ function BundleSection({
               <span className="font-mono font-semibold tabular-nums">
                 {bundle.quantity}
               </span>{" "}
-              Bundle{bundle.quantity === 1 ? "" : "s"} · {items.length}{" "}
-              Komponente{items.length === 1 ? "" : "n"}
+              {t("table.bundles")} · {items.length} {t("table.components")}
             </span>
           </div>
         </td>
@@ -311,6 +315,7 @@ function ItemRow({
   item: OrderLineItemRow;
   component: boolean;
 }) {
+  const t = useTranslations("ordersAdmin");
   const shortfall = li.available < li.qty;
   return (
     <tr className={component ? "bg-indigo-50/20" : undefined}>
@@ -326,11 +331,11 @@ function ItemRow({
             className="h-12 w-12 overflow-hidden rounded border border-zinc-200 bg-zinc-50"
             title={
               li.imageMissingReason === "no_variant"
-                ? "Variant nicht in Firestore — Produkt-Sync ausführen"
+                ? t("table.imageMissing.noVariant")
                 : li.imageMissingReason === "no_product"
-                  ? "Produkt nicht in Firestore — Produkt-Sync ausführen"
+                  ? t("table.imageMissing.noProduct")
                   : li.imageMissingReason === "no_image"
-                    ? "Produkt hat in Shopify kein featuredMedia"
+                    ? t("table.imageMissing.noImage")
                     : undefined
             }
           >
@@ -345,10 +350,10 @@ function ItemRow({
             ) : (
               <div className="flex h-full w-full items-center justify-center text-center text-[9px] leading-tight text-zinc-400">
                 {li.imageMissingReason === "no_variant"
-                  ? "Variant fehlt"
+                  ? t("table.imageMissing.noVariantShort")
                   : li.imageMissingReason === "no_product"
-                    ? "Produkt fehlt"
-                    : "kein Bild"}
+                    ? t("table.imageMissing.noProductShort")
+                    : t("table.imageMissing.noneShort")}
               </div>
             )}
           </div>
@@ -360,7 +365,10 @@ function ItemRow({
           {li.mergedFromIds.length > 1 ? (
             <span
               className="rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
-              title={`Aus ${li.mergedFromIds.length} Positionen zusammengeführt: ${li.mergedFromIds.join(", ")}`}
+              title={t("table.mergedFrom", {
+                count: li.mergedFromIds.length,
+                ids: li.mergedFromIds.join(", "),
+              })}
             >
               ×{li.mergedFromIds.length}
             </span>
@@ -425,6 +433,7 @@ function StockBadge({
   };
   const hide = () => setOpen(false);
 
+  const t = useTranslations("ordersAdmin.table");
   const color = shortfall
     ? "bg-amber-100 text-amber-800 ring-amber-200"
     : "bg-emerald-100 text-emerald-800 ring-emerald-200";
@@ -463,15 +472,15 @@ function StockBadge({
               className="pointer-events-none z-50 rounded-md bg-zinc-900 px-3 py-2 text-left text-xs text-white shadow-lg"
             >
               <div className="flex justify-between gap-3 tabular-nums">
-                <span className="text-zinc-400">Auf Lager</span>
+                <span className="text-zinc-400">{t("onHand")}</span>
                 <span className="font-mono">{onHand}</span>
               </div>
               <div className="flex justify-between gap-3 tabular-nums">
-                <span className="text-zinc-400">Reserviert</span>
+                <span className="text-zinc-400">{t("reserved")}</span>
                 <span className="font-mono">{reserved}</span>
               </div>
               <div className="mt-1 flex justify-between gap-3 border-t border-zinc-700 pt-1 tabular-nums">
-                <span className="text-zinc-400">Verfügbar</span>
+                <span className="text-zinc-400">{t("available")}</span>
                 <span className="font-mono font-semibold">{available}</span>
               </div>
             </div>,

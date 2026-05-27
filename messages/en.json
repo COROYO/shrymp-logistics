@@ -140,7 +140,20 @@
       "ctaContinue": "Continue packing →",
       "ctaStart": "Start picking →",
       "linkSlip": "🧾 Slip",
-      "linkPicklist": "📋 Picklist"
+      "linkPicklist": "📋 Picklist",
+      "selectAll": "Select all",
+      "selectRow": "Select order",
+      "bulk": {
+        "selected": "{count} selected",
+        "clear": "Clear selection",
+        "printSlips": "Print {count} slips",
+        "markPacked": "Mark as shipped",
+        "marking": "Processing…",
+        "confirmMark": "Really mark {count} orders as packed + shipped? Stock will be decremented, fulfillment reported to Shopify.",
+        "successAll": "{count} orders completed successfully.",
+        "successPartial": "{ok} succeeded, {fail} failed.",
+        "showErrors": "Show errors"
+      }
     }
   },
   "packing": {
@@ -270,87 +283,133 @@
       "created": "Created",
       "status": "Status",
       "items": "Items",
+      "lineItems": "line items",
       "tags": "Tags",
-      "stopReason": "STOP reason",
+      "stopReason": "Stop reason",
       "actions": "Actions",
       "viewDetail": "Detail →",
+      "image": "Image",
       "product": "Product",
       "variant": "Variant",
       "skuLbl": "SKU",
-      "qty": "Qty",
+      "qty": "Ordered",
       "onHand": "On hand",
       "reserved": "Reserved",
       "available": "Available",
-      "bundle": "Bundle: {title} ×{qty}"
+      "stock": "Stock",
+      "noLineItems": "No line items.",
+      "bundleBadge": "Bundle",
+      "bundles": "bundles",
+      "components": "components",
+      "mergedFrom": "Merged from {count} positions: {ids}",
+      "imageMissing": {
+        "noVariant": "Variant not in Firestore — run product sync",
+        "noProduct": "Product not in Firestore — run product sync",
+        "noImage": "Product has no featuredMedia in Shopify",
+        "noVariantShort": "Variant missing",
+        "noProductShort": "Product missing",
+        "noneShort": "no image"
+      }
     },
     "empty": "No orders in this filter."
   },
   "orderDetail": {
     "back": "← Orders",
+    "metaOrderId": "Order ID",
+    "metaShopifyGid": "Shopify GID",
+    "metaCreated": "Created",
     "address": "Shipping address",
-    "noAddress": "No shipping address provided.",
-    "items": "Items",
-    "allocations": "Allocations",
-    "noAllocations": "No allocations yet.",
-    "stopReason": "STOP reason",
     "shopifyStatus": "Shopify status",
-    "internalStatus": "Internal status",
-    "financialStatus": "Payment",
-    "fulfillmentStatus": "Fulfillment",
-    "customerNote": "Customer note"
+    "financial": "Financial",
+    "fulfillment": "Fulfillment",
+    "stopReason": "Stop reason",
+    "allocationRun": "Allocation run",
+    "allocationsEyebrow": "Allocations",
+    "lineItemsTitle": "{count, plural, one {# line item} other {# line items}} ({allocs, plural, one {# reservation} other {# reservations}})",
+    "table": {
+      "position": "Position",
+      "sku": "SKU",
+      "qty": "Ordered",
+      "allocations": "Allocations",
+      "variant": "Variant",
+      "none": "— none —",
+      "consumed": "✓ consumed {when}",
+      "reserved": "reserved"
+    },
+    "audit": {
+      "eyebrow": "Audit log",
+      "title": "Inventory movements ({count})",
+      "empty": "No movements.",
+      "when": "When",
+      "type": "Type",
+      "qty": "Qty",
+      "charge": "Batch",
+      "user": "User"
+    }
   },
   "products": {
-    "eyebrow": "Catalog",
+    "eyebrow": "Master data",
     "title": "Products",
-    "intro": "Synced from Shopify. Click image for detail.",
-    "syncButton": "Sync from Shopify",
-    "syncing": "Syncing…",
-    "syncSuccess": "{products} products, {variants} variants updated.",
-    "table": {
-      "product": "Product",
-      "handle": "Handle",
-      "status": "Status",
+    "intro": "Mirror the Shopify catalog. Stock is managed separately via inbound; this page only shows master data.",
+    "stats": {
+      "products": "Products",
       "variants": "Variants",
-      "updated": "Updated",
-      "bundle": "Bundle",
-      "yes": "Yes"
+      "shopDomain": "Shop domain",
+      "lastSync": "Last sync",
+      "never": "never"
     },
-    "empty": "No products yet. Click <b>{action}</b> to import the Shopify catalog."
+    "sync": {
+      "eyebrow": "Synchronization",
+      "title": "Full sync",
+      "intro": "Pulls all products and variants from Shopify into Firestore. Existing stock (on_hand_total, reserved_total) is not overwritten.",
+      "button": "Sync from Shopify",
+      "loading": "Syncing…",
+      "success": "{products} products, {variants} variants updated."
+    }
   },
   "batches": {
-    "eyebrow": "Stock",
+    "eyebrow": "Inventory",
     "title": "Stock & batches",
-    "intro": "Overview of all variants with stock, batches and inbound.",
-    "search": "Search (SKU, product, variant)",
-    "table": {
-      "product": "Product",
-      "variant": "Variant",
-      "sku": "SKU",
-      "onHand": "On hand",
-      "reserved": "Reserved",
-      "available": "Available",
-      "actions": "Actions"
+    "intro": "Per-variant FEFO-sorted list of active batches. Every change is posted transactionally and pushed back to Shopify (outbox).",
+    "stats": {
+      "products": "Products",
+      "activeBatches": "Active batches",
+      "onHandTotal": "Stock total (pcs)"
     },
-    "empty": "No products found.",
+    "emptyNoSync": "No products synced yet. First <link>sync products</link>.",
+    "accordion": {
+      "onHand": "On Hand",
+      "available": "Available",
+      "reserved": "Reserved",
+      "batches": "Batches",
+      "noVariants": "No variants synced.",
+      "openVariant": "Manage batches",
+      "closeVariant": "Close",
+      "price": "Price",
+      "search": "Search product, variant or SKU…",
+      "filterCount": "{filtered} of {total}",
+      "variantsCharges": "{variants, plural, one {# variant} other {# variants}} · {batches, plural, one {# batch} other {# batches}}"
+    },
     "panel": {
-      "title": "Batches",
-      "newBatch": "Create new batch",
-      "chargeNumber": "Batch number",
-      "chargeNumberPlaceholder": "e.g. CHG-2026-001",
+      "skuLabel": "SKU",
+      "onHandShort": "On Hand",
+      "reservedShort": "Reserv.",
+      "availShort": "Avail.",
+      "charge": "Batch",
       "expiry": "Best-before",
-      "qty": "Qty",
-      "note": "Note (optional)",
-      "create": "Book inbound",
-      "creating": "Booking…",
-      "existingTitle": "Existing batches",
-      "expires": "Best-before",
       "remaining": "Remaining",
+      "initial": "Initial",
+      "note": "Note",
+      "noActiveBatch": "No active batch yet.",
       "edit": "Edit",
       "archive": "Archive",
       "save": "Save",
       "cancel": "Cancel",
-      "archiveConfirm": "Really archive this batch? Stock will flow back.",
-      "noBatches": "No batches for this variant yet."
+      "newBatch": "+ New batch",
+      "archiveConfirm": "Archive batch {charge}? Remaining qty {qty} will be booked out.",
+      "chargeNoPlaceholder": "Batch #",
+      "qtyPlaceholder": "Qty",
+      "notePlaceholder": "Note (optional)"
     }
   },
   "users": {

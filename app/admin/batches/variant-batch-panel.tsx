@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import {
   archiveBatchAction,
   editBatchAction,
@@ -16,6 +17,7 @@ export function VariantBatchPanel({
   variant: VariantRow;
   priceLabel: string;
 }) {
+  const t = useTranslations("batches.panel");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -43,15 +45,19 @@ export function VariantBatchPanel({
             {variant.title}
           </div>
           <div className="text-xs text-brand-navy/60">
-            {variant.sku ? <>SKU {variant.sku} · </> : null}
+            {variant.sku ? (
+              <>
+                {t("skuLabel")} {variant.sku} ·{" "}
+              </>
+            ) : null}
             {priceLabel}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4 text-right">
-          <Cell label="On Hand" value={variant.onHand} />
-          <Cell label="Reserv." value={variant.reserved} />
+          <Cell label={t("onHandShort")} value={variant.onHand} />
+          <Cell label={t("reservedShort")} value={variant.reserved} />
           <Cell
-            label="Avail."
+            label={t("availShort")}
             value={variant.available}
             tone={variant.available <= 0 ? "warn" : undefined}
           />
@@ -61,11 +67,11 @@ export function VariantBatchPanel({
       <table className="w-full text-sm">
         <thead className="bg-brand-cream text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
           <tr>
-            <th className="px-4 py-2">Charge</th>
-            <th className="px-4 py-2">MHD</th>
-            <th className="px-4 py-2 text-right">Rest</th>
-            <th className="px-4 py-2 text-right">Initial</th>
-            <th className="px-4 py-2">Notiz</th>
+            <th className="px-4 py-2">{t("charge")}</th>
+            <th className="px-4 py-2">{t("expiry")}</th>
+            <th className="px-4 py-2 text-right">{t("remaining")}</th>
+            <th className="px-4 py-2 text-right">{t("initial")}</th>
+            <th className="px-4 py-2">{t("note")}</th>
             <th className="px-4 py-2"></th>
           </tr>
         </thead>
@@ -76,7 +82,7 @@ export function VariantBatchPanel({
                 colSpan={6}
                 className="px-4 py-3 text-xs text-brand-navy/60"
               >
-                Noch keine aktive Charge.
+                {t("noActiveBatch")}
               </td>
             </tr>
           ) : (
@@ -111,7 +117,7 @@ export function VariantBatchPanel({
             onClick={() => setAdding(true)}
             className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy transition hover:text-brand-burgundy-dark"
           >
-            + Neue Charge
+            {t("newBatch")}
           </button>
         )}
       </div>
@@ -151,13 +157,17 @@ function BatchDisplayRow({
   batch: BatchRow;
   onEdit: () => void;
 }) {
+  const t = useTranslations("batches.panel");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
   function handleArchive() {
     if (
       !confirm(
-        `Charge ${batch.chargeNumber} archivieren? Restmenge ${batch.remainingQty} wird ausgebucht.`,
+        t("archiveConfirm", {
+          charge: batch.chargeNumber,
+          qty: batch.remainingQty,
+        }),
       )
     )
       return;
@@ -192,7 +202,7 @@ function BatchDisplayRow({
             onClick={onEdit}
             className="text-brand-navy/70 transition hover:text-brand-burgundy"
           >
-            Bearbeiten
+            {t("edit")}
           </button>
           <button
             type="button"
@@ -200,7 +210,7 @@ function BatchDisplayRow({
             disabled={pending}
             className="text-brand-burgundy transition hover:text-brand-burgundy-dark disabled:opacity-50"
           >
-            {pending ? "…" : "Archivieren"}
+            {pending ? "…" : t("archive")}
           </button>
         </div>
         {err ? (
@@ -220,6 +230,7 @@ function EditBatchRow({
   batch: BatchRow;
   onClose: () => void;
 }) {
+  const t = useTranslations("batches.panel");
   const [chargeNumber, setChargeNumber] = useState(batch.chargeNumber);
   const [expiry, setExpiry] = useState(batch.expiryDateIso);
   const [remaining, setRemaining] = useState(String(batch.remainingQty));
@@ -298,7 +309,7 @@ function EditBatchRow({
             disabled={pending}
             className="rounded-md bg-brand-burgundy px-3 py-1.5 text-white shadow-sm transition hover:bg-brand-burgundy-dark disabled:opacity-50"
           >
-            {pending ? "…" : "Speichern"}
+            {pending ? "…" : t("save")}
           </button>
           <button
             type="button"
@@ -306,7 +317,7 @@ function EditBatchRow({
             disabled={pending}
             className="text-brand-navy/70 transition hover:text-brand-burgundy"
           >
-            Abbrechen
+            {t("cancel")}
           </button>
         </div>
         {err ? (
@@ -326,6 +337,7 @@ function NewBatchInlineForm({
   variantId: string;
   onClose: () => void;
 }) {
+  const t = useTranslations("batches.panel");
   const [chargeNumber, setChargeNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [qty, setQty] = useState("");
@@ -355,7 +367,7 @@ function NewBatchInlineForm({
     <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_1fr_1fr_2fr_auto]">
       <input
         type="text"
-        placeholder="Charge-Nr"
+        placeholder={t("chargeNoPlaceholder")}
         value={chargeNumber}
         onChange={(e) => setChargeNumber(e.target.value)}
         className={`${input} font-mono`}
@@ -368,7 +380,7 @@ function NewBatchInlineForm({
       />
       <input
         type="number"
-        placeholder="Menge"
+        placeholder={t("qtyPlaceholder")}
         min={1}
         step={1}
         value={qty}
@@ -377,7 +389,7 @@ function NewBatchInlineForm({
       />
       <input
         type="text"
-        placeholder="Notiz (optional)"
+        placeholder={t("notePlaceholder")}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         maxLength={500}
@@ -390,7 +402,7 @@ function NewBatchInlineForm({
           disabled={pending || !chargeNumber || !expiry || !qty}
           className="btn-primary !px-4 !py-2"
         >
-          {pending ? "…" : "Speichern"}
+          {pending ? "…" : t("save")}
         </button>
         <button
           type="button"
@@ -398,7 +410,7 @@ function NewBatchInlineForm({
           disabled={pending}
           className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 transition hover:text-brand-burgundy"
         >
-          Abbrechen
+          {t("cancel")}
         </button>
       </div>
       {err ? (

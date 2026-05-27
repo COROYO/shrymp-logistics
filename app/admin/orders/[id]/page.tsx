@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { adminDb } from "@/server/firestore/admin";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { getTranslations } from "next-intl/server";
 import {
   Collections,
   type Allocation,
@@ -68,6 +69,7 @@ export default async function AdminOrderDetailPage({
   if (!data) notFound();
   const { order, allocs, movs, batchById } = data;
   const createdIso = tsToIso(order.created_at_shopify);
+  const t = await getTranslations("orderDetail");
 
   return (
     <div className="space-y-8">
@@ -76,7 +78,7 @@ export default async function AdminOrderDetailPage({
           href="/admin/orders"
           className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
         >
-          ← Orders
+          {t("back")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
@@ -98,16 +100,17 @@ export default async function AdminOrderDetailPage({
           ))}
         </div>
         <p className="mt-3 text-xs text-brand-navy/60">
-          Order-ID{" "}
-          <span className="font-mono">{order.id}</span> · Shopify-GID{" "}
-          <span className="font-mono">{order.shopify_gid}</span> · Erstellt{" "}
+          {t("metaOrderId")}{" "}
+          <span className="font-mono">{order.id}</span> · {t("metaShopifyGid")}{" "}
+          <span className="font-mono">{order.shopify_gid}</span> ·{" "}
+          {t("metaCreated")}{" "}
           {createdIso ? new Date(createdIso).toLocaleString("de-DE") : "—"}
         </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-5">
-          <h2 className="eyebrow">Lieferadresse</h2>
+          <h2 className="eyebrow">{t("address")}</h2>
           <address className="mt-2 not-italic text-sm leading-relaxed text-brand-ink">
             {order.shipping_address?.first_name}{" "}
             {order.shipping_address?.last_name}
@@ -133,16 +136,18 @@ export default async function AdminOrderDetailPage({
         </section>
 
         <section className="card p-5">
-          <h2 className="eyebrow">Shopify-Status</h2>
+          <h2 className="eyebrow">{t("shopifyStatus")}</h2>
           <dl className="mt-3 space-y-2 text-sm">
-            <DefRow label="Financial">
+            <DefRow label={t("financial")}>
               {order.shopify_financial_status ?? "—"}
             </DefRow>
-            <DefRow label="Fulfillment">
+            <DefRow label={t("fulfillment")}>
               {order.shopify_fulfillment_status ?? "—"}
             </DefRow>
-            <DefRow label="Stop-Grund">{order.stop_reason ?? "—"}</DefRow>
-            <DefRow label="Allocation-Run">
+            <DefRow label={t("stopReason")}>
+              {order.stop_reason ?? "—"}
+            </DefRow>
+            <DefRow label={t("allocationRun")}>
               {order.allocation_run_id ? (
                 <span className="font-mono text-xs">
                   {order.allocation_run_id}
@@ -157,20 +162,22 @@ export default async function AdminOrderDetailPage({
 
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">
-          <p className="eyebrow">Allokationen</p>
+          <p className="eyebrow">{t("allocationsEyebrow")}</p>
           <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-            Line Items ({allocs.length} Reservierung
-            {allocs.length === 1 ? "" : "en"})
+            {t("lineItemsTitle", {
+              count: order.line_items.length,
+              allocs: allocs.length,
+            })}
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="table-brand">
             <thead>
               <tr>
-                <th>Position</th>
-                <th>SKU</th>
-                <th className="text-right">Soll</th>
-                <th>Allokationen</th>
+                <th>{t("table.position")}</th>
+                <th>{t("table.sku")}</th>
+                <th className="text-right">{t("table.qty")}</th>
+                <th>{t("table.allocations")}</th>
               </tr>
             </thead>
             <tbody>
@@ -183,7 +190,7 @@ export default async function AdminOrderDetailPage({
                         {li.title}
                       </div>
                       <div className="text-xs text-brand-navy/60">
-                        Variant{" "}
+                        {t("table.variant")}{" "}
                         <span className="font-mono">{li.variant_id}</span>
                       </div>
                     </td>
@@ -195,7 +202,9 @@ export default async function AdminOrderDetailPage({
                     </td>
                     <td className="space-y-1 text-xs">
                       {liAllocs.length === 0 ? (
-                        <span className="chip chip-amber">— keine —</span>
+                        <span className="chip chip-amber">
+                          {t("table.none")}
+                        </span>
                       ) : (
                         liAllocs.map((a) => {
                           const b = batchById.get(a.batch_id);
@@ -213,12 +222,15 @@ export default async function AdminOrderDetailPage({
                               </span>
                               {consumedIso ? (
                                 <span className="text-emerald-700">
-                                  ✓ konsumiert{" "}
-                                  {new Date(consumedIso).toLocaleString("de-DE")}
+                                  {t("table.consumed", {
+                                    when: new Date(
+                                      consumedIso,
+                                    ).toLocaleString("de-DE"),
+                                  })}
                                 </span>
                               ) : (
                                 <span className="text-brand-navy/60">
-                                  reserviert
+                                  {t("table.reserved")}
                                 </span>
                               )}
                             </div>
@@ -236,25 +248,25 @@ export default async function AdminOrderDetailPage({
 
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">
-          <p className="eyebrow">Audit-Log</p>
+          <p className="eyebrow">{t("audit.eyebrow")}</p>
           <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-            Inventory-Movements ({movs.length})
+            {t("audit.title", { count: movs.length })}
           </h2>
         </div>
         {movs.length === 0 ? (
           <p className="px-6 py-6 text-sm text-brand-navy/60">
-            Keine Movements.
+            {t("audit.empty")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="table-brand">
               <thead>
                 <tr>
-                  <th>Wann</th>
-                  <th>Typ</th>
-                  <th className="text-right">Qty</th>
-                  <th>Charge</th>
-                  <th>User</th>
+                  <th>{t("audit.when")}</th>
+                  <th>{t("audit.type")}</th>
+                  <th className="text-right">{t("audit.qty")}</th>
+                  <th>{t("audit.charge")}</th>
+                  <th>{t("audit.user")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
@@ -110,6 +111,7 @@ async function loadProductRows(): Promise<ProductRow[]> {
 
 export default async function BatchesPage() {
   const rows = await loadProductRows();
+  const t = await getTranslations("batches");
   const totals = {
     products: rows.length,
     activeBatches: rows.reduce((s, r) => s + r.batchCount, 0),
@@ -119,31 +121,29 @@ export default async function BatchesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="eyebrow">Inventar</p>
-        <h1 className="h-display mt-1 text-3xl">Bestand &amp; Chargen</h1>
-        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
-          Pro Variante eine FEFO-sortierte Liste der aktiven Chargen. Jede
-          Änderung wird sofort transaktional gebucht und an Shopify
-          zurückgeschrieben (Outbox).
-        </p>
+        <p className="eyebrow">{t("eyebrow")}</p>
+        <h1 className="h-display mt-1 text-3xl">{t("title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
       </div>
 
       <dl className="grid gap-3 sm:grid-cols-3 text-sm">
-        <Stat label="Produkte" value={totals.products} />
-        <Stat label="Aktive Chargen" value={totals.activeBatches} />
-        <Stat label="Bestand gesamt (Stk)" value={totals.onHand} />
+        <Stat label={t("stats.products")} value={totals.products} />
+        <Stat label={t("stats.activeBatches")} value={totals.activeBatches} />
+        <Stat label={t("stats.onHandTotal")} value={totals.onHand} />
       </dl>
 
       {rows.length === 0 ? (
         <div className="card px-6 py-10 text-center text-sm text-brand-navy/60">
-          Noch keine Produkte synchronisiert. Erst{" "}
-          <a
-            href="/admin/products"
-            className="font-semibold text-brand-burgundy underline-offset-2 hover:underline"
-          >
-            Produkte syncen
-          </a>
-          .
+          {t.rich("emptyNoSync", {
+            link: (chunks) => (
+              <a
+                href="/admin/products"
+                className="font-semibold text-brand-burgundy underline-offset-2 hover:underline"
+              >
+                {chunks}
+              </a>
+            ),
+          })}
         </div>
       ) : (
         <ProductAccordion rows={rows} />
