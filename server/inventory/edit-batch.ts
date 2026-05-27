@@ -155,16 +155,20 @@ export async function editBatch(
       "correction",
       `monolith-lager://batch/${batchId}/edit`,
     );
+    // Drain BEFORE returning so the serverless container doesn't kill the
+    // background promise. User waits ~1-2s but Shopify is synced when the
+    // success message appears.
+    try {
+      await processOutbox(20);
+    } catch (e) {
+      log.warn("edit_outbox_drain_failed", { error: String(e) });
+    }
     // Re-allocate: maybe a STOP order can ship now (delta > 0) or
     // an existing SHIP needs to fall back (delta < 0).
     await enqueueAllocationRun({
       triggeredBy: "INBOUND",
       triggerEventId: batchId,
     });
-    // Immediate outbox drain for fast user feedback.
-    processOutbox(20).catch((e) =>
-      log.warn("edit_outbox_drain_failed", { error: String(e) }),
-    );
   }
 
   return { variantId, delta };
@@ -244,13 +248,15 @@ export async function archiveBatch(
     "correction",
     `monolith-lager://batch/${batchId}/archive`,
   );
+  try {
+    await processOutbox(20);
+  } catch (e) {
+    log.warn("archive_outbox_drain_failed", { error: String(e) });
+  }
   await enqueueAllocationRun({
     triggeredBy: "INBOUND",
     triggerEventId: batchId,
   });
-  processOutbox(20).catch((e) =>
-    log.warn("archive_outbox_drain_failed", { error: String(e) }),
-  );
 
   return { variantId };
 }

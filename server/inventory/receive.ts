@@ -100,15 +100,19 @@ export async function receiveBatch(
     `monolith-lager://batch/${batchRef.id}/inbound`,
   );
 
+  // Drain BEFORE returning so the serverless container doesn't kill the
+  // background promise. User waits ~1-2s but Shopify is synced when the
+  // success message appears.
+  try {
+    await processOutbox(20);
+  } catch (e) {
+    log.warn("inbound_outbox_drain_failed", { error: String(e) });
+  }
+
   await enqueueAllocationRun({
     triggeredBy: "INBOUND",
     triggerEventId: batchRef.id,
   });
-
-  // Immediate outbox drain so the user sees Shopify update fast.
-  processOutbox(20).catch((e) =>
-    log.warn("inbound_outbox_drain_failed", { error: String(e) }),
-  );
 
   return { batchId: batchRef.id, newOnHandTotal };
 }

@@ -296,6 +296,16 @@ export async function confirmPacking(
   await writeAudit(orderId, userId, consumedQtyByBatch, consumedQtyByVariant);
   await queueShopifyOutbox(orderId, lineItems, tracking, consumedQtyByVariant);
 
+  // Drain Shopify outbox synchronously so the merchant sees the order as
+  // Fulfilled by the time this server action returns. (Otherwise the
+  // serverless container can be killed before the background drain runs.)
+  try {
+    const { processOutbox } = await import("@/server/shopify/outbox");
+    await processOutbox(20);
+  } catch (e) {
+    log.warn("packing_outbox_drain_failed", { error: String(e) });
+  }
+
   await enqueueAllocationRun({
     triggeredBy: "PACKING_DONE",
     triggerEventId: orderId,

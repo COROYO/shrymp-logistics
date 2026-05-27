@@ -2,11 +2,40 @@
 import { revalidatePath } from "next/cache";
 import { backfillOrders } from "@/server/shopify/sync-orders";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+import { pushAllInventoryToShopify } from "@/server/inventory/push-all";
 
 function normalizeBaseUrl(s: string): string {
   const trimmed = s.trim().replace(/\/$/, "");
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
+}
+
+export async function pushAllInventoryAction(): Promise<
+  | {
+      ok: true;
+      variantCount: number;
+      queuedChunks: number;
+      skipped: number;
+      drained: { processed: number; failed: number; done: number };
+    }
+  | { ok: false; error: string }
+> {
+  try {
+    const { requireRole } = await import("@/lib/auth/session");
+    await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+  try {
+    const r = await pushAllInventoryToShopify();
+    revalidatePath("/admin/batches");
+    revalidatePath("/admin/settings");
+    return { ok: true, ...r };
+  } catch (e) {
+    const { log } = await import("@/lib/logger");
+    log.error("bulk_inventory_push_failed", { error: String(e) });
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
 }
 
 export async function backfillOrdersAction(): Promise<

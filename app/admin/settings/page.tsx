@@ -3,6 +3,7 @@ import { Collections, ConfigDocs } from "@/server/firestore/schema";
 import { RegisterWebhooksButton } from "./register-webhooks-button";
 import { RunAllocationButton } from "./run-allocation-button";
 import { BackfillOrdersButton } from "./backfill-orders-button";
+import { PushInventoryButton } from "./push-inventory-button";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,23 @@ export default async function SettingsPage({
         </p>
         <div className="mt-4">
           <RegisterWebhooksButton baseUrl={env.appUrl} />
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-zinc-200 bg-white p-6">
+        <h2 className="text-sm font-semibold">
+          Bestände nach Shopify pushen
+        </h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Schreibt für jede Variante den aktuellen <code>available</code>-Wert
+          (= <code>on_hand_total − reserved_total</code>) per
+          <code> inventorySetOnHandQuantities</code> nach Shopify. Nötig nach
+          dem ersten Wareneingang oder wenn manuelle Shopify-Inventory-Edits
+          Drift erzeugt haben. Einzel-Mutationen pushen sowieso schon nach
+          jedem Event.
+        </p>
+        <div className="mt-4">
+          <PushInventoryButton />
         </div>
       </section>
 
