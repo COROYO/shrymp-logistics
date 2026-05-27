@@ -113,7 +113,7 @@ export default async function PackingSlipPage({
     : "—";
 
   return (
-    <div className="bg-white text-black p-10 print:p-0 max-w-[210mm] mx-auto text-[12pt]">
+    <div className="mx-auto max-w-[210mm] bg-white p-10 text-[12pt] text-brand-ink print:p-0">
       <PrintTrigger />
 
       <style>{`
@@ -124,20 +124,25 @@ export default async function PackingSlipPage({
       `}</style>
 
       {/* Absender-Briefkopf + Datum */}
-      <header className="flex items-start justify-between border-b border-black pb-3">
+      <header className="flex items-start justify-between border-b-[3px] border-brand-burgundy pb-3">
         <div>
-          <div className="text-xl font-bold tracking-tight">
+          <div className="text-[10pt] font-semibold uppercase tracking-[0.18em] text-brand-burgundy">
+            Ikrinka · Premium Quality
+          </div>
+          <div className="mt-1 text-xl font-bold tracking-tight text-brand-navy">
             Monolith Caviar
           </div>
-          <div className="text-[10pt] text-zinc-700 leading-snug mt-1">
+          <div className="mt-1 text-[10pt] leading-snug text-brand-navy/70">
             Ikrinka GmbH · Musterstraße 1 · 10115 Berlin
             <br />
             kontakt@monolithcaviar.de
           </div>
         </div>
-        <div className="text-right text-[10pt] text-zinc-700">
-          <div>Lieferschein</div>
-          <div className="font-mono text-base font-semibold text-black mt-1">
+        <div className="text-right text-[10pt] text-brand-navy/70">
+          <div className="text-[10pt] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
+            Lieferschein
+          </div>
+          <div className="mt-1 font-mono text-base font-bold text-brand-navy">
             {order.name}
           </div>
           <div className="mt-1">Bestelldatum: {orderDateStr}</div>
@@ -146,7 +151,7 @@ export default async function PackingSlipPage({
 
       {/* Lieferadresse — groß zum Aufkleben/Falten */}
       <section className="mt-10">
-        <div className="text-[9pt] text-zinc-600 uppercase tracking-wide mb-1">
+        <div className="mb-1 text-[10pt] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
           Lieferadresse
         </div>
         <address className="not-italic text-[14pt] leading-relaxed">
@@ -187,29 +192,39 @@ export default async function PackingSlipPage({
         </p>
       </section>
 
-      <table className="mt-6 w-full text-[11pt] border-collapse">
-        <thead className="border-b-2 border-black">
-          <tr className="text-left">
-            <th className="py-2 font-semibold">Produkt</th>
-            <th className="py-2 font-semibold text-right pr-4">Menge</th>
-            <th className="py-2 font-semibold">Charge</th>
-            <th className="py-2 font-semibold">MHD</th>
+      <table className="mt-6 w-full border-collapse text-[11pt]">
+        <thead>
+          <tr className="bg-brand-navy text-left text-white">
+            <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
+              Produkt
+            </th>
+            <th className="px-3 py-2 pr-4 text-right text-[10pt] font-semibold uppercase tracking-[0.1em]">
+              Menge
+            </th>
+            <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
+              Charge
+            </th>
+            <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
+              MHD
+            </th>
           </tr>
         </thead>
         <tbody>
           {order.line_items.map((li) => {
             const allocs = allocsByLi.get(li.id) ?? [];
-            // One row per (line item × charge) so the customer sees exactly
-            // which charge they got, separately per line.
             if (allocs.length === 0) {
               return (
                 <tr key={li.id} className="border-b border-zinc-300">
-                  <td className="py-2 pr-4">
-                    <div className="font-medium">{li.title}</div>
+                  <td className="px-3 py-2 pr-4">
+                    <div className="font-semibold text-brand-navy">
+                      {li.title}
+                    </div>
                   </td>
-                  <td className="py-2 pr-4 text-right">{li.qty}</td>
-                  <td className="py-2 pr-4 text-zinc-500 italic">—</td>
-                  <td className="py-2 text-zinc-500 italic">—</td>
+                  <td className="px-3 py-2 pr-4 text-right">{li.qty}</td>
+                  <td className="px-3 py-2 pr-4 italic text-brand-navy/40">
+                    —
+                  </td>
+                  <td className="px-3 py-2 italic text-brand-navy/40">—</td>
                 </tr>
               );
             }
@@ -218,14 +233,16 @@ export default async function PackingSlipPage({
                 key={`${li.id}-${idx}`}
                 className="border-b border-zinc-300 align-top"
               >
-                <td className="py-2 pr-4">
+                <td className="px-3 py-2 pr-4">
                   {idx === 0 ? (
-                    <div className="font-medium">{li.title}</div>
+                    <div className="font-semibold text-brand-navy">
+                      {li.title}
+                    </div>
                   ) : null}
                 </td>
-                <td className="py-2 pr-4 text-right">{a.qty}</td>
-                <td className="py-2 pr-4 font-mono">{a.chargeNumber}</td>
-                <td className="py-2 font-mono">
+                <td className="px-3 py-2 pr-4 text-right">{a.qty}</td>
+                <td className="px-3 py-2 pr-4 font-mono">{a.chargeNumber}</td>
+                <td className="px-3 py-2 font-mono">
                   {formatDate(a.expiryDateIso)}
                 </td>
               </tr>
@@ -235,7 +252,7 @@ export default async function PackingSlipPage({
       </table>
 
       {/* Hinweise */}
-      <section className="mt-12 text-[10pt] leading-relaxed text-zinc-700">
+      <section className="mt-12 text-[10pt] leading-relaxed text-brand-navy/80">
         <p>
           Bewahre den Lieferschein bitte mit der Charge und dem MHD auf,
           falls du Rückfragen zur Lieferung hast.
@@ -250,8 +267,11 @@ export default async function PackingSlipPage({
         </p>
       </section>
 
-      <footer className="mt-16 border-t border-zinc-300 pt-2 text-[8pt] text-zinc-500 flex justify-between">
-        <span>Lieferschein zu Bestellung {order.name}</span>
+      <footer className="mt-16 flex justify-between border-t border-zinc-300 pt-2 text-[8pt] text-brand-navy/60">
+        <span>
+          Lieferschein zu Bestellung{" "}
+          <span className="font-mono">{order.name}</span>
+        </span>
         <span>
           Ikrinka GmbH · USt-IdNr. DE… · HRB … · Geschäftsführung: …
         </span>

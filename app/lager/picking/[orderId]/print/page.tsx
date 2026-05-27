@@ -96,7 +96,7 @@ export default async function PrintPicklist({
   });
 
   return (
-    <div className="bg-white text-black p-8 print:p-4">
+    <div className="bg-white p-8 text-brand-ink print:p-4">
       <PrintTrigger />
 
       <style>{`
@@ -106,32 +106,37 @@ export default async function PrintPicklist({
         }
       `}</style>
 
-      <header className="flex items-baseline justify-between border-b-2 border-black pb-2">
+      <header className="flex items-end justify-between border-b-[3px] border-brand-burgundy pb-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-mono">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-burgundy">
+            Monolith Caviar · Picklist
+          </p>
+          <h1 className="mt-1 font-mono text-3xl font-bold tracking-tight text-brand-navy">
             {order.name}
           </h1>
-          <p className="text-xs text-zinc-700 mt-1">
-            Picklist · {now}{" "}
+          <p className="mt-1 text-xs text-brand-navy/70">
+            FEFO · {now}
             {isExpress ? (
-              <span className="ml-2 bg-black text-white px-1.5 py-0.5 text-xs">
-                EXPRESS
+              <span className="ml-2 inline-block bg-brand-burgundy px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                Express
               </span>
             ) : null}
           </p>
         </div>
-        <div className="text-right text-xs text-zinc-700">
-          <p>Monolith Caviar</p>
-          <p>FEFO-Picklist</p>
+        <div className="text-right text-xs text-brand-navy/70">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-navy">
+            Ikrinka
+          </p>
+          <p>Premium Quality</p>
         </div>
       </header>
 
       <section className="mt-6 grid grid-cols-2 gap-6">
         <div>
-          <h2 className="text-xs uppercase tracking-wide text-zinc-600 font-semibold">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
             Lieferadresse
           </h2>
-          <address className="not-italic text-sm leading-snug mt-1">
+          <address className="mt-1 not-italic text-sm leading-snug">
             <strong>
               {order.shipping_address?.first_name}{" "}
               {order.shipping_address?.last_name}
@@ -157,21 +162,31 @@ export default async function PrintPicklist({
           </address>
         </div>
         <div>
-          <h2 className="text-xs uppercase tracking-wide text-zinc-600 font-semibold">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
             Tags
           </h2>
           <div className="mt-1 text-sm">{order.tags.join(", ") || "—"}</div>
         </div>
       </section>
 
-      <table className="mt-8 w-full text-sm border-collapse">
-        <thead className="border-b-2 border-black">
-          <tr className="text-left">
-            <th className="py-2 font-semibold">Produkt</th>
-            <th className="py-2 font-semibold">SKU</th>
-            <th className="py-2 px-4 font-semibold text-right">Menge</th>
-            <th className="py-2 font-semibold">Charge · MHD</th>
-            <th className="py-2 w-8 font-semibold">✓</th>
+      <table className="mt-8 w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b-2 border-brand-navy bg-brand-navy text-left text-white">
+            <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
+              Produkt
+            </th>
+            <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
+              SKU
+            </th>
+            <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.1em]">
+              Menge
+            </th>
+            <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
+              Charge · MHD
+            </th>
+            <th className="w-8 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
+              ✓
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -179,21 +194,32 @@ export default async function PrintPicklist({
             const allocs = allocsByLi.get(li.id) ?? [];
             return (
               <tr key={li.id} className="border-b border-zinc-300 align-top">
-                <td className="py-3 pr-4">
-                  <div className="font-semibold">{li.title}</div>
+                <td className="px-3 py-3 pr-4">
+                  <div className="font-semibold text-brand-navy">
+                    {li.title}
+                  </div>
                 </td>
-                <td className="py-3 pr-4 font-mono text-xs">{li.sku ?? "—"}</td>
-                <td className="py-3 pr-4 text-right text-lg font-bold">
+                <td className="px-3 py-3 pr-4 font-mono text-xs">
+                  {li.sku ?? "—"}
+                </td>
+                <td className="px-3 py-3 pr-4 text-right text-lg font-bold text-brand-navy">
                   {li.qty}
                 </td>
-                <td className="py-3 pr-4">
+                <td className="px-3 py-3 pr-4">
                   {allocs.length === 0 ? (
-                    <span className="text-xs italic">— keine Allokation —</span>
+                    <span className="text-xs italic text-brand-burgundy">
+                      — keine Allokation —
+                    </span>
                   ) : (
-                    <div className="space-y-0.5 space-x-1">
+                    <div className="space-y-1">
                       {allocs.map((a, idx) => (
-                        <div key={idx} className="font-mono text-xs">
-                          <span className="font-bold">{a.chargeNumber}</span>
+                        <div
+                          key={idx}
+                          className="font-mono text-xs leading-tight"
+                        >
+                          <span className="font-bold text-brand-navy">
+                            {a.chargeNumber}
+                          </span>
                           {" · "}
                           MHD {a.expiryDateIso ?? "—"}
                           {" · "}
@@ -203,8 +229,8 @@ export default async function PrintPicklist({
                     </div>
                   )}
                 </td>
-                <td className="py-3 text-center">
-                  <span className="inline-block border-2 border-black h-5 w-5"></span>
+                <td className="px-3 py-3 text-center">
+                  <span className="inline-block h-5 w-5 border-2 border-brand-navy"></span>
                 </td>
               </tr>
             );
@@ -212,8 +238,9 @@ export default async function PrintPicklist({
         </tbody>
       </table>
 
-      <footer className="mt-12 text-xs text-zinc-600 border-t border-zinc-300 pt-2">
-        Order-ID: {order.id} · Status: {order.internal_status}
+      <footer className="mt-12 border-t border-zinc-300 pt-2 text-[10px] text-brand-navy/60">
+        Order-ID: <span className="font-mono">{order.id}</span> · Status:{" "}
+        {order.internal_status}
       </footer>
     </div>
   );
