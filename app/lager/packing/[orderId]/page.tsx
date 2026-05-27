@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
+  ConfigDocs,
   type Allocation,
   type Batch,
   type Order,
 } from "@/server/firestore/schema";
 import { ConfirmPackingForm } from "./confirm-packing-form";
+import { DhlLabelButtons } from "./dhl-label-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +22,16 @@ type AllocLine = {
 
 async function loadOrderForPacking(orderId: string) {
   const db = adminDb();
-  const orderSnap = await db
-    .collection(Collections.Orders)
-    .doc(orderId)
-    .get();
+  const [orderSnap, metaSnap] = await Promise.all([
+    db.collection(Collections.Orders).doc(orderId).get(),
+    db.collection(Collections.Config).doc(ConfigDocs.ShopifyMeta).get(),
+  ]);
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
+  const shopDomain =
+    (metaSnap.data()?.shop_domain as string | undefined) ??
+    process.env.SHOPIFY_SHOP_DOMAIN ??
+    "";
 
   const allocSnap = await db
     .collection(Collections.Allocations)
@@ -68,7 +74,7 @@ async function loadOrderForPacking(orderId: string) {
     else allocsByLi.set(a.line_item_id, [entry]);
   }
 
-  return { order, allocsByLi };
+  return { order, allocsByLi, shopDomain };
 }
 
 export default async function PackingPage({
@@ -79,7 +85,7 @@ export default async function PackingPage({
   const { orderId } = await params;
   const data = await loadOrderForPacking(orderId);
   if (!data) notFound();
-  const { order, allocsByLi } = data;
+  const { order, allocsByLi, shopDomain } = data;
 
   const isPacking = order.internal_status === "PICKING";
   const isPacked = order.internal_status === "PACKED";
@@ -184,6 +190,21 @@ export default async function PackingPage({
             })}
           </tbody>
         </table>
+      </section>
+
+      <section className="rounded-lg border border-zinc-200 bg-white p-6">
+        <h2 className="text-sm font-semibold">Versandetikett</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Öffnet das externe DHL-Tool in einem neuen Tab. Etikett dort drucken,
+          anschließend hier &quot;Verpackt + versendet&quot; klicken.
+        </p>
+        <div className="mt-4">
+          <DhlLabelButtons
+            orderId={order.id}
+            shopDomain={shopDomain}
+            countryCode={order.shipping_address?.country_code ?? null}
+          />
+        </div>
       </section>
 
       <div className="flex gap-3">

@@ -77,17 +77,22 @@ export async function POST(req: Request) {
 
   try {
     const result = await dispatchShopifyWebhook(topic, body, webhookId);
-    await eventRef.set(
-      {
-        status: result.kind === "error" ? "FAILED" : "PROCESSED",
-        processed_at: FieldValue.serverTimestamp(),
-        error: result.kind === "error" ? result.reason : undefined,
-      },
-      { merge: true },
-    );
+    const update: Record<string, unknown> = {
+      status: result.kind === "error" ? "FAILED" : "PROCESSED",
+      processed_at: FieldValue.serverTimestamp(),
+    };
+    if (result.kind === "error") update.error = result.reason;
+    await eventRef.set(update, { merge: true });
 
     if (result.kind === "error") {
-      return new Response(result.reason, { status: 500 });
+      // Don't make Shopify retry app-level errors forever — they're our bug,
+      // not theirs. Log + return 200; manual reprocess later if needed.
+      log.error("shopify_webhook_dispatch_app_error", {
+        webhookId,
+        topic,
+        reason: result.reason,
+      });
+      return new Response("ok (app-error logged)", { status: 200 });
     }
     return new Response("ok", { status: 200 });
   } catch (e) {
@@ -95,6 +100,7 @@ export async function POST(req: Request) {
       webhookId,
       topic,
       error: String(e),
+      stack: e instanceof Error ? e.stack : undefined,
     });
     await eventRef
       .set(
@@ -106,6 +112,8 @@ export async function POST(req: Request) {
         { merge: true },
       )
       .catch(() => {});
+    // Return 500 so Shopify retries — usually transient (Firestore hiccup,
+    // Shopify GraphQL throttle).
     return new Response("dispatch_failed", { status: 500 });
   }
 }

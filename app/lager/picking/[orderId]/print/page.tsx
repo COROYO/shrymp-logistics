@@ -19,10 +19,7 @@ type AllocLine = {
 
 async function load(orderId: string) {
   const db = adminDb();
-  const orderSnap = await db
-    .collection(Collections.Orders)
-    .doc(orderId)
-    .get();
+  const orderSnap = await db.collection(Collections.Orders).doc(orderId).get();
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
 
@@ -51,7 +48,10 @@ async function load(orderId: string) {
     let iso: string | null = null;
     if (exp && typeof (exp as { toDate?: unknown }).toDate === "function") {
       iso = (exp as { toDate(): Date }).toDate().toISOString().slice(0, 10);
-    } else if (exp && typeof (exp as { seconds?: number }).seconds === "number") {
+    } else if (
+      exp &&
+      typeof (exp as { seconds?: number }).seconds === "number"
+    ) {
       iso = new Date((exp as { seconds: number }).seconds * 1000)
         .toISOString()
         .slice(0, 10);
@@ -169,7 +169,7 @@ export default async function PrintPicklist({
           <tr className="text-left">
             <th className="py-2 font-semibold">Produkt</th>
             <th className="py-2 font-semibold">SKU</th>
-            <th className="py-2 font-semibold text-right">Menge</th>
+            <th className="py-2 px-4 font-semibold text-right">Menge</th>
             <th className="py-2 font-semibold">Charge · MHD</th>
             <th className="py-2 w-8 font-semibold">✓</th>
           </tr>
@@ -178,16 +178,11 @@ export default async function PrintPicklist({
           {order.line_items.map((li) => {
             const allocs = allocsByLi.get(li.id) ?? [];
             return (
-              <tr
-                key={li.id}
-                className="border-b border-zinc-300 align-top"
-              >
+              <tr key={li.id} className="border-b border-zinc-300 align-top">
                 <td className="py-3 pr-4">
                   <div className="font-semibold">{li.title}</div>
                 </td>
-                <td className="py-3 pr-4 font-mono text-xs">
-                  {li.sku ?? "—"}
-                </td>
+                <td className="py-3 pr-4 font-mono text-xs">{li.sku ?? "—"}</td>
                 <td className="py-3 pr-4 text-right text-lg font-bold">
                   {li.qty}
                 </td>
@@ -195,7 +190,7 @@ export default async function PrintPicklist({
                   {allocs.length === 0 ? (
                     <span className="text-xs italic">— keine Allokation —</span>
                   ) : (
-                    <div className="space-y-0.5">
+                    <div className="space-y-0.5 space-x-1">
                       {allocs.map((a, idx) => (
                         <div key={idx} className="font-mono text-xs">
                           <span className="font-bold">{a.chargeNumber}</span>

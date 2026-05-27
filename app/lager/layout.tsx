@@ -16,7 +16,7 @@ export default async function LagerLayout({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-zinc-200 bg-white">
+      <header className="border-b border-zinc-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link href="/lager" className="text-sm font-semibold">
@@ -31,10 +31,7 @@ export default async function LagerLayout({
           <div className="flex items-center gap-3 text-sm">
             <span className="text-zinc-500">{user.email}</span>
             {user.role === "ADMIN" ? (
-              <Link
-                href="/admin"
-                className="text-zinc-500 hover:text-zinc-900"
-              >
+              <Link href="/admin" className="text-zinc-500 hover:text-zinc-900">
                 ↗ Admin
               </Link>
             ) : null}
