@@ -49,21 +49,25 @@ export default async function SettingsPage({
   const justInstalled = sp.installed === "1";
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Einstellungen</h1>
+    <div className="space-y-8">
+      <div>
+        <p className="eyebrow">System</p>
+        <h1 className="h-display mt-1 text-3xl">Einstellungen</h1>
+      </div>
 
       {justInstalled ? (
-        <div className="rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           Shopify-App erfolgreich installiert. Access-Token in Firestore
           gespeichert.
         </div>
       ) : null}
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">
-          Shopify App (Custom Distribution)
+      <section className="card p-6">
+        <p className="eyebrow">Shopify-Verbindung</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Custom Distribution App
         </h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-brand-navy/60">
           Die App authentifiziert sich mit Client ID + Client Secret. Beim
           ersten Install klickt der Shop-Owner den vom Partner Dashboard
           generierten Install-Link — Shopify ruft daraufhin{" "}
@@ -106,7 +110,7 @@ export default async function SettingsPage({
         </dl>
 
         {!status.token_installed ? (
-          <div className="mt-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-2">
+          <div className="mt-5 space-y-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <p className="font-semibold">Noch nicht installiert.</p>
             <ol className="list-decimal list-inside space-y-1 text-xs">
               <li>Im Partner Dashboard die App-Settings öffnen.</li>
@@ -134,24 +138,28 @@ export default async function SettingsPage({
         ) : null}
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Webhooks</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+      <section className="card p-6">
+        <p className="eyebrow">Webhooks</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Subscriptions registrieren
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">
           Registriert Webhook-Subscriptions bei Shopify (orders/create,
           orders/updated, orders/cancelled, inventory_levels/update,
           app/uninstalled). Idempotent. Setzt voraus, dass die App installiert
           ist.
         </p>
-        <div className="mt-4">
+        <div className="mt-5">
           <RegisterWebhooksButton baseUrl={env.appUrl} />
         </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">
+      <section className="card p-6">
+        <p className="eyebrow">Bestand</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
           Bestände nach Shopify pushen
         </h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-brand-navy/60">
           Schreibt für jede Variante den aktuellen <code>available</code>-Wert
           (= <code>on_hand_total − reserved_total</code>) per
           <code> inventorySetOnHandQuantities</code> nach Shopify. Nötig nach
@@ -159,36 +167,42 @@ export default async function SettingsPage({
           Drift erzeugt haben. Einzel-Mutationen pushen sowieso schon nach
           jedem Event.
         </p>
-        <div className="mt-4">
+        <div className="mt-5">
           <PushInventoryButton />
         </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Orders nachladen (Backfill)</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+      <section className="card p-6">
+        <p className="eyebrow">Orders</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Orders nachladen (Backfill)
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">
           Pullt alle <em>offenen, unfulfilled</em> Orders aus Shopify in unsere
           Datenbank. Nötig nach dem ersten App-Install — Webhooks feuern nur
           für neue/geänderte Orders, nicht rückwirkend.
         </p>
-        <div className="mt-4">
+        <div className="mt-5">
           <BackfillOrdersButton />
         </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Allocation</h2>
-        <dl className="mt-2 grid gap-3 sm:grid-cols-2 text-sm">
+      <section className="card p-6">
+        <p className="eyebrow">Allocation</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Allocation-Run starten
+        </h2>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
           <DefItem label="Queue konfiguriert">
             <Badge ok={env.allocationQueue} />
           </DefItem>
           <DefItem label="Target URL">
-            <span className="font-mono text-xs">
+            <span className="font-mono text-xs text-brand-navy/80">
               {env.allocationTargetUrl ?? "—"}
             </span>
           </DefItem>
         </dl>
-        <div className="mt-4">
+        <div className="mt-5">
           <RunAllocationButton />
         </div>
       </section>
@@ -205,8 +219,10 @@ function DefItem({
 }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">{label}</dt>
-      <dd className="mt-0.5">{children}</dd>
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm text-brand-ink">{children}</dd>
     </div>
   );
 }
@@ -214,9 +230,7 @@ function DefItem({
 function Badge({ ok }: { ok: boolean }) {
   return (
     <span
-      className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
-        ok ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-      }`}
+      className={ok ? "chip chip-emerald" : "chip chip-amber"}
     >
       {ok ? "OK" : "fehlt"}
     </span>

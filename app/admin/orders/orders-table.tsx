@@ -41,12 +41,12 @@ export type OrderRow = {
 };
 
 const STATUS_BADGE: Record<OrderInternalStatus, string> = {
-  NEW: "bg-zinc-100 text-zinc-700",
-  SHIP: "bg-emerald-100 text-emerald-800",
-  PICKING: "bg-violet-100 text-violet-800",
-  STOP: "bg-amber-100 text-amber-800",
-  PACKED: "bg-sky-100 text-sky-800",
-  CANCELLED: "bg-zinc-200 text-zinc-600",
+  NEW: "chip chip-soft",
+  SHIP: "chip chip-emerald",
+  PICKING: "chip chip-violet",
+  STOP: "chip chip-amber",
+  PACKED: "chip chip-sky",
+  CANCELLED: "chip chip-soft",
 };
 
 export function OrdersTable({ orders }: { orders: OrderRow[] }) {
@@ -63,37 +63,41 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
 
   if (orders.length === 0) {
     return (
-      <p className="px-6 py-8 text-sm text-zinc-500">Keine Bestellungen.</p>
+      <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
+        Keine Bestellungen.
+      </p>
     );
   }
 
   return (
-    <table className="w-full divide-y divide-zinc-200 text-sm">
-      <thead className="bg-zinc-50 text-left">
-        <tr>
-          <th className="w-10 px-2 py-2"></th>
-          <th className="px-4 py-2 font-medium">Order</th>
-          <th className="px-4 py-2 font-medium">Erstellt</th>
-          <th className="px-4 py-2 font-medium">Status</th>
-          <th className="px-4 py-2 font-medium">Items</th>
-          <th className="px-4 py-2 font-medium">Tags</th>
-          <th className="px-4 py-2 font-medium">Stop-Grund</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-zinc-100">
-        {orders.map((o) => {
-          const isOpen = expanded.has(o.id);
-          return (
-            <Row
-              key={o.id}
-              order={o}
-              isOpen={isOpen}
-              onToggle={() => toggle(o.id)}
-            />
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="overflow-x-auto">
+      <table className="table-brand">
+        <thead>
+          <tr>
+            <th className="w-10"></th>
+            <th>Order</th>
+            <th>Erstellt</th>
+            <th>Status</th>
+            <th>Items</th>
+            <th>Tags</th>
+            <th>Stop-Grund</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((o) => {
+            const isOpen = expanded.has(o.id);
+            return (
+              <Row
+                key={o.id}
+                order={o}
+                isOpen={isOpen}
+                onToggle={() => toggle(o.id)}
+              />
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -108,14 +112,14 @@ function Row({
 }) {
   return (
     <>
-      <tr className={isOpen ? "bg-zinc-50/60" : undefined}>
-        <td className="px-2 py-2">
+      <tr className={isOpen ? "bg-brand-navy-50" : undefined}>
+        <td>
           <button
             type="button"
             onClick={onToggle}
             aria-expanded={isOpen}
             aria-label={isOpen ? "Zuklappen" : "Aufklappen"}
-            className="flex h-7 w-7 items-center justify-center rounded text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"
+            className="flex h-7 w-7 items-center justify-center rounded text-brand-navy/50 transition hover:bg-brand-navy hover:text-white"
           >
             <svg
               viewBox="0 0 20 20"
@@ -132,53 +136,52 @@ function Row({
             </svg>
           </button>
         </td>
-        <td className="px-4 py-2 font-mono">
+        <td className="font-mono font-bold text-brand-navy">
           <Link
             href={`/admin/orders/${order.id}`}
-            className="hover:underline"
+            className="hover:text-brand-burgundy"
           >
             {order.name}
           </Link>
         </td>
-        <td className="px-4 py-2 text-zinc-500">
+        <td className="text-sm text-brand-navy/60">
           {order.createdIso
             ? new Date(order.createdIso).toLocaleString("de-DE")
             : "—"}
         </td>
-        <td className="px-4 py-2">
-          <span
-            className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
-              STATUS_BADGE[order.status]
-            }`}
-          >
-            {order.status}
+        <td>
+          <span className={STATUS_BADGE[order.status]}>{order.status}</span>
+        </td>
+        <td className="text-sm">
+          <span className="font-semibold text-brand-navy">
+            {order.itemCount}
+          </span>{" "}
+          <span className="text-xs text-brand-navy/50">
+            ({order.lineItems.length} LineItems)
           </span>
         </td>
-        <td className="px-4 py-2">
-          {order.itemCount} ({order.lineItems.length} LineItems)
-        </td>
-        <td className="px-4 py-2">
+        <td>
           <div className="flex flex-wrap gap-1">
             {order.tags.map((t) => (
               <span
                 key={t}
-                className={`rounded px-1.5 py-0.5 text-xs ${
+                className={
                   t === "EXPRESS_DHL"
-                    ? "bg-purple-100 text-purple-800"
-                    : "bg-zinc-100 text-zinc-700"
-                }`}
+                    ? "chip chip-burgundy"
+                    : "chip chip-soft"
+                }
               >
                 {t}
               </span>
             ))}
           </div>
         </td>
-        <td className="px-4 py-2 text-xs text-zinc-500">
+        <td className="text-xs text-brand-navy/60">
           {order.stopReason ?? ""}
         </td>
       </tr>
       {isOpen ? (
-        <tr className="bg-zinc-50/60">
+        <tr className="bg-brand-navy-50">
           <td colSpan={7} className="px-4 pb-4 pt-0">
             <LineItems items={order.lineItems} />
           </td>
@@ -219,20 +222,20 @@ function groupLineItemsByBundle(items: OrderLineItemRow[]): LineItemGroup[] {
 function LineItems({ items }: { items: OrderLineItemRow[] }) {
   if (items.length === 0) {
     return (
-      <p className="px-2 py-3 text-xs text-zinc-500">Keine Line Items.</p>
+      <p className="px-2 py-3 text-xs text-brand-navy/60">Keine Line Items.</p>
     );
   }
   const groups = groupLineItemsByBundle(items);
   return (
     <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
       <table className="w-full text-sm">
-        <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+        <thead className="bg-brand-cream text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
           <tr>
-            <th className="w-16 px-3 py-2 font-medium">Bild</th>
-            <th className="px-3 py-2 font-medium">Produkt</th>
-            <th className="px-3 py-2 font-medium">SKU</th>
-            <th className="px-3 py-2 font-medium text-right">Bestellt</th>
-            <th className="px-3 py-2 font-medium text-right">Bestand</th>
+            <th className="w-16 px-3 py-2">Bild</th>
+            <th className="px-3 py-2">Produkt</th>
+            <th className="px-3 py-2">SKU</th>
+            <th className="px-3 py-2 text-right">Bestellt</th>
+            <th className="px-3 py-2 text-right">Bestand</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-100">

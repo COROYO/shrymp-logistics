@@ -28,6 +28,13 @@ export const ProductSchema = z.object({
   handle: z.string(),
   status: z.enum(["ACTIVE", "DRAFT", "ARCHIVED"]).default("ACTIVE"),
   image_url: z.string().url().nullable().default(null),
+  /**
+   * True if the product is a Shopify bundle parent
+   * (`Product.hasVariantsThatRequiresComponents`). Bundle parents are virtual:
+   * they don't carry their own physical stock — the inventory lives on the
+   * component variants. They are excluded from the Chargen / inventory views.
+   */
+  is_bundle: z.boolean().default(false),
   updated_at_shopify: FirestoreTimestamp.optional(),
   synced_at: FirestoreTimestamp,
 });

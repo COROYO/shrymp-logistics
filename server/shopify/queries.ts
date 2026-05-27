@@ -19,6 +19,7 @@ const PRODUCTS_PAGE_QUERY = /* GraphQL */ `
         handle
         status
         updatedAt
+        hasVariantsThatRequiresComponents
         featuredMedia {
           preview {
             image {
@@ -51,6 +52,7 @@ export type ShopifyProductNode = {
   handle: string;
   status: "ACTIVE" | "DRAFT" | "ARCHIVED";
   updatedAt: string;
+  hasVariantsThatRequiresComponents: boolean;
   featuredMedia: { preview: { image: { url: string } | null } | null } | null;
   variants: { nodes: ShopifyVariantNode[] };
 };

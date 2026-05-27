@@ -29,12 +29,14 @@ export function StartPickingButton({ orderId }: { orderId: string }) {
         type="button"
         onClick={handleClick}
         disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="btn-primary"
       >
         {pending ? "…" : "Picken starten"}
       </button>
       {err ? (
-        <p className="mt-2 text-xs text-red-700">Fehler: {err}</p>
+        <p className="mt-2 text-xs font-medium text-brand-burgundy">
+          Fehler: {err}
+        </p>
       ) : null}
     </div>
   );
@@ -65,12 +67,14 @@ export function CancelPickingButton({ orderId }: { orderId: string }) {
         type="button"
         onClick={handleClick}
         disabled={pending}
-        className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+        className="btn-ghost"
       >
         {pending ? "…" : "Picken abbrechen"}
       </button>
       {err ? (
-        <p className="mt-2 text-xs text-red-700">Fehler: {err}</p>
+        <p className="mt-2 text-xs font-medium text-brand-burgundy">
+          Fehler: {err}
+        </p>
       ) : null}
     </div>
   );

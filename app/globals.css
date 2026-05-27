@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --color-brand-navy: #0f1b33;
+  --color-brand-navy-soft: #1a2848;
+  --color-brand-navy-50: #f3f5f9;
+  --color-brand-burgundy: #9b1b30;
+  --color-brand-burgundy-dark: #7e1426;
+  --color-brand-burgundy-soft: #fdecef;
+  --color-brand-cream: #faf7f1;
+  --color-brand-stone: #ececec;
+  --color-brand-ink: #1c1c1c;
 }
 
 html {
@@ -13,4 +23,108 @@ html {
 
 body {
   font-family: var(--font-sans);
+  letter-spacing: -0.005em;
+}
+
+@layer components {
+  /* Primary action — brand burgundy */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md
+           bg-brand-burgundy px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white
+           shadow-sm transition
+           hover:bg-brand-burgundy-dark
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Secondary action — navy outline */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md
+           border border-brand-navy bg-white px-4 py-2 text-sm font-semibold uppercase tracking-wide text-brand-navy
+           transition
+           hover:bg-brand-navy hover:text-white
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30 focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Quiet ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md
+           border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-700
+           transition
+           hover:border-brand-navy hover:text-brand-navy
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/20 focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Danger action */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-md
+           border border-brand-burgundy bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-burgundy
+           transition
+           hover:bg-brand-burgundy hover:text-white
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/20 focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Card surface */
+  .card {
+    @apply rounded-lg border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(15,27,51,0.04)];
+  }
+
+  /* Section eyebrow label */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy;
+  }
+
+  /* Heading utility */
+  .h-display {
+    @apply font-semibold tracking-tight text-brand-navy;
+  }
+
+  /* Branded data table */
+  .table-brand {
+    @apply w-full text-sm;
+  }
+  .table-brand thead {
+    @apply bg-brand-navy text-white;
+  }
+  .table-brand thead th {
+    @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em];
+  }
+  .table-brand tbody tr {
+    @apply border-b border-zinc-100 transition-colors;
+  }
+  .table-brand tbody tr:hover {
+    @apply bg-brand-navy-50;
+  }
+  .table-brand tbody td {
+    @apply px-4 py-3 align-top;
+  }
+
+  /* Status chip base */
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
+  }
+  .chip-navy {
+    @apply bg-brand-navy text-white;
+  }
+  .chip-burgundy {
+    @apply bg-brand-burgundy text-white;
+  }
+  .chip-soft {
+    @apply bg-zinc-100 text-zinc-700;
+  }
+  .chip-emerald {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+  .chip-violet {
+    @apply bg-violet-100 text-violet-800;
+  }
+  .chip-amber {
+    @apply bg-amber-100 text-amber-800;
+  }
+  .chip-sky {
+    @apply bg-sky-100 text-sky-800;
+  }
 }

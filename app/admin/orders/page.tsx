@@ -179,13 +179,14 @@ export default async function OrdersPage({
   const rows = await loadOrderRows(filter);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Letzte 100 Bestellungen aus Shopify. Status wird vom
-          Allocation-Run automatisch gesetzt. Klicke auf den Pfeil, um die
-          Produkte und Bestände einer Order zu prüfen.
+        <p className="eyebrow">Bestellungen</p>
+        <h1 className="h-display mt-1 text-3xl">Orders</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
+          Letzte 100 Bestellungen aus Shopify. Status wird vom Allocation-Run
+          automatisch gesetzt. Klicke auf den Pfeil, um die Produkte und
+          Bestände einer Order zu prüfen.
         </p>
       </div>
 
@@ -196,10 +197,10 @@ export default async function OrdersPage({
             <Link
               key={f}
               href={f === "ALL" ? "/admin/orders" : `/admin/orders?status=${f}`}
-              className={`rounded-md px-3 py-1 ${
+              className={`rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${
                 isActive
-                  ? "bg-zinc-900 text-white"
-                  : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-50"
+                  ? "bg-brand-navy text-white"
+                  : "border border-zinc-200 bg-white text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"
               }`}
             >
               {f}
@@ -208,7 +209,7 @@ export default async function OrdersPage({
         })}
       </nav>
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+      <div className="card overflow-hidden">
         <OrdersTable orders={rows} />
       </div>
     </div>

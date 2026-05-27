@@ -20,9 +20,9 @@ export function VariantBatchPanel({
   const [adding, setAdding] = useState(false);
 
   return (
-    <div className="rounded-md border border-zinc-200 bg-white">
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-zinc-200">
-        <div className="flex-shrink-0 h-10 w-10 rounded bg-zinc-100 overflow-hidden">
+    <div className="rounded-lg border border-zinc-200 bg-white shadow-sm">
+      <div className="flex items-center gap-4 border-b border-zinc-200 px-4 py-3">
+        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-brand-cream ring-1 ring-zinc-200">
           {variant.imageUrl ? (
             <Image
               src={variant.imageUrl}
@@ -33,19 +33,21 @@ export function VariantBatchPanel({
               unoptimized
             />
           ) : (
-            <div className="h-10 w-10 grid place-items-center text-xs text-zinc-400">
+            <div className="grid h-10 w-10 place-items-center text-xs text-brand-navy/40">
               —
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">{variant.title}</div>
-          <div className="text-xs text-zinc-500">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-brand-navy">
+            {variant.title}
+          </div>
+          <div className="text-xs text-brand-navy/60">
             {variant.sku ? <>SKU {variant.sku} · </> : null}
             {priceLabel}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3 text-xs text-right">
+        <div className="grid grid-cols-3 gap-4 text-right">
           <Cell label="On Hand" value={variant.onHand} />
           <Cell label="Reserv." value={variant.reserved} />
           <Cell
@@ -57,20 +59,23 @@ export function VariantBatchPanel({
       </div>
 
       <table className="w-full text-sm">
-        <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+        <thead className="bg-brand-cream text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
           <tr>
-            <th className="px-4 py-1.5">Charge</th>
-            <th className="px-4 py-1.5">MHD</th>
-            <th className="px-4 py-1.5 text-right">Rest</th>
-            <th className="px-4 py-1.5 text-right">Initial</th>
-            <th className="px-4 py-1.5">Notiz</th>
-            <th className="px-4 py-1.5"></th>
+            <th className="px-4 py-2">Charge</th>
+            <th className="px-4 py-2">MHD</th>
+            <th className="px-4 py-2 text-right">Rest</th>
+            <th className="px-4 py-2 text-right">Initial</th>
+            <th className="px-4 py-2">Notiz</th>
+            <th className="px-4 py-2"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-100">
           {variant.batches.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-3 text-xs text-zinc-500">
+              <td
+                colSpan={6}
+                className="px-4 py-3 text-xs text-brand-navy/60"
+              >
                 Noch keine aktive Charge.
               </td>
             </tr>
@@ -104,7 +109,7 @@ export function VariantBatchPanel({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="text-sm text-zinc-900 hover:underline"
+            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy transition hover:text-brand-burgundy-dark"
           >
             + Neue Charge
           </button>
@@ -125,12 +130,12 @@ function Cell({
 }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-zinc-500">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
         {label}
       </div>
       <div
-        className={`text-sm font-semibold ${
-          tone === "warn" ? "text-red-700" : ""
+        className={`text-sm font-bold tabular-nums ${
+          tone === "warn" ? "text-brand-burgundy" : "text-brand-navy"
         }`}
       >
         {value}
@@ -164,20 +169,28 @@ function BatchDisplayRow({
   }
 
   return (
-    <tr className="align-top">
-      <td className="px-4 py-2 font-mono">{batch.chargeNumber}</td>
-      <td className="px-4 py-2 font-mono">{batch.expiryDateIso || "—"}</td>
-      <td className="px-4 py-2 text-right font-semibold">
+    <tr className="align-top transition hover:bg-brand-navy-50">
+      <td className="px-4 py-2.5 font-mono font-semibold text-brand-navy">
+        {batch.chargeNumber}
+      </td>
+      <td className="px-4 py-2.5 font-mono text-brand-navy/80">
+        {batch.expiryDateIso || "—"}
+      </td>
+      <td className="px-4 py-2.5 text-right text-base font-bold text-brand-navy">
         {batch.remainingQty}
       </td>
-      <td className="px-4 py-2 text-right text-zinc-500">{batch.initialQty}</td>
-      <td className="px-4 py-2 text-xs text-zinc-500">{batch.notes ?? ""}</td>
-      <td className="px-4 py-2 text-right">
-        <div className="inline-flex gap-2">
+      <td className="px-4 py-2.5 text-right text-brand-navy/50">
+        {batch.initialQty}
+      </td>
+      <td className="px-4 py-2.5 text-xs text-brand-navy/70">
+        {batch.notes ?? ""}
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        <div className="inline-flex gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
           <button
             type="button"
             onClick={onEdit}
-            className="text-xs text-zinc-700 hover:underline"
+            className="text-brand-navy/70 transition hover:text-brand-burgundy"
           >
             Bearbeiten
           </button>
@@ -185,13 +198,15 @@ function BatchDisplayRow({
             type="button"
             onClick={handleArchive}
             disabled={pending}
-            className="text-xs text-red-700 hover:underline disabled:opacity-50"
+            className="text-brand-burgundy transition hover:text-brand-burgundy-dark disabled:opacity-50"
           >
             {pending ? "…" : "Archivieren"}
           </button>
         </div>
         {err ? (
-          <div className="text-[10px] text-red-700 mt-1">{err}</div>
+          <div className="mt-1 text-[10px] font-semibold text-brand-burgundy">
+            {err}
+          </div>
         ) : null}
       </td>
     </tr>
@@ -232,6 +247,9 @@ function EditBatchRow({
     });
   }
 
+  const inlineInput =
+    "rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+
   return (
     <tr className="bg-amber-50/60 align-top">
       <td className="px-4 py-2">
@@ -239,7 +257,7 @@ function EditBatchRow({
           type="text"
           value={chargeNumber}
           onChange={(e) => setChargeNumber(e.target.value)}
-          className="w-24 rounded border border-zinc-300 px-2 py-1 text-sm font-mono"
+          className={`${inlineInput} w-24 font-mono`}
         />
       </td>
       <td className="px-4 py-2">
@@ -247,7 +265,7 @@ function EditBatchRow({
           type="date"
           value={expiry}
           onChange={(e) => setExpiry(e.target.value)}
-          className="w-36 rounded border border-zinc-300 px-2 py-1 text-sm font-mono"
+          className={`${inlineInput} w-36 font-mono`}
         />
       </td>
       <td className="px-4 py-2 text-right">
@@ -257,26 +275,28 @@ function EditBatchRow({
           step={1}
           value={remaining}
           onChange={(e) => setRemaining(e.target.value)}
-          className="w-20 rounded border border-zinc-300 px-2 py-1 text-sm text-right"
+          className={`${inlineInput} w-20 text-right`}
         />
       </td>
-      <td className="px-4 py-2 text-right text-zinc-500">{batch.initialQty}</td>
+      <td className="px-4 py-2 text-right text-brand-navy/50">
+        {batch.initialQty}
+      </td>
       <td className="px-4 py-2">
         <input
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           maxLength={500}
-          className="w-full rounded border border-zinc-300 px-2 py-1 text-sm"
+          className={`${inlineInput} w-full`}
         />
       </td>
       <td className="px-4 py-2 text-right">
-        <div className="inline-flex gap-2">
+        <div className="inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
           <button
             type="button"
             onClick={handleSave}
             disabled={pending}
-            className="rounded bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            className="rounded-md bg-brand-burgundy px-3 py-1.5 text-white shadow-sm transition hover:bg-brand-burgundy-dark disabled:opacity-50"
           >
             {pending ? "…" : "Speichern"}
           </button>
@@ -284,13 +304,15 @@ function EditBatchRow({
             type="button"
             onClick={onClose}
             disabled={pending}
-            className="text-xs text-zinc-700 hover:underline"
+            className="text-brand-navy/70 transition hover:text-brand-burgundy"
           >
             Abbrechen
           </button>
         </div>
         {err ? (
-          <div className="text-[10px] text-red-700 mt-1 max-w-xs">{err}</div>
+          <div className="mt-1 max-w-xs text-[10px] font-semibold text-brand-burgundy">
+            {err}
+          </div>
         ) : null}
       </td>
     </tr>
@@ -326,20 +348,23 @@ function NewBatchInlineForm({
     });
   }
 
+  const input =
+    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_2fr_auto] gap-2 items-start">
+    <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_1fr_1fr_2fr_auto]">
       <input
         type="text"
         placeholder="Charge-Nr"
         value={chargeNumber}
         onChange={(e) => setChargeNumber(e.target.value)}
-        className="rounded border border-zinc-300 px-2 py-1.5 text-sm font-mono"
+        className={`${input} font-mono`}
       />
       <input
         type="date"
         value={expiry}
         onChange={(e) => setExpiry(e.target.value)}
-        className="rounded border border-zinc-300 px-2 py-1.5 text-sm font-mono"
+        className={`${input} font-mono`}
       />
       <input
         type="number"
@@ -348,7 +373,7 @@ function NewBatchInlineForm({
         step={1}
         value={qty}
         onChange={(e) => setQty(e.target.value)}
-        className="rounded border border-zinc-300 px-2 py-1.5 text-sm text-right"
+        className={`${input} text-right`}
       />
       <input
         type="text"
@@ -356,14 +381,14 @@ function NewBatchInlineForm({
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         maxLength={500}
-        className="rounded border border-zinc-300 px-2 py-1.5 text-sm"
+        className={input}
       />
-      <div className="flex gap-2 sm:flex-col sm:items-end">
+      <div className="flex items-center gap-3 sm:flex-col sm:items-end">
         <button
           type="button"
           onClick={handleSave}
           disabled={pending || !chargeNumber || !expiry || !qty}
-          className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="btn-primary !px-4 !py-2"
         >
           {pending ? "…" : "Speichern"}
         </button>
@@ -371,13 +396,15 @@ function NewBatchInlineForm({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="text-xs text-zinc-700 hover:underline"
+          className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 transition hover:text-brand-burgundy"
         >
           Abbrechen
         </button>
       </div>
       {err ? (
-        <div className="sm:col-span-5 text-xs text-red-700">{err}</div>
+        <div className="text-xs font-semibold text-brand-burgundy sm:col-span-5">
+          {err}
+        </div>
       ) : null}
     </div>
   );

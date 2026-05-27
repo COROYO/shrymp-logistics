@@ -4,6 +4,12 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase/client";
 
+const inputClass =
+  "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+
+const labelClass =
+  "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70";
+
 export function LoginForm({ nextPath }: { nextPath: string | null }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -46,9 +52,9 @@ export function LoginForm({ nextPath }: { nextPath: string | null }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium">
+        <label htmlFor="email" className={labelClass}>
           Email
         </label>
         <input
@@ -58,11 +64,11 @@ export function LoginForm({ nextPath }: { nextPath: string | null }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          className={inputClass}
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium">
+        <label htmlFor="password" className={labelClass}>
           Passwort
         </label>
         <input
@@ -72,18 +78,18 @@ export function LoginForm({ nextPath }: { nextPath: string | null }) {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          className={inputClass}
         />
       </div>
       {error ? (
-        <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-3 py-2 text-sm text-brand-burgundy-dark">
           {error}
         </div>
       ) : null}
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="btn-primary w-full !py-3"
       >
         {isPending ? "Anmelden…" : "Anmelden"}
       </button>

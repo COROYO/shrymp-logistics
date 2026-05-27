@@ -85,27 +85,24 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
           placeholder="Produkt, Variante oder SKU suchen…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="w-full sm:w-96 rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 sm:w-96"
         />
-        <div className="text-xs text-zinc-500">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
           {filtered.length} von {rows.length}
         </div>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {filtered.map((p) => {
           const open = openIds.has(p.id);
           return (
-            <li
-              key={p.id}
-              className="rounded-lg border border-zinc-200 bg-white overflow-hidden"
-            >
+            <li key={p.id} className="card overflow-hidden">
               <button
                 type="button"
                 onClick={() => toggle(p.id)}
-                className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-zinc-50"
+                className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-brand-navy-50"
               >
-                <div className="flex-shrink-0 h-14 w-14 rounded-md bg-zinc-100 overflow-hidden">
+                <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-brand-cream ring-1 ring-zinc-200">
                   {p.imageUrl ? (
                     <Image
                       src={p.imageUrl}
@@ -116,39 +113,45 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
                       unoptimized
                     />
                   ) : (
-                    <div className="h-14 w-14 grid place-items-center text-xs text-zinc-400">
+                    <div className="grid h-14 w-14 place-items-center text-xs text-brand-navy/40">
                       —
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{p.title}</div>
-                  <div className="text-xs text-zinc-500">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-semibold text-brand-navy">
+                    {p.title}
+                  </div>
+                  <div className="text-xs text-brand-navy/60">
                     {p.variants.length} Variant
-                    {p.variants.length === 1 ? "" : "en"} ·{" "}
-                    {p.batchCount} Charge{p.batchCount === 1 ? "" : "n"}
+                    {p.variants.length === 1 ? "" : "en"} · {p.batchCount}{" "}
+                    Charge{p.batchCount === 1 ? "" : "n"}
                   </div>
                 </div>
-                <div className="hidden sm:block text-right">
-                  <div className="text-xs uppercase tracking-wide text-zinc-500">
+                <div className="hidden text-right sm:block">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
                     On Hand
                   </div>
-                  <div className="text-base font-semibold">{p.totalOnHand}</div>
+                  <div className="mt-0.5 text-base font-bold tabular-nums text-brand-navy">
+                    {p.totalOnHand}
+                  </div>
                 </div>
-                <div className="hidden sm:block text-right">
-                  <div className="text-xs uppercase tracking-wide text-zinc-500">
+                <div className="hidden text-right sm:block">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
                     Available
                   </div>
                   <div
-                    className={`text-base font-semibold ${
-                      p.totalAvailable <= 0 ? "text-red-700" : ""
+                    className={`mt-0.5 text-base font-bold tabular-nums ${
+                      p.totalAvailable <= 0
+                        ? "text-brand-burgundy"
+                        : "text-brand-navy"
                     }`}
                   >
                     {p.totalAvailable}
                   </div>
                 </div>
                 <div
-                  className={`ml-2 transition-transform ${
+                  className={`ml-2 text-brand-navy/40 transition-transform ${
                     open ? "rotate-90" : ""
                   }`}
                   aria-hidden
@@ -158,9 +161,9 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
               </button>
 
               {open ? (
-                <div className="border-t border-zinc-200 bg-zinc-50/50 p-4 space-y-4">
+                <div className="space-y-4 border-t border-zinc-200 bg-brand-cream/50 p-5">
                   {p.variants.length === 0 ? (
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text-brand-navy/60">
                       Keine Varianten gesynct.
                     </p>
                   ) : (

@@ -69,42 +69,42 @@ export default async function AdminOrderDetailPage({
   const createdIso = tsToIso(order.created_at_shopify);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <Link
           href="/admin/orders"
-          className="text-sm text-zinc-500 hover:text-zinc-900"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
         >
           ← Orders
         </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight font-mono">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
             {order.name}
           </h1>
-          <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700">
-            {order.internal_status}
-          </span>
+          <span className="chip chip-soft">{order.internal_status}</span>
           {order.tags.map((t) => (
             <span
               key={t}
-              className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-700"
+              className={
+                t === "EXPRESS_DHL" ? "chip chip-burgundy" : "chip chip-soft"
+              }
             >
               {t}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-xs text-zinc-500">
-          Order-ID {order.id} · Shopify-GID {order.shopify_gid} · Erstellt{" "}
+        <p className="mt-3 text-xs text-brand-navy/60">
+          Order-ID{" "}
+          <span className="font-mono">{order.id}</span> · Shopify-GID{" "}
+          <span className="font-mono">{order.shopify_gid}</span> · Erstellt{" "}
           {createdIso ? new Date(createdIso).toLocaleString("de-DE") : "—"}
         </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border border-zinc-200 bg-white p-4">
-          <h2 className="text-xs uppercase tracking-wide text-zinc-500">
-            Lieferadresse
-          </h2>
-          <address className="mt-2 not-italic text-sm leading-relaxed">
+        <section className="card p-5">
+          <h2 className="eyebrow">Lieferadresse</h2>
+          <address className="mt-2 not-italic text-sm leading-relaxed text-brand-ink">
             {order.shipping_address?.first_name}{" "}
             {order.shipping_address?.last_name}
             {order.shipping_address?.company ? (
@@ -128,11 +128,9 @@ export default async function AdminOrderDetailPage({
           </address>
         </section>
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-4">
-          <h2 className="text-xs uppercase tracking-wide text-zinc-500">
-            Shopify-Status
-          </h2>
-          <dl className="mt-2 text-sm space-y-1">
+        <section className="card p-5">
+          <h2 className="eyebrow">Shopify-Status</h2>
+          <dl className="mt-3 space-y-2 text-sm">
             <DefRow label="Financial">
               {order.shopify_financial_status ?? "—"}
             </DefRow>
@@ -142,7 +140,9 @@ export default async function AdminOrderDetailPage({
             <DefRow label="Stop-Grund">{order.stop_reason ?? "—"}</DefRow>
             <DefRow label="Allocation-Run">
               {order.allocation_run_id ? (
-                <span className="font-mono text-xs">{order.allocation_run_id}</span>
+                <span className="font-mono text-xs">
+                  {order.allocation_run_id}
+                </span>
               ) : (
                 "—"
               )}
@@ -151,127 +151,150 @@ export default async function AdminOrderDetailPage({
         </section>
       </div>
 
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-6 py-3">
-          <h2 className="text-sm font-semibold">
-            Line Items + Allocations ({allocs.length} Reservierungen)
+      <section className="card overflow-hidden">
+        <div className="border-b border-zinc-200 px-6 py-4">
+          <p className="eyebrow">Allokationen</p>
+          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            Line Items ({allocs.length} Reservierung
+            {allocs.length === 1 ? "" : "en"})
           </h2>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left">
-            <tr>
-              <th className="px-6 py-2 font-medium">Position</th>
-              <th className="px-6 py-2 font-medium">SKU</th>
-              <th className="px-6 py-2 font-medium text-right">Soll</th>
-              <th className="px-6 py-2 font-medium">Allokationen</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {order.line_items.map((li) => {
-              const liAllocs = allocs.filter((a) => a.line_item_id === li.id);
-              return (
-                <tr key={li.id} className="align-top">
-                  <td className="px-6 py-2">
-                    <div className="font-medium">{li.title}</div>
-                    <div className="text-xs text-zinc-500">
-                      Variant {li.variant_id}
-                    </div>
-                  </td>
-                  <td className="px-6 py-2 font-mono text-xs">
-                    {li.sku ?? "—"}
-                  </td>
-                  <td className="px-6 py-2 text-right">{li.qty}</td>
-                  <td className="px-6 py-2 text-xs space-y-1">
-                    {liAllocs.length === 0 ? (
-                      <span className="text-amber-700">— keine —</span>
-                    ) : (
-                      liAllocs.map((a) => {
-                        const b = batchById.get(a.batch_id);
-                        const consumedIso = tsToIso(a.consumed_at);
-                        return (
-                          <div key={a.id} className="flex flex-wrap gap-2">
-                            <span className="font-mono bg-zinc-100 px-1.5 py-0.5 rounded">
-                              {b?.charge_number ?? a.batch_id.slice(0, 6)}
-                            </span>
-                            <span className="font-semibold">{a.qty}x</span>
-                            {consumedIso ? (
-                              <span className="text-emerald-700">
-                                ✓ konsumiert {new Date(consumedIso).toLocaleString("de-DE")}
+        <div className="overflow-x-auto">
+          <table className="table-brand">
+            <thead>
+              <tr>
+                <th>Position</th>
+                <th>SKU</th>
+                <th className="text-right">Soll</th>
+                <th>Allokationen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.line_items.map((li) => {
+                const liAllocs = allocs.filter((a) => a.line_item_id === li.id);
+                return (
+                  <tr key={li.id}>
+                    <td>
+                      <div className="font-semibold text-brand-navy">
+                        {li.title}
+                      </div>
+                      <div className="text-xs text-brand-navy/60">
+                        Variant{" "}
+                        <span className="font-mono">{li.variant_id}</span>
+                      </div>
+                    </td>
+                    <td className="font-mono text-xs text-brand-navy/70">
+                      {li.sku ?? "—"}
+                    </td>
+                    <td className="text-right text-base font-bold text-brand-navy">
+                      {li.qty}
+                    </td>
+                    <td className="space-y-1 text-xs">
+                      {liAllocs.length === 0 ? (
+                        <span className="chip chip-amber">— keine —</span>
+                      ) : (
+                        liAllocs.map((a) => {
+                          const b = batchById.get(a.batch_id);
+                          const consumedIso = tsToIso(a.consumed_at);
+                          return (
+                            <div
+                              key={a.id}
+                              className="flex flex-wrap items-center gap-2"
+                            >
+                              <span className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white">
+                                {b?.charge_number ?? a.batch_id.slice(0, 6)}
                               </span>
-                            ) : (
-                              <span className="text-zinc-500">reserviert</span>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                              <span className="font-semibold text-brand-navy">
+                                {a.qty}×
+                              </span>
+                              {consumedIso ? (
+                                <span className="text-emerald-700">
+                                  ✓ konsumiert{" "}
+                                  {new Date(consumedIso).toLocaleString("de-DE")}
+                                </span>
+                              ) : (
+                                <span className="text-brand-navy/60">
+                                  reserviert
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-6 py-3">
-          <h2 className="text-sm font-semibold">
+      <section className="card overflow-hidden">
+        <div className="border-b border-zinc-200 px-6 py-4">
+          <p className="eyebrow">Audit-Log</p>
+          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
             Inventory-Movements ({movs.length})
           </h2>
         </div>
         {movs.length === 0 ? (
-          <p className="px-6 py-3 text-sm text-zinc-500">Keine Movements.</p>
+          <p className="px-6 py-6 text-sm text-brand-navy/60">
+            Keine Movements.
+          </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left">
-              <tr>
-                <th className="px-6 py-2 font-medium">Wann</th>
-                <th className="px-6 py-2 font-medium">Typ</th>
-                <th className="px-6 py-2 font-medium text-right">Qty</th>
-                <th className="px-6 py-2 font-medium">Charge</th>
-                <th className="px-6 py-2 font-medium">User</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {movs
-                .sort((a, b) => {
-                  const ia = tsToIso(a.created_at) ?? "";
-                  const ib = tsToIso(b.created_at) ?? "";
-                  return ib.localeCompare(ia);
-                })
-                .map((m) => (
-                  <tr key={m.id}>
-                    <td className="px-6 py-2 text-zinc-500 text-xs">
-                      {(() => {
-                        const iso = tsToIso(m.created_at);
-                        return iso
-                          ? new Date(iso).toLocaleString("de-DE")
-                          : "—";
-                      })()}
-                    </td>
-                    <td className="px-6 py-2">
-                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-semibold">
-                        {m.type}
-                      </span>
-                    </td>
-                    <td
-                      className={`px-6 py-2 text-right font-mono ${
-                        m.qty < 0 ? "text-red-700" : "text-emerald-700"
-                      }`}
-                    >
-                      {m.qty > 0 ? "+" : ""}
-                      {m.qty}
-                    </td>
-                    <td className="px-6 py-2 font-mono text-xs">
-                      {m.batch_id
-                        ? batchById.get(m.batch_id)?.charge_number ?? m.batch_id.slice(0, 8)
-                        : "—"}
-                    </td>
-                    <td className="px-6 py-2 text-xs">{m.user_id ?? "—"}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="table-brand">
+              <thead>
+                <tr>
+                  <th>Wann</th>
+                  <th>Typ</th>
+                  <th className="text-right">Qty</th>
+                  <th>Charge</th>
+                  <th>User</th>
+                </tr>
+              </thead>
+              <tbody>
+                {movs
+                  .sort((a, b) => {
+                    const ia = tsToIso(a.created_at) ?? "";
+                    const ib = tsToIso(b.created_at) ?? "";
+                    return ib.localeCompare(ia);
+                  })
+                  .map((m) => (
+                    <tr key={m.id}>
+                      <td className="text-xs text-brand-navy/60">
+                        {(() => {
+                          const iso = tsToIso(m.created_at);
+                          return iso
+                            ? new Date(iso).toLocaleString("de-DE")
+                            : "—";
+                        })()}
+                      </td>
+                      <td>
+                        <span className="chip chip-soft">{m.type}</span>
+                      </td>
+                      <td
+                        className={`text-right font-mono font-bold ${
+                          m.qty < 0 ? "text-brand-burgundy" : "text-emerald-700"
+                        }`}
+                      >
+                        {m.qty > 0 ? "+" : ""}
+                        {m.qty}
+                      </td>
+                      <td className="font-mono text-xs">
+                        {m.batch_id
+                          ? (batchById.get(m.batch_id)?.charge_number ??
+                            m.batch_id.slice(0, 8))
+                          : "—"}
+                      </td>
+                      <td className="text-xs text-brand-navy/70">
+                        {m.user_id ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>
@@ -286,11 +309,11 @@ function DefRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
         {label}
       </dt>
-      <dd className="text-right">{children}</dd>
+      <dd className="text-right text-sm text-brand-ink">{children}</dd>
     </div>
   );
 }

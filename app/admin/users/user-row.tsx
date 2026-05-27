@@ -75,60 +75,54 @@ export function UserRow({
 
   return (
     <>
-      <tr className={user.disabled ? "bg-zinc-50/60 text-zinc-500" : undefined}>
-        <td className="px-6 py-2">
-          <div className="font-medium">
+      <tr className={user.disabled ? "bg-zinc-50/60 text-brand-navy/50" : undefined}>
+        <td>
+          <div className="font-semibold text-brand-navy">
             {user.display_name ?? user.email ?? user.uid}
             {isMe ? (
-              <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-700">
-                du
-              </span>
+              <span className="chip chip-soft ml-2 !px-1.5 !py-0">du</span>
             ) : null}
           </div>
           {user.email && user.display_name ? (
-            <div className="text-xs text-zinc-500 font-mono">{user.email}</div>
+            <div className="font-mono text-xs text-brand-navy/60">
+              {user.email}
+            </div>
           ) : null}
           {!user.has_mirror ? (
-            <div className="text-[10px] text-amber-700">
+            <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
               kein Firestore-Mirror — sync re-trigger empfohlen
             </div>
           ) : null}
         </td>
-        <td className="px-6 py-2">
+        <td>
           {user.role ? (
             <span
-              className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
-                user.role === "ADMIN"
-                  ? "bg-zinc-900 text-white"
-                  : "bg-emerald-100 text-emerald-800"
-              }`}
+              className={
+                user.role === "ADMIN" ? "chip chip-navy" : "chip chip-emerald"
+              }
             >
               {user.role}
             </span>
           ) : (
-            <span className="text-amber-700 text-xs">— keine —</span>
+            <span className="chip chip-amber">— keine —</span>
           )}
         </td>
-        <td className="px-6 py-2">
+        <td>
           <span
-            className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
-              user.disabled
-                ? "bg-zinc-200 text-zinc-700"
-                : "bg-emerald-100 text-emerald-800"
-            }`}
+            className={user.disabled ? "chip chip-soft" : "chip chip-emerald"}
           >
             {user.disabled ? "deaktiviert" : "aktiv"}
           </span>
         </td>
-        <td className="px-6 py-2 text-xs text-zinc-500">{createdShort}</td>
-        <td className="px-6 py-2 text-xs text-zinc-500">{lastSignInShort}</td>
-        <td className="px-6 py-2 text-right whitespace-nowrap">
-          <div className="inline-flex gap-3 text-xs">
+        <td className="text-xs text-brand-navy/60">{createdShort}</td>
+        <td className="text-xs text-brand-navy/60">{lastSignInShort}</td>
+        <td className="whitespace-nowrap text-right">
+          <div className="inline-flex gap-4 text-[11px] font-semibold uppercase tracking-[0.1em]">
             <button
               type="button"
               onClick={toggleRole}
               disabled={pending || isMe}
-              className="text-zinc-700 hover:underline disabled:opacity-30"
+              className="text-brand-navy/70 transition hover:text-brand-burgundy disabled:opacity-30"
               title={
                 isMe
                   ? "Du kannst deine eigene Rolle nicht ändern"
@@ -141,7 +135,7 @@ export function UserRow({
               type="button"
               onClick={() => setPwModalOpen(true)}
               disabled={pending}
-              className="text-zinc-700 hover:underline disabled:opacity-30"
+              className="text-brand-navy/70 transition hover:text-brand-burgundy disabled:opacity-30"
             >
               Passwort
             </button>
@@ -149,7 +143,7 @@ export function UserRow({
               type="button"
               onClick={toggleDisabled}
               disabled={pending || isMe}
-              className="text-zinc-700 hover:underline disabled:opacity-30"
+              className="text-brand-navy/70 transition hover:text-brand-burgundy disabled:opacity-30"
               title={
                 isMe
                   ? "Du kannst dich nicht selbst deaktivieren"
@@ -164,12 +158,16 @@ export function UserRow({
               type="button"
               onClick={handleDelete}
               disabled={pending || isMe}
-              className="text-red-700 hover:underline disabled:opacity-30"
+              className="text-brand-burgundy transition hover:text-brand-burgundy-dark disabled:opacity-30"
             >
               Löschen
             </button>
           </div>
-          {err ? <div className="text-[10px] text-red-700 mt-1">{err}</div> : null}
+          {err ? (
+            <div className="mt-1 text-[10px] font-semibold text-brand-burgundy">
+              {err}
+            </div>
+          ) : null}
         </td>
       </tr>
       {pwModalOpen ? (
@@ -209,18 +207,20 @@ function ResetPasswordRow({
 
   return (
     <tr className="bg-amber-50/60">
-      <td colSpan={6} className="px-6 py-3">
+      <td colSpan={6} className="px-6 py-4">
         {done ? (
-          <div className="flex items-center gap-3 text-sm text-emerald-800">
-            ✓ Passwort für <strong>{email}</strong> gesetzt. Bitte dem
-            Mitarbeiter mitteilen.
+          <div className="flex flex-wrap items-center gap-3 text-sm text-emerald-800">
+            <span>
+              ✓ Passwort für <strong>{email}</strong> gesetzt. Bitte dem
+              Mitarbeiter mitteilen.
+            </span>
             <button
               type="button"
               onClick={() => {
                 setDone(false);
                 onClose();
               }}
-              className="text-xs underline text-zinc-700"
+              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 underline-offset-2 hover:text-brand-burgundy hover:underline"
             >
               Schließen
             </button>
@@ -228,7 +228,7 @@ function ResetPasswordRow({
         ) : (
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="block text-xs font-medium">
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
                 Neues Passwort für {email}
               </label>
               <input
@@ -236,14 +236,14 @@ function ResetPasswordRow({
                 value={pw}
                 onChange={(e) => setPw(e.target.value)}
                 placeholder="min. 8 Zeichen"
-                className="mt-1 w-72 rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono"
+                className="mt-1.5 w-72 rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm shadow-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
               />
             </div>
             <button
               type="button"
               onClick={handleSave}
               disabled={pending || pw.length < 8}
-              className="rounded bg-zinc-900 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+              className="btn-primary"
             >
               {pending ? "…" : "Speichern"}
             </button>
@@ -251,12 +251,14 @@ function ResetPasswordRow({
               type="button"
               onClick={onClose}
               disabled={pending}
-              className="text-xs text-zinc-700 hover:underline"
+              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
             >
               Abbrechen
             </button>
             {err ? (
-              <span className="text-xs text-red-700">{err}</span>
+              <span className="text-xs font-semibold text-brand-burgundy">
+                {err}
+              </span>
             ) : null}
           </div>
         )}

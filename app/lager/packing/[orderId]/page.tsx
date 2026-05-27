@@ -91,37 +91,35 @@ export default async function PackingPage({
   const isPacked = order.internal_status === "PACKED";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <Link
           href={`/lager/picking/${order.id}`}
-          className="text-sm text-zinc-500 hover:text-zinc-900"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
         >
           ← Zurück zur Picklist
         </Link>
-        <div className="mt-2 flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight font-mono">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
             {order.name}
           </h1>
           <span
-            className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
+            className={
               isPacked
-                ? "bg-sky-100 text-sky-800"
+                ? "chip chip-sky"
                 : isPacking
-                  ? "bg-violet-100 text-violet-800"
-                  : "bg-zinc-100 text-zinc-700"
-            }`}
+                  ? "chip chip-violet"
+                  : "chip chip-soft"
+            }
           >
             {order.internal_status}
           </span>
         </div>
       </div>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
-        <h2 className="text-xs uppercase tracking-wide text-zinc-500">
-          Lieferadresse
-        </h2>
-        <address className="mt-2 not-italic text-base leading-relaxed">
+      <section className="card p-5">
+        <h2 className="eyebrow">Lieferadresse</h2>
+        <address className="mt-2 not-italic text-base leading-relaxed text-brand-ink">
           <strong>
             {order.shipping_address?.first_name}{" "}
             {order.shipping_address?.last_name}
@@ -147,54 +145,66 @@ export default async function PackingPage({
         </address>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-6 py-3">
-          <h2 className="text-sm font-semibold">Inhalt</h2>
+      <section className="card overflow-hidden">
+        <div className="border-b border-zinc-200 px-6 py-4">
+          <p className="eyebrow">Inhalt</p>
+          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            Was im Karton landen muss
+          </h2>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left">
-            <tr>
-              <th className="px-6 py-2 font-medium">Produkt</th>
-              <th className="px-6 py-2 font-medium text-right">Menge</th>
-              <th className="px-6 py-2 font-medium">Chargen</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {order.line_items.map((li) => {
-              const allocs = allocsByLi.get(li.id) ?? [];
-              return (
-                <tr key={li.id}>
-                  <td className="px-6 py-2">
-                    <div className="font-medium">{li.title}</div>
-                    {li.sku ? (
-                      <div className="text-xs text-zinc-500 font-mono">
-                        SKU {li.sku}
+        <div className="overflow-x-auto">
+          <table className="table-brand">
+            <thead>
+              <tr>
+                <th>Produkt</th>
+                <th className="text-right">Menge</th>
+                <th>Chargen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.line_items.map((li) => {
+                const allocs = allocsByLi.get(li.id) ?? [];
+                return (
+                  <tr key={li.id}>
+                    <td>
+                      <div className="font-semibold text-brand-navy">
+                        {li.title}
                       </div>
-                    ) : null}
-                  </td>
-                  <td className="px-6 py-2 text-right font-semibold">
-                    {li.qty}
-                  </td>
-                  <td className="px-6 py-2 text-xs">
-                    {allocs.map((a, idx) => (
-                      <span
-                        key={idx}
-                        className="mr-2 inline-block rounded bg-zinc-100 px-1.5 py-0.5 font-mono"
-                      >
-                        {a.chargeNumber} · {a.qty}
-                      </span>
-                    ))}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      {li.sku ? (
+                        <div className="font-mono text-xs text-brand-navy/60">
+                          SKU {li.sku}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="text-right text-lg font-bold text-brand-navy">
+                      {li.qty}
+                    </td>
+                    <td className="text-xs">
+                      <div className="flex flex-wrap gap-1.5">
+                        {allocs.map((a, idx) => (
+                          <span
+                            key={idx}
+                            className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white"
+                          >
+                            {a.chargeNumber} · {a.qty}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Versandetikett</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+      <section className="card p-6">
+        <p className="eyebrow">Versandetikett</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          DHL-Etikett erzeugen
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">
           Öffnet das externe DHL-Tool in einem neuen Tab. Etikett dort drucken,
           anschließend hier &quot;Verpackt + versendet&quot; klicken.
         </p>
@@ -211,30 +221,34 @@ export default async function PackingPage({
         <Link
           href={`/lager/picking/${order.id}/print`}
           target="_blank"
-          className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+          className="btn-ghost"
         >
           Picklist nochmal drucken
         </Link>
       </div>
 
       {isPacking ? (
-        <section className="rounded-lg border border-zinc-200 bg-white p-6">
-          <h2 className="text-sm font-semibold">Verpackt + versendet</h2>
-          <p className="mt-1 text-xs text-zinc-500">
+        <section className="card p-6">
+          <p className="eyebrow">Abschluss</p>
+          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            Verpackt + versendet
+          </h2>
+          <p className="mt-1 text-xs text-brand-navy/60">
             Bucht den Bestand atomar ab, meldet Fulfillment und Inventory an
             Shopify zurück und schließt die Order.
           </p>
-          <div className="mt-4">
+          <div className="mt-5">
             <ConfirmPackingForm orderId={order.id} />
           </div>
         </section>
       ) : isPacked ? (
-        <div className="rounded-md bg-sky-50 px-4 py-3 text-sm text-sky-900">
+        <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
           Order ist gepackt und gebucht.
         </div>
       ) : (
-        <div className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Order ist in Status <strong>{order.internal_status}</strong>. Pack-Bestätigung nur aus PICKING-Status möglich.
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Order ist in Status <strong>{order.internal_status}</strong>.
+          Pack-Bestätigung nur aus PICKING-Status möglich.
         </div>
       )}
     </div>

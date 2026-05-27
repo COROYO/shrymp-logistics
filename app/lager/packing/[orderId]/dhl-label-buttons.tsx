@@ -34,20 +34,12 @@ export function DhlLabelButtons({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={`inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold transition ${
-          isInternational
-            ? "bg-purple-600 text-white hover:bg-purple-700"
-            : "bg-amber-500 text-white hover:bg-amber-600"
-        }`}
+        className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-navy-soft"
       >
         {label}
         <ExternalIcon />
       </a>
-      <span
-        className={`text-xs font-medium ${
-          isInternational ? "text-purple-700" : "text-amber-700"
-        }`}
-      >
+      <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/60">
         {sublabel}
       </span>
     </div>

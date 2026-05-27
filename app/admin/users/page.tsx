@@ -20,13 +20,15 @@ export default async function UsersPage() {
   const noRoleCount = users.filter((u) => !u.role).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Benutzer</h1>
-        <p className="mt-1 text-sm text-zinc-600">
+        <p className="eyebrow">Team</p>
+        <h1 className="h-display mt-1 text-3xl">Benutzer</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
           Mitarbeiter:innen anlegen und Rollen verwalten. Nur Admins können
-          hier ändern. Du selbst (<span className="font-mono">{me?.email}</span>
-          ) kannst dich nicht versehentlich aussperren.
+          hier ändern. Du selbst (
+          <span className="font-mono">{me?.email}</span>) kannst dich nicht
+          versehentlich aussperren.
         </p>
       </div>
 
@@ -41,45 +43,53 @@ export default async function UsersPage() {
         />
       </dl>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <h2 className="text-sm font-semibold">Neue:n Mitarbeiter:in anlegen</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+      <section className="card p-6">
+        <p className="eyebrow">Neuer Account</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Mitarbeiter:in anlegen
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">
           Email + Initial-Passwort (min. 8 Zeichen). Die Person sollte beim
           ersten Login das Passwort ändern (Self-Service kommt später —
-          aktuell musst du als Admin per &quot;Passwort zurücksetzen&quot;
-          ein neues setzen).
+          aktuell musst du als Admin per &quot;Passwort zurücksetzen&quot; ein
+          neues setzen).
         </p>
-        <div className="mt-4">
+        <div className="mt-5">
           <NewUserForm />
         </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-6 py-3">
-          <h2 className="text-sm font-semibold">
-            Alle Benutzer ({users.length})
+      <section className="card overflow-hidden">
+        <div className="border-b border-zinc-200 px-6 py-4">
+          <p className="eyebrow">Alle Benutzer</p>
+          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            {users.length} Account{users.length === 1 ? "" : "s"}
           </h2>
         </div>
         {users.length === 0 ? (
-          <p className="px-6 py-6 text-sm text-zinc-500">Keine Benutzer.</p>
+          <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
+            Keine Benutzer.
+          </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-6 py-2">Name / Email</th>
-                <th className="px-6 py-2">Rolle</th>
-                <th className="px-6 py-2">Status</th>
-                <th className="px-6 py-2">Erstellt</th>
-                <th className="px-6 py-2">Letzter Login</th>
-                <th className="px-6 py-2"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {users.map((u) => (
-                <UserRow key={u.uid} user={u} isMe={u.uid === myUid} />
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="table-brand">
+              <thead>
+                <tr>
+                  <th>Name / Email</th>
+                  <th>Rolle</th>
+                  <th>Status</th>
+                  <th>Erstellt</th>
+                  <th>Letzter Login</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <UserRow key={u.uid} user={u} isMe={u.uid === myUid} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>
@@ -96,13 +106,13 @@ function Stat({
   tone?: "warn";
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">
+    <div className="card p-5">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
         {label}
       </dt>
       <dd
-        className={`mt-1 text-lg font-semibold ${
-          tone === "warn" ? "text-amber-700" : ""
+        className={`mt-1.5 text-2xl font-bold tabular-nums ${
+          tone === "warn" ? "text-amber-700" : "text-brand-navy"
         }`}
       >
         {value}

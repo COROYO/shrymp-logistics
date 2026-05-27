@@ -46,7 +46,8 @@ async function loadProductRows(): Promise<ProductRow[]> {
   }
 
   const rows: ProductRow[] = Object.values(products)
-    .filter((p) => p.status !== "ARCHIVED")
+    // Hide archived products and Shopify bundle parents (no own physical stock).
+    .filter((p) => p.status !== "ARCHIVED" && p.is_bundle !== true)
     .map((p) => {
       const variants = (variantsByProduct[p.id] ?? [])
         .map((v) => {
@@ -116,12 +117,11 @@ export default async function BatchesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Bestand &amp; Chargen
-        </h1>
-        <p className="mt-1 text-sm text-zinc-600">
+        <p className="eyebrow">Inventar</p>
+        <h1 className="h-display mt-1 text-3xl">Bestand &amp; Chargen</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
           Pro Variante eine FEFO-sortierte Liste der aktiven Chargen. Jede
           Änderung wird sofort transaktional gebucht und an Shopify
           zurückgeschrieben (Outbox).
@@ -135,8 +135,15 @@ export default async function BatchesPage() {
       </dl>
 
       {rows.length === 0 ? (
-        <div className="rounded-md border border-zinc-200 bg-white px-6 py-8 text-sm text-zinc-500">
-          Noch keine Produkte synchronisiert. Erst <a href="/admin/products" className="underline">Produkte syncen</a>.
+        <div className="card px-6 py-10 text-center text-sm text-brand-navy/60">
+          Noch keine Produkte synchronisiert. Erst{" "}
+          <a
+            href="/admin/products"
+            className="font-semibold text-brand-burgundy underline-offset-2 hover:underline"
+          >
+            Produkte syncen
+          </a>
+          .
         </div>
       ) : (
         <ProductAccordion rows={rows} />
@@ -153,11 +160,13 @@ function Stat({
   value: string | number;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">
+    <div className="card p-5">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
         {label}
       </dt>
-      <dd className="mt-1 text-lg font-semibold">{value}</dd>
+      <dd className="mt-1.5 text-2xl font-bold tabular-nums text-brand-navy">
+        {value}
+      </dd>
     </div>
   );
 }

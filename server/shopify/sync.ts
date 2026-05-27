@@ -96,6 +96,7 @@ export async function syncProductsAndVariants(): Promise<{
       handle: p.handle,
       status: p.status,
       image_url: productImage,
+      is_bundle: p.hasVariantsThatRequiresComponents === true,
       updated_at_shopify: new Date(p.updatedAt),
       synced_at: FieldValue.serverTimestamp(),
     };

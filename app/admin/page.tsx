@@ -1,64 +1,71 @@
 import Link from "next/link";
 
+const TILES: {
+  href: string;
+  title: string;
+  desc: string;
+}[] = [
+  {
+    href: "/admin/orders",
+    title: "Orders",
+    desc: "SHIP / STOP / NEW Übersicht",
+  },
+  {
+    href: "/admin/batches",
+    title: "Bestand & Chargen",
+    desc: "Wareneingang, MHD, FEFO-Liste",
+  },
+  {
+    href: "/admin/products",
+    title: "Produkte",
+    desc: "Shopify-Sync verwalten",
+  },
+  {
+    href: "/admin/users",
+    title: "Benutzer",
+    desc: "Lager + Admins verwalten",
+  },
+  {
+    href: "/admin/settings",
+    title: "Einstellungen",
+    desc: "Shopify-Verbindung, Webhooks, Allocation",
+  },
+  {
+    href: "/lager",
+    title: "Lager",
+    desc: "Picking & Packing-Ansicht öffnen",
+  },
+];
+
 export default function AdminHome() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Übersicht</h1>
-      <p className="text-sm text-zinc-600">
-        Wareneingang, Bestände, Orders, Allocation-Runs. Wähle einen Bereich
-        in der Navigation.
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link
-          href="/admin/orders"
-          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
-        >
-          <h2 className="text-sm font-semibold">Orders</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            SHIP / STOP / NEW Übersicht
-          </p>
-        </Link>
-        <Link
-          href="/admin/batches"
-          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
-        >
-          <h2 className="text-sm font-semibold">Wareneingang</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            Neue Charge mit MHD erfassen
-          </p>
-        </Link>
-        <Link
-          href="/admin/products"
-          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
-        >
-          <h2 className="text-sm font-semibold">Produkte</h2>
-          <p className="mt-1 text-xs text-zinc-500">Shopify-Sync verwalten</p>
-        </Link>
-        <Link
-          href="/admin/users"
-          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
-        >
-          <h2 className="text-sm font-semibold">Benutzer</h2>
-          <p className="mt-1 text-xs text-zinc-500">Lager + Admins verwalten</p>
-        </Link>
-        <Link
-          href="/admin/settings"
-          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
-        >
-          <h2 className="text-sm font-semibold">Einstellungen</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            Shopify-Verbindung, Webhooks, Backfill, Allocation
-          </p>
-        </Link>
-        <Link
-          href="/lager"
-          className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
-        >
-          <h2 className="text-sm font-semibold">Lager</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            Picking &amp; Packing-Ansicht öffnen
-          </p>
-        </Link>
+    <div className="space-y-8">
+      <div>
+        <p className="eyebrow">Übersicht</p>
+        <h1 className="h-display mt-1 text-3xl">Monolith Caviar Backoffice</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
+          Wareneingang, Bestände, Orders, Allocation-Runs. Wähle einen Bereich
+          aus.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {TILES.map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className="group card relative overflow-hidden p-6 transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <span className="absolute inset-x-0 top-0 h-1 bg-brand-burgundy opacity-0 transition group-hover:opacity-100" />
+            <h2 className="text-base font-semibold text-brand-navy">
+              {t.title}
+            </h2>
+            <p className="mt-2 text-xs text-brand-navy/60">{t.desc}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
+              Öffnen →
+            </span>
+          </Link>
+        ))}
       </div>
     </div>
   );

@@ -2,6 +2,12 @@
 import { useActionState, useEffect, useRef } from "react";
 import { createUserAction, type CreateUserActionState } from "./actions";
 
+const inputClass =
+  "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+
+const labelClass =
+  "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70";
+
 export function NewUserForm() {
   const [state, formAction, pending] = useActionState<
     CreateUserActionState,
@@ -14,31 +20,29 @@ export function NewUserForm() {
   }, [state, pending]);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-xs font-medium">Email</label>
+          <label className={labelClass}>Email</label>
           <input
             type="email"
             name="email"
             required
             autoComplete="off"
-            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium">
-            Name (optional)
-          </label>
+          <label className={labelClass}>Name (optional)</label>
           <input
             type="text"
             name="displayName"
             maxLength={80}
-            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium">
+          <label className={labelClass}>
             Initial-Passwort (min. 8 Zeichen)
           </label>
           <input
@@ -47,16 +51,16 @@ export function NewUserForm() {
             required
             minLength={8}
             autoComplete="new-password"
-            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono"
+            className={`${inputClass} font-mono`}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium">Rolle</label>
+          <label className={labelClass}>Rolle</label>
           <select
             name="role"
             required
             defaultValue="LAGER"
-            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className={inputClass}
           >
             <option value="LAGER">LAGER</option>
             <option value="ADMIN">ADMIN</option>
@@ -64,12 +68,8 @@ export function NewUserForm() {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-        >
+      <div className="flex flex-wrap items-center gap-4">
+        <button type="submit" disabled={pending} className="btn-primary">
           {pending ? "Lege an…" : "Mitarbeiter:in anlegen"}
         </button>
         {state?.ok ? (
@@ -79,7 +79,9 @@ export function NewUserForm() {
           </span>
         ) : null}
         {state && !state.ok ? (
-          <span className="text-sm text-red-700">Fehler: {state.error}</span>
+          <span className="text-sm text-brand-burgundy-dark">
+            Fehler: {state.error}
+          </span>
         ) : null}
       </div>
     </form>

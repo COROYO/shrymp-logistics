@@ -165,40 +165,30 @@ export default async function PickingDetailPage({
   const isExpress = order.tags.includes("EXPRESS_DHL");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <Link
           href="/lager/picking"
-          className="text-sm text-zinc-500 hover:text-zinc-900"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
         >
           ← Picking-Queue
         </Link>
-        <div className="mt-2 flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight font-mono">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
             {order.name}
           </h1>
           <span
-            className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
-              isPicking
-                ? "bg-violet-100 text-violet-800"
-                : "bg-emerald-100 text-emerald-800"
-            }`}
+            className={isPicking ? "chip chip-violet" : "chip chip-emerald"}
           >
             {order.internal_status}
           </span>
-          {isExpress ? (
-            <span className="rounded bg-purple-200 px-2 py-0.5 text-xs font-semibold text-purple-900">
-              EXPRESS
-            </span>
-          ) : null}
+          {isExpress ? <span className="chip chip-burgundy">Express</span> : null}
         </div>
       </div>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
-        <h2 className="text-xs uppercase tracking-wide text-zinc-500">
-          Lieferadresse
-        </h2>
-        <address className="mt-2 not-italic text-sm leading-relaxed">
+      <section className="card p-5">
+        <h2 className="eyebrow">Lieferadresse</h2>
+        <address className="mt-2 not-italic text-sm leading-relaxed text-brand-ink">
           {order.shipping_address?.first_name}{" "}
           {order.shipping_address?.last_name}
           {order.shipping_address?.company ? (
@@ -222,90 +212,99 @@ export default async function PickingDetailPage({
         </address>
       </section>
 
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-3">
-          <h2 className="text-sm font-semibold">
-            Picklist · FEFO ({lineItems.length} Position
-            {lineItems.length === 1 ? "" : "en"})
-          </h2>
-          <div className="flex items-center gap-4 text-xs">
+      <section className="card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4">
+          <div>
+            <p className="eyebrow">Picklist · FEFO</p>
+            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+              {lineItems.length} Position
+              {lineItems.length === 1 ? "" : "en"}
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
             <Link
               href={`/lager/picking/${order.id}/print`}
               target="_blank"
-              className="underline text-zinc-600 hover:text-zinc-900"
+              className="btn-ghost"
             >
               Picklist drucken
             </Link>
             <Link
               href={`/lager/picking/${order.id}/slip`}
               target="_blank"
-              className="underline text-zinc-600 hover:text-zinc-900"
+              className="btn-ghost"
             >
-              Packing-Slip drucken
+              Packing-Slip
             </Link>
           </div>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left">
-            <tr>
-              <th className="px-6 py-2 font-medium">Produkt</th>
-              <th className="px-6 py-2 font-medium">SKU</th>
-              <th className="px-6 py-2 font-medium text-right">Menge</th>
-              <th className="px-6 py-2 font-medium">Charge / MHD</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {lineItems.map((li) => (
-              <tr key={li.id} className="align-top">
-                <td className="px-6 py-3">
-                  <div className="font-medium">{li.productTitle}</div>
-                  <div className="text-xs text-zinc-500">{li.variantTitle}</div>
-                </td>
-                <td className="px-6 py-3 font-mono text-xs">{li.sku ?? "—"}</td>
-                <td className="px-6 py-3 text-right text-base font-semibold">
-                  {li.qty}
-                </td>
-                <td className="px-6 py-3">
-                  {li.allocations.length === 0 ? (
-                    <span className="text-amber-700 text-xs">
-                      Noch keine Charge zugewiesen
-                    </span>
-                  ) : (
-                    <div className="space-y-1">
-                      {li.allocations.map((a, idx) => (
-                        <div
-                          key={`${a.batchId}-${idx}`}
-                          className="flex items-baseline gap-2 text-xs"
-                        >
-                          <span className="font-mono font-semibold bg-zinc-100 px-1.5 py-0.5 rounded">
-                            {a.chargeNumber}
-                          </span>
-                          <span className="text-zinc-600">
-                            MHD {a.expiryDateIso ?? "—"}
-                          </span>
-                          <span className="text-zinc-900 font-semibold">
-                            {a.qty} Stk
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="table-brand">
+            <thead>
+              <tr>
+                <th>Produkt</th>
+                <th>SKU</th>
+                <th className="text-right">Menge</th>
+                <th>Charge / MHD</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {lineItems.map((li) => (
+                <tr key={li.id}>
+                  <td>
+                    <div className="font-semibold text-brand-navy">
+                      {li.productTitle}
+                    </div>
+                    <div className="text-xs text-brand-navy/60">
+                      {li.variantTitle}
+                    </div>
+                  </td>
+                  <td className="font-mono text-xs text-brand-navy/70">
+                    {li.sku ?? "—"}
+                  </td>
+                  <td className="text-right text-lg font-bold text-brand-navy">
+                    {li.qty}
+                  </td>
+                  <td>
+                    {li.allocations.length === 0 ? (
+                      <span className="chip chip-amber">
+                        Keine Charge zugewiesen
+                      </span>
+                    ) : (
+                      <div className="space-y-1">
+                        {li.allocations.map((a, idx) => (
+                          <div
+                            key={`${a.batchId}-${idx}`}
+                            className="flex flex-wrap items-baseline gap-2 text-xs"
+                          >
+                            <span className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white">
+                              {a.chargeNumber}
+                            </span>
+                            <span className="text-brand-navy/60">
+                              MHD {a.expiryDateIso ?? "—"}
+                            </span>
+                            <span className="font-semibold text-brand-navy">
+                              {a.qty} Stk
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        {isPickable ? (
-          <StartPickingButton orderId={order.id} />
-        ) : null}
+        {isPickable ? <StartPickingButton orderId={order.id} /> : null}
         {isPicking ? (
           <>
             <Link
               href={`/lager/packing/${order.id}`}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+              className="btn-primary"
             >
               Picking abgeschlossen — weiter zum Packen →
             </Link>
@@ -313,7 +312,7 @@ export default async function PickingDetailPage({
           </>
         ) : null}
         {!isPickable && !isPicking ? (
-          <span className="text-sm text-zinc-500">
+          <span className="text-sm text-brand-navy/60">
             Order ist in Status <strong>{order.internal_status}</strong>, nicht
             picking-bar.
           </span>
