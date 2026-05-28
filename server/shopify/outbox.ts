@@ -83,6 +83,7 @@ async function dispatch(row: ShopifyOutbox): Promise<void> {
         tags: string[];
       };
       await tagsAddOnOrder(orderId, tags);
+      await verifyOrderTagState(orderId, tags, "must_include");
       return;
     }
     case "TAGS_REMOVE": {
@@ -91,6 +92,7 @@ async function dispatch(row: ShopifyOutbox): Promise<void> {
         tags: string[];
       };
       await tagsRemoveFromOrder(orderId, tags);
+      await verifyOrderTagState(orderId, tags, "must_exclude");
       return;
     }
     case "FULFILLMENT_CREATE": {
@@ -130,4 +132,59 @@ function backoffMs(attempts: number): number {
   const exp = 1000 * 2 ** Math.min(attempts, 10);
   const jitter = Math.random() * 500;
   return Math.min(exp + jitter, 60 * 60 * 1000);
+}
+
+/**
+ * Confirm a tagsAdd / tagsRemove actually persisted on Shopify's side.
+ * Catches silent failures where the mutation returns no userErrors but the
+ * tags weren't actually written (Shopify automations stripping custom tags,
+ * Flow rules, app permissions, etc).
+ *
+ * Throws if the post-state doesn't match expectations — outbox dispatch
+ * catches the throw, marks the row as FAILED with the diagnostic message,
+ * and Shopify support gets actionable evidence next time it happens.
+ */
+const VERIFY_TAG_QUERY = /* GraphQL */ `
+  query VerifyTags($id: ID!) {
+    order(id: $id) {
+      tags
+    }
+  }
+`;
+
+async function verifyOrderTagState(
+  orderIdOrGid: string | number,
+  tags: string[],
+  mode: "must_include" | "must_exclude",
+): Promise<void> {
+  const { shopifyGraphQL } = await import("./client");
+  const id = String(orderIdOrGid).startsWith("gid://")
+    ? String(orderIdOrGid)
+    : `gid://shopify/Order/${orderIdOrGid}`;
+  let data: { order: { tags: string[] } | null };
+  try {
+    data = await shopifyGraphQL(VERIFY_TAG_QUERY, { id });
+  } catch (e) {
+    // Don't fail the dispatch on verification network issues — the mutation
+    // already succeeded as far as Shopify's response told us. Just log.
+    log.warn("tag_verify_query_failed", { id, error: String(e) });
+    return;
+  }
+  if (!data.order) {
+    log.warn("tag_verify_order_not_found", { id });
+    return;
+  }
+  const liveTags = new Set(data.order.tags ?? []);
+  const wanted = mode === "must_include";
+  const offenders = tags.filter((t) => liveTags.has(t) !== wanted);
+  if (offenders.length === 0) return;
+
+  // Mismatch — Shopify accepted the mutation but didn't persist the change.
+  // Throwing here marks the outbox row FAILED with this message, so the next
+  // ops investigation has something concrete to look at.
+  const verb = mode === "must_include" ? "missing" : "still present";
+  throw new Error(
+    `tag_verify_mismatch: ${verb} on order ${id}: ${offenders.join(", ")} ` +
+      `(live tags: [${[...liveTags].join(", ")}])`,
+  );
 }
