@@ -59,11 +59,20 @@
     "open": "Öffnen →",
     "tiles": {
       "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW Übersicht" },
-      "batches": { "title": "Bestand & Chargen", "desc": "Wareneingang, MHD, FEFO-Liste" },
+      "batches": {
+        "title": "Bestand & Chargen",
+        "desc": "Wareneingang, MHD, FEFO-Liste"
+      },
       "products": { "title": "Produkte", "desc": "Shopify-Sync verwalten" },
-      "customers": { "title": "Kunden", "desc": "Kundenliste + Bestellhistorie" },
+      "customers": {
+        "title": "Kunden",
+        "desc": "Kundenliste + Bestellhistorie"
+      },
       "users": { "title": "Benutzer", "desc": "Lager + Admins verwalten" },
-      "settings": { "title": "Einstellungen", "desc": "Shopify-Verbindung, Webhooks, Allocation" },
+      "settings": {
+        "title": "Einstellungen",
+        "desc": "Shopify-Verbindung, Webhooks, Allocation"
+      },
       "lager": { "title": "Lager", "desc": "Picking & Packing-Ansicht öffnen" }
     }
   },
@@ -564,6 +573,7 @@
     "sku": "SKU",
     "qty": "Menge",
     "charge": "Charge · MHD",
+    "chargeOnly": "Charge",
     "noAllocation": "— keine Allokation —",
     "expiry": "MHD",
     "qtyUnit": "Stk",
@@ -573,7 +583,7 @@
   "packingSlip": {
     "eyebrow": "Ikrinka · Premium Quality",
     "brand": "Monolith Caviar",
-    "companyLine": "Ikrinka GmbH · Musterstraße 1 · 10115 Berlin",
+    "companyLine": "Monolith Caviar & Co. GmbH · Hauptstraße 49 · 36166 Haunetal",
     "contactEmail": "kontakt@monolithcaviar.de",
     "title": "Lieferschein",
     "orderDate": "Bestelldatum",
@@ -588,9 +598,9 @@
     "noCharge": "—",
     "noteKeep": "Bewahre den Lieferschein bitte mit der Charge und dem MHD auf, falls du Rückfragen zur Lieferung hast.",
     "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
-    "signature": "Vielen Dank und guten Appetit!\nDein Monolith-Team",
+    "signature": "Vielen Dank und guten Appetit!\nDein IKRiNKA-Team",
     "footerOrder": "Lieferschein zu Bestellung <mono>{order}</mono>",
-    "footerLegal": "Ikrinka GmbH · USt-IdNr. DE… · HRB … · Geschäftsführung: …"
+    "footerLegal": "Monolith Caviar & Co. GmbH · USt-IdNr. DE 255 102 708 · Amtsgericht Bad Hersfeld · HRB 2193 · Geschäftsführung: Denis Wischnakow"
   },
   "login": {
     "title": "Anmelden",

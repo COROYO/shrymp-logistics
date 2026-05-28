@@ -91,14 +91,18 @@ export default async function PrintPicklist({
   if (!data) notFound();
   const { order, allocsByLi } = data;
   const isExpress = order.tags.includes("EXPRESS_DHL");
-  const t = await getTranslations("picklistPrint");
+  // Picklist always in German — internal warehouse document, locale-pinned
+  // so a Russian/English warehouse user still gets the standard form.
+  const t = await getTranslations({ locale: "de", namespace: "picklistPrint" });
   const now = new Date().toLocaleString("de-DE", {
     dateStyle: "short",
     timeStyle: "short",
   });
 
+  console.log("translations", t("header"));
+
   return (
-    <div className="bg-white p-8 text-brand-ink print:p-4">
+    <div lang="de" className="bg-white p-8 text-brand-ink print:p-4">
       <PrintTrigger />
 
       <style>{`
@@ -184,7 +188,7 @@ export default async function PrintPicklist({
               {t("qty")}
             </th>
             <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
-              {t("charge")}
+              {t("chargeOnly")}
             </th>
             <th className="w-8 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
               ✓
@@ -223,8 +227,6 @@ export default async function PrintPicklist({
                             {a.chargeNumber}
                           </span>
                           {" · "}
-                          {t("expiry")} {a.expiryDateIso ?? "—"}
-                          {" · "}
                           <span className="font-bold">
                             {a.qty} {t("qtyUnit")}
                           </span>
@@ -243,9 +245,8 @@ export default async function PrintPicklist({
       </table>
 
       <footer className="mt-12 border-t border-zinc-300 pt-2 text-[10px] text-brand-navy/60">
-        {t("footerOrderId")}{" "}
-        <span className="font-mono">{order.id}</span> · {t("footerStatus")}{" "}
-        {order.internal_status}
+        {t("footerOrderId")} <span className="font-mono">{order.id}</span> ·{" "}
+        {t("footerStatus")} {order.internal_status}
       </footer>
     </div>
   );

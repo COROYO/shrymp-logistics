@@ -199,6 +199,14 @@ export const OrderSchema = z.object({
   /** Set when Shopify cancels the order. Reason is Shopify's string code (`customer`, `fraud`, `inventory`, `declined`, `other`). */
   cancelled_at: FirestoreTimestamp.optional(),
   cancel_reason: z.string().nullable().default(null).optional(),
+  /**
+   * Lieferschein number assigned on the first packing-slip print. Format
+   * `L{seq}/{YY}` (e.g. `L00042/26`). Persisted so reprints reuse the same
+   * number — the slip is a legal commercial document, mustn't drift between
+   * print attempts.
+   */
+  lieferschein_no: z.string().optional(),
+  lieferschein_date: FirestoreTimestamp.optional(),
   created_at_shopify: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });

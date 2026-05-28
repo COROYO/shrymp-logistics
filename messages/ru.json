@@ -59,11 +59,23 @@
     "open": "Открыть →",
     "tiles": {
       "orders": { "title": "Заказы", "desc": "Обзор SHIP / STOP / NEW" },
-      "batches": { "title": "Запас и партии", "desc": "Приёмка, срок годности, список FEFO" },
-      "products": { "title": "Товары", "desc": "Управление синхронизацией Shopify" },
-      "customers": { "title": "Клиенты", "desc": "Список клиентов + история заказов" },
+      "batches": {
+        "title": "Запас и партии",
+        "desc": "Приёмка, срок годности, список FEFO"
+      },
+      "products": {
+        "title": "Товары",
+        "desc": "Управление синхронизацией Shopify"
+      },
+      "customers": {
+        "title": "Клиенты",
+        "desc": "Список клиентов + история заказов"
+      },
       "users": { "title": "Пользователи", "desc": "Склад и админы" },
-      "settings": { "title": "Настройки", "desc": "Подключение Shopify, вебхуки, распределение" },
+      "settings": {
+        "title": "Настройки",
+        "desc": "Подключение Shopify, вебхуки, распределение"
+      },
       "lager": { "title": "Склад", "desc": "Открыть сборку и упаковку" }
     }
   },
@@ -553,44 +565,45 @@
     }
   },
   "picklistPrint": {
-    "header": "Monolith Caviar · Лист сборки",
+    "header": "Monolith Caviar · Picklist",
     "subTitle": "FEFO · {datetime}",
     "express": "Express",
     "brand": "Ikrinka",
     "brandSub": "Premium Quality",
-    "address": "Адрес доставки",
-    "tags": "Теги",
-    "product": "Товар",
+    "address": "Lieferadresse",
+    "tags": "Tags",
+    "product": "Produkt",
     "sku": "SKU",
-    "qty": "Кол-во",
-    "charge": "Партия · Срок годности",
-    "noAllocation": "— нет распределения —",
-    "expiry": "Срок годности",
-    "qtyUnit": "шт",
-    "footerOrderId": "ID заказа:",
-    "footerStatus": "Статус:"
+    "qty": "Menge",
+    "charge": "Charge · MHD",
+    "chargeOnly": "Charge",
+    "noAllocation": "— keine Allokation —",
+    "expiry": "MHD",
+    "qtyUnit": "Stk",
+    "footerOrderId": "Order-ID:",
+    "footerStatus": "Status:"
   },
   "packingSlip": {
     "eyebrow": "Ikrinka · Premium Quality",
     "brand": "Monolith Caviar",
-    "companyLine": "Ikrinka GmbH · Musterstraße 1 · 10115 Berlin · Германия",
+    "companyLine": "Monolith Caviar & Co. GmbH · Hauptstraße 49 · 36166 Haunetal",
     "contactEmail": "kontakt@monolithcaviar.de",
-    "title": "Накладная",
-    "orderDate": "Дата заказа",
-    "shippingAddress": "Адрес доставки",
-    "greeting": "Здравствуйте, {name}!",
-    "fallbackName": "клиент",
-    "intro": "благодарим за заказ. Ниже все позиции с номером партии и сроком годности — сохраните для прослеживаемости пищевой продукции.",
-    "product": "Товар",
-    "qty": "Кол-во",
-    "charge": "Партия",
-    "expiry": "Срок годности",
+    "title": "Lieferschein",
+    "orderDate": "Bestelldatum",
+    "shippingAddress": "Lieferadresse",
+    "greeting": "Liebe:r {name},",
+    "fallbackName": "Kunde:in",
+    "intro": "vielen Dank für deine Bestellung. Anbei findest du den Inhalt deiner Lieferung mit Chargennummern und Mindesthaltbarkeitsdatum zur Rückverfolgbarkeit.",
+    "product": "Produkt",
+    "qty": "Menge",
+    "charge": "Charge",
+    "expiry": "MHD",
     "noCharge": "—",
-    "noteKeep": "Сохраните накладную с номерами партий и сроками годности на случай вопросов по заказу.",
-    "noteContact": "Если есть вопросы — пишите на <strong>{email}</strong>.",
-    "signature": "Спасибо и приятной дегустации!\nВаша команда Monolith",
-    "footerOrder": "Накладная к заказу <mono>{order}</mono>",
-    "footerLegal": "Ikrinka GmbH · VAT ID DE… · HRB … · Управляющий директор: …"
+    "noteKeep": "Bewahre den Lieferschein bitte mit der Charge und dem MHD auf, falls du Rückfragen zur Lieferung hast.",
+    "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
+    "signature": "Vielen Dank und guten Appetit!\nDein IKRiNKA-Team",
+    "footerOrder": "Lieferschein zu Bestellung <mono>{order}</mono>",
+    "footerLegal": "Monolith Caviar & Co. GmbH · USt-IdNr. DE 255 102 708 · Amtsgericht Bad Hersfeld · HRB 2193 · Geschäftsführung: Denis Wischnakow"
   },
   "login": {
     "title": "Вход",

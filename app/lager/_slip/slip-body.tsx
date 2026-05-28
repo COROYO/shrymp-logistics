@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { customerLocaleFromCountry } from "@/lib/customer-locale";
 import { tsToDate, type SlipData } from "@/server/picking/slip-data";
 
 const DATE_LOCALE: Record<string, string> = {
@@ -13,8 +12,9 @@ const DATE_LOCALE: Record<string, string> = {
  *   - /lager/picking/[orderId]/slip (single, prints immediately)
  *   - /lager/print-slips?ids=... (bulk, stacks multiple with page-breaks)
  *
- * Locale is derived from the recipient's country so a Russian customer gets
- * the slip in Russian regardless of the warehouse staff's UI language.
+ * Locale is pinned to German — the packing slip is a printed document
+ * tied to the German operating entity (Ikrinka GmbH), so we keep it
+ * consistent regardless of customer country or warehouse user locale.
  */
 export async function SlipBody({
   data,
@@ -25,9 +25,7 @@ export async function SlipBody({
 }) {
   const { order, allocsByLi } = data;
 
-  const locale = customerLocaleFromCountry(
-    order.shipping_address?.country_code,
-  );
+  const locale = "de" as const;
   const t = await getTranslations({ locale, namespace: "packingSlip" });
   const dateLocale = DATE_LOCALE[locale] ?? "de-DE";
 
@@ -80,13 +78,30 @@ export async function SlipBody({
             {t("title")}
           </div>
           <div className="mt-1 font-mono text-base font-bold text-brand-navy">
-            {order.name}
-          </div>
-          <div className="mt-1">
-            {t("orderDate")}: {orderDateStr}
+            {data.lieferschein.number}
           </div>
         </div>
       </header>
+
+      {/* Pflicht-Metadaten-Block (DE) — Kd/Ls/Be-Nummern + Daten + Seite */}
+      <section
+        className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1 text-[10pt] text-brand-navy/80"
+        aria-label="Lieferschein-Metadaten"
+      >
+        <MetaRow
+          label="Kd.-Nr."
+          value={order.customer?.shopify_id ?? t("noCharge")}
+          mono
+        />
+        <MetaRow label="Ls.-Nr." value={data.lieferschein.number} mono />
+        <MetaRow
+          label="Ls.-Datum"
+          value={formatGermanDate(data.lieferschein.dateIso)}
+        />
+        <MetaRow label="Be.-Nr." value={order.name} mono />
+        <MetaRow label="Be.-Datum" value={orderDateStr} />
+        <MetaRow label="Seite" value="1 von 1" />
+      </section>
 
       <section className="mt-10">
         <div className="mb-1 text-[10pt] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
@@ -118,11 +133,6 @@ export async function SlipBody({
         </address>
       </section>
 
-      <section className="mt-10">
-        <p className="text-[11pt]">{t("greeting", { name: firstName })}</p>
-        <p className="mt-2 text-[11pt]">{t("intro")}</p>
-      </section>
-
       <table className="mt-6 w-full border-collapse text-[11pt]">
         <thead>
           <tr className="bg-brand-navy text-left text-white">
@@ -134,9 +144,6 @@ export async function SlipBody({
             </th>
             <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
               {t("charge")}
-            </th>
-            <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
-              {t("expiry")}
             </th>
           </tr>
         </thead>
@@ -175,9 +182,6 @@ export async function SlipBody({
                 </td>
                 <td className="px-3 py-2 pr-4 text-right">{a.qty}</td>
                 <td className="px-3 py-2 pr-4 font-mono">{a.chargeNumber}</td>
-                <td className="px-3 py-2 font-mono">
-                  {fmtDate(a.expiryDateIso)}
-                </td>
               </tr>
             ));
           })}
@@ -185,7 +189,6 @@ export async function SlipBody({
       </table>
 
       <section className="mt-12 text-[10pt] leading-relaxed text-brand-navy/80">
-        <p>{t("noteKeep")}</p>
         <p className="mt-3">
           {t.rich("noteContact", {
             email: t("contactEmail"),
@@ -206,4 +209,39 @@ export async function SlipBody({
       </footer>
     </article>
   );
+}
+
+function MetaRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="min-w-[80px] text-[10pt] font-semibold text-brand-navy/60">
+        {label}
+      </span>
+      <span
+        className={`text-[11pt] text-brand-navy ${mono ? "font-mono" : ""}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function formatGermanDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
 }

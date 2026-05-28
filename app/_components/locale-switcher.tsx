@@ -27,7 +27,7 @@ export function LocaleSwitcher() {
 
   return (
     <div
-      className="flex items-center gap-0.5 rounded-md border border-white/10 bg-white/5 p-0.5"
+      className="flex items-center gap-0.5 rounded-md border justify-center border-white/10 bg-white/5 p-0.5"
       role="group"
       aria-label="Sprache"
     >

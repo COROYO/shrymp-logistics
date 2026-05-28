@@ -6,6 +6,10 @@ import {
   type Batch,
   type Order,
 } from "@/server/firestore/schema";
+import {
+  getOrAssignLieferscheinNo,
+  type LieferscheinRef,
+} from "./lieferschein";
 
 export type SlipAllocLine = {
   lineItemId: string;
@@ -17,6 +21,7 @@ export type SlipAllocLine = {
 export type SlipData = {
   order: Order;
   allocsByLi: Map<string, SlipAllocLine[]>;
+  lieferschein: LieferscheinRef;
 };
 
 /**
@@ -77,7 +82,16 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     else allocsByLi.set(a.line_item_id, [entry]);
   }
 
-  return { order, allocsByLi };
+  // Assign (or reuse) Lieferschein-Nr. AFTER reading the order so we have
+  // the freshest doc. The helper is itself transactional — if the order
+  // already has a number the existing one comes back, otherwise a new one
+  // is allocated and written through.
+  const lieferschein = await getOrAssignLieferscheinNo(orderId);
+  // Reflect the assignment locally so the SlipBody renders the right value
+  // on the FIRST print without an extra read round-trip.
+  order.lieferschein_no = lieferschein.number;
+
+  return { order, allocsByLi, lieferschein };
 }
 
 export function tsToDate(t: unknown): Date | null {
