@@ -29,19 +29,6 @@ export async function SlipBody({
   const t = await getTranslations({ locale, namespace: "packingSlip" });
   const dateLocale = DATE_LOCALE[locale] ?? "de-DE";
 
-  const fmtDate = (iso: string | null): string => {
-    if (!iso) return "—";
-    try {
-      return new Date(iso).toLocaleDateString(dateLocale, {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-    } catch {
-      return iso;
-    }
-  };
-
   const orderDate = tsToDate(order.created_at_shopify);
   const orderDateStr = orderDate
     ? orderDate.toLocaleDateString(dateLocale, {
@@ -50,8 +37,6 @@ export async function SlipBody({
         year: "numeric",
       })
     : "—";
-
-  const firstName = order.shipping_address?.first_name ?? t("fallbackName");
 
   return (
     <article

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
+import { SyncOrdersButton } from "./sync-orders-button";
 import {
   Collections,
   type Order,
@@ -194,10 +195,15 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="eyebrow">{t("eyebrow")}</p>
-        <h1 className="h-display mt-1 text-3xl">{t("title")}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow">{t("eyebrow")}</p>
+          <h1 className="h-display mt-1 text-3xl">{t("title")}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
+            {t("intro")}
+          </p>
+        </div>
+        <SyncOrdersButton />
       </div>
 
       <nav className="flex flex-wrap items-center gap-2 text-sm">
