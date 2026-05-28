@@ -10,6 +10,12 @@ export type BatchRow = {
   expiryDateIso: string;
   remainingQty: number;
   initialQty: number;
+  /**
+   * Quantity actually sold (packed + shipped) from this batch — derived
+   * from consumed, non-released allocations. Cancelled-and-released
+   * allocations don't count.
+   */
+  soldQty: number;
   status: string;
   notes: string | null;
 };

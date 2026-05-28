@@ -8,6 +8,15 @@
 export const TOPICS = {
   ORDERS_CREATE: "orders/create",
   ORDERS_UPDATED: "orders/updated",
+  /**
+   * Fires specifically on Order Editing API changes (add/remove items via
+   * Shopify's "Edit order" button). `orders/updated` *usually* also fires
+   * for the same event, but not always — and even when it does, the REST
+   * payload `line_items` array is misleading on edits (removed items stay
+   * present with `current_quantity: 0`). We re-fetch via GraphQL on both
+   * topics to get the canonical current line items.
+   */
+  ORDERS_EDITED: "orders/edited",
   ORDERS_CANCELLED: "orders/cancelled",
   INVENTORY_LEVELS_UPDATE: "inventory_levels/update",
   APP_UNINSTALLED: "app/uninstalled",

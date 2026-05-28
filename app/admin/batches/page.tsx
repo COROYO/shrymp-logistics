@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
+  type Allocation,
   type Batch,
   type Product,
   type Variant,
@@ -22,14 +23,29 @@ function tsToIso(t: unknown): string | null {
 
 async function loadProductRows(): Promise<ProductRow[]> {
   const db = adminDb();
-  const [productsSnap, variantsSnap, batchesSnap] = await Promise.all([
-    db.collection(Collections.Products).get(),
-    db.collection(Collections.Variants).get(),
-    db
-      .collection(Collections.Batches)
-      .where("status", "==", "ACTIVE")
-      .get(),
-  ]);
+  const [productsSnap, variantsSnap, batchesSnap, allocationsSnap] =
+    await Promise.all([
+      db.collection(Collections.Products).get(),
+      db.collection(Collections.Variants).get(),
+      db
+        .collection(Collections.Batches)
+        .where("status", "==", "ACTIVE")
+        .get(),
+      // For "verkauft"-counter per batch: only allocations that were
+      // actually consumed (= packed + shipped) count as sold. Released
+      // allocations (cancelled orders) are skipped — they didn't leave
+      // the warehouse.
+      db.collection(Collections.Allocations).get(),
+    ]);
+
+  // Map batch_id → total sold qty (consumed, not released).
+  const soldByBatch: Record<string, number> = {};
+  for (const a of allocationsSnap.docs) {
+    const data = a.data() as Allocation;
+    if (!data.consumed_at) continue;
+    if (data.released) continue;
+    soldByBatch[data.batch_id] = (soldByBatch[data.batch_id] ?? 0) + data.qty;
+  }
 
   const products: Record<string, Product> = {};
   for (const p of productsSnap.docs) products[p.id] = p.data() as Product;
@@ -59,6 +75,7 @@ async function loadProductRows(): Promise<ProductRow[]> {
               expiryDateIso: tsToIso(b.expiry_date) ?? "",
               remainingQty: b.remaining_qty,
               initialQty: b.initial_qty,
+              soldQty: soldByBatch[b.id] ?? 0,
               status: b.status,
               notes: b.notes ?? null,
             }))

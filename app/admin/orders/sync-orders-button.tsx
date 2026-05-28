@@ -37,17 +37,11 @@ export function SyncOrdersButton() {
         type="button"
         onClick={handle}
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
+        title="Aus Shopify nachladen"
+        aria-label="Aus Shopify nachladen"
+        className="inline-flex items-center justify-center rounded-md border border-brand-navy/30 bg-white p-2 text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? (
-          <>
-            <Spinner />
-          </>
-        ) : (
-          <>
-            <RefreshIcon />
-          </>
-        )}
+        {pending ? <Spinner /> : <RefreshIcon />}
       </button>
       {msg ? <span className="text-[11px] text-emerald-700">{msg}</span> : null}
       {err ? (
@@ -66,7 +60,7 @@ function RefreshIcon() {
       strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-3.5 w-3.5"
+      className="h-4 w-4"
       aria-hidden
     >
       <path d="M3 10a7 7 0 0 1 12-4.9L17 7" />
@@ -79,7 +73,7 @@ function RefreshIcon() {
 
 function Spinner() {
   return (
-    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 animate-spin" aria-hidden>
+    <svg viewBox="0 0 20 20" className="h-4 w-4 animate-spin" aria-hidden>
       <circle
         cx="10"
         cy="10"

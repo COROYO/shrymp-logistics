@@ -41,7 +41,7 @@ export async function SlipBody({
   return (
     <article
       lang={locale}
-      className="mx-auto max-w-[210mm] bg-white p-10 text-[12pt] text-brand-ink print:p-0"
+      className="mx-auto max-w-[210mm] bg-white p-10 text-[12pt] text-brand-ink print:p-0 mt-10"
       style={pageBreakAfter ? { pageBreakAfter: "always" } : undefined}
     >
       <header className="flex items-start justify-between border-b-[3px] border-brand-burgundy pb-3">

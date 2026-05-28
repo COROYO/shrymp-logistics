@@ -10,7 +10,7 @@ import { log } from "@/lib/logger";
 import { mapShopifyOrderToFirestore, type ShopifyOrderPayload } from "./mappers";
 import { TOPICS, type ShopifyTopic } from "./topics";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
-import { fetchOrderBundleGroups } from "./bundles";
+import { fetchOrderLineItems } from "./bundles";
 
 /**
  * Result of dispatching a verified, deduped webhook event.
@@ -33,6 +33,7 @@ export async function dispatchShopifyWebhook(
     case TOPICS.ORDERS_CREATE:
       return mirrorOrder(body as ShopifyOrderPayload, "ORDER_CREATED", webhookId);
     case TOPICS.ORDERS_UPDATED:
+    case TOPICS.ORDERS_EDITED:
       return mirrorOrder(body as ShopifyOrderPayload, "ORDER_UPDATED", webhookId);
     case TOPICS.ORDERS_CANCELLED:
       return cancelOrder(body as ShopifyOrderPayload, webhookId);
@@ -64,20 +65,29 @@ async function mirrorOrder(
 
   const doc = mapShopifyOrderToFirestore(payload, previousStatus);
 
-  // The REST webhook payload does not carry `LineItemGroup` info, so re-fetch
-  // bundle metadata via GraphQL and inline it onto each line item before
-  // writing. Best-effort: if the GraphQL call fails we mirror without bundle
-  // info rather than dropping the webhook entirely.
+  // Replace line_items with the canonical GraphQL view. The REST webhook
+  // payload's `line_items` array keeps entries for items that were REMOVED
+  // via Shopify's Order Editing API (their `current_quantity` becomes 0 but
+  // `quantity` stays). Trusting it leads to ghost items in the order.
+  // GraphQL `quantity` reflects the current state and also carries
+  // `lineItemGroup` (bundle info), so this single fetch covers both
+  // correctness and bundle enrichment.
+  //
+  // Best-effort: if GraphQL fails we fall back to the (potentially stale)
+  // mapper output rather than dropping the webhook entirely.
   try {
-    const bundles = await fetchOrderBundleGroups(doc.shopify_gid);
-    if (bundles.size > 0) {
-      doc.line_items = doc.line_items.map((li) => {
-        const b = bundles.get(li.id);
-        return b ? { ...li, bundle: b } : li;
-      });
+    const fresh = await fetchOrderLineItems(doc.shopify_gid);
+    if (fresh && fresh.length > 0) {
+      doc.line_items = fresh;
+    } else if (fresh) {
+      // GraphQL returned zero items — possible if every item was removed in
+      // an edit (rare). Honour that.
+      doc.line_items = [];
     }
+    // If `fresh === null` (order not found in GraphQL — race condition with
+    // a freshly-created order, or a cancelled+deleted one), keep mapper output.
   } catch (e) {
-    log.warn("bundle_enrich_failed", {
+    log.warn("order_lineitems_refetch_failed", {
       orderId: doc.id,
       error: e instanceof Error ? e.message : String(e),
     });
@@ -126,17 +136,12 @@ async function cancelOrder(
   // internal_status = "CANCELLED" regardless of `previousStatus`.
   const doc = mapShopifyOrderToFirestore(payload, prevStatus);
 
-  // Bundle enrichment, best-effort.
+  // Same canonical re-fetch as in mirrorOrder — see comment there.
   try {
-    const bundles = await fetchOrderBundleGroups(doc.shopify_gid);
-    if (bundles.size > 0) {
-      doc.line_items = doc.line_items.map((li) => {
-        const b = bundles.get(li.id);
-        return b ? { ...li, bundle: b } : li;
-      });
-    }
+    const fresh = await fetchOrderLineItems(doc.shopify_gid);
+    if (fresh) doc.line_items = fresh;
   } catch (e) {
-    log.warn("bundle_enrich_failed", {
+    log.warn("order_lineitems_refetch_failed", {
       orderId: doc.id,
       error: e instanceof Error ? e.message : String(e),
     });

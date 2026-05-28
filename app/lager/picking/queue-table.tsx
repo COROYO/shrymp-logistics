@@ -33,8 +33,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
   } | null>(null);
   const [showErrors, setShowErrors] = useState(false);
 
-  const allSelected =
-    rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someSelected = selected.size > 0 && !allSelected;
 
   function toggleRow(id: string) {
@@ -266,14 +265,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
                       >
                         {t("linkSlip")}
                       </Link>
-                      <Link
-                        href={`/lager/picking/${o.id}/print`}
-                        target="_blank"
-                        className="mr-4 text-[11px] font-semibold uppercase tracking-wide text-brand-navy/50 hover:text-brand-burgundy"
-                        title={t("linkPicklist")}
-                      >
-                        {t("linkPicklist")}
-                      </Link>
+
                       <Link
                         href={`/lager/picking/${o.id}`}
                         className="text-sm font-semibold text-brand-burgundy hover:text-brand-burgundy-dark"

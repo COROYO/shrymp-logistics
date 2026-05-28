@@ -34,10 +34,7 @@ type LineItemDisplay = {
 
 async function loadOrder(orderId: string) {
   const db = adminDb();
-  const orderSnap = await db
-    .collection(Collections.Orders)
-    .doc(orderId)
-    .get();
+  const orderSnap = await db.collection(Collections.Orders).doc(orderId).get();
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
 
@@ -53,10 +50,7 @@ async function loadOrder(orderId: string) {
     ),
   ]);
 
-  const variantById = new Map<
-    string,
-    { title: string; product_id: string }
-  >();
+  const variantById = new Map<string, { title: string; product_id: string }>();
   for (const v of variantSnaps) {
     if (!v.exists) continue;
     const d = v.data() ?? {};
@@ -70,9 +64,7 @@ async function loadOrder(orderId: string) {
   ).filter(Boolean);
   const productById = new Map<string, string>();
   const productSnapsLoaded = await Promise.all(
-    productIds.map((pid) =>
-      db.collection(Collections.Products).doc(pid).get(),
-    ),
+    productIds.map((pid) => db.collection(Collections.Products).doc(pid).get()),
   );
   for (const p of productSnapsLoaded) {
     if (!p.exists) continue;
@@ -83,9 +75,7 @@ async function loadOrder(orderId: string) {
   const allocs = allocSnap.docs.map((d) => d.data() as Allocation);
   const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
   const batchSnaps = await Promise.all(
-    batchIds.map((bid) =>
-      db.collection(Collections.Batches).doc(bid).get(),
-    ),
+    batchIds.map((bid) => db.collection(Collections.Batches).doc(bid).get()),
   );
   const batchById = new Map<string, Batch>();
   for (const b of batchSnaps) {
@@ -105,7 +95,10 @@ async function loadOrder(orderId: string) {
     let iso: string | null = null;
     if (exp && typeof (exp as { toDate?: unknown }).toDate === "function") {
       iso = (exp as { toDate(): Date }).toDate().toISOString().slice(0, 10);
-    } else if (exp && typeof (exp as { seconds?: number }).seconds === "number") {
+    } else if (
+      exp &&
+      typeof (exp as { seconds?: number }).seconds === "number"
+    ) {
       iso = new Date((exp as { seconds: number }).seconds * 1000)
         .toISOString()
         .slice(0, 10);
@@ -230,13 +223,6 @@ export default async function PickingDetailPage({
           </div>
           <div className="flex items-center gap-3">
             <Link
-              href={`/lager/picking/${order.id}/print`}
-              target="_blank"
-              className="btn-ghost"
-            >
-              {t("items.printPicklist")}
-            </Link>
-            <Link
               href={`/lager/picking/${order.id}/slip`}
               target="_blank"
               className="btn-ghost"
@@ -306,10 +292,7 @@ export default async function PickingDetailPage({
         {isPickable ? <StartPickingButton orderId={order.id} /> : null}
         {isPicking ? (
           <>
-            <Link
-              href={`/lager/packing/${order.id}`}
-              className="btn-primary"
-            >
+            <Link href={`/lager/packing/${order.id}`} className="btn-primary">
               {t("actions.continueToPack")}
             </Link>
             <CancelPickingButton orderId={order.id} />

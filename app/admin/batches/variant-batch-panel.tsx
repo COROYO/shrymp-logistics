@@ -70,6 +70,7 @@ export function VariantBatchPanel({
             <th className="px-4 py-2">{t("charge")}</th>
             <th className="px-4 py-2">{t("expiry")}</th>
             <th className="px-4 py-2 text-right">{t("remaining")}</th>
+            <th className="px-4 py-2 text-right">{t("sold")}</th>
             <th className="px-4 py-2 text-right">{t("initial")}</th>
             <th className="px-4 py-2">{t("note")}</th>
             <th className="px-4 py-2"></th>
@@ -79,7 +80,7 @@ export function VariantBatchPanel({
           {variant.batches.length === 0 ? (
             <tr>
               <td
-                colSpan={6}
+                colSpan={7}
                 className="px-4 py-3 text-xs text-brand-navy/60"
               >
                 {t("noActiveBatch")}
@@ -189,6 +190,9 @@ function BatchDisplayRow({
       <td className="px-4 py-2.5 text-right text-base font-bold text-brand-navy">
         {batch.remainingQty}
       </td>
+      <td className="px-4 py-2.5 text-right text-emerald-700">
+        {batch.soldQty > 0 ? batch.soldQty : "—"}
+      </td>
       <td className="px-4 py-2.5 text-right text-brand-navy/50">
         {batch.initialQty}
       </td>
@@ -288,6 +292,9 @@ function EditBatchRow({
           onChange={(e) => setRemaining(e.target.value)}
           className={`${inlineInput} w-20 text-right`}
         />
+      </td>
+      <td className="px-4 py-2 text-right text-emerald-700/70">
+        {batch.soldQty > 0 ? batch.soldQty : "—"}
       </td>
       <td className="px-4 py-2 text-right text-brand-navy/50">
         {batch.initialQty}
