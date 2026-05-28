@@ -97,16 +97,30 @@ function getAdminApp(): App {
   return cachedApp;
 }
 
-let dbSettingsApplied = false;
-
 export function adminDb(): Firestore {
   const db = getFirestore(getAdminApp());
-  if (!dbSettingsApplied) {
-    // Treat any field set to `undefined` as "drop on write" rather than
-    // throwing — matches our schema convention where optional fields are
-    // simply omitted from documents.
+  // `db.settings()` can only be called once per Firestore instance, BEFORE
+  // any other method on it. In serverless runtimes (Vercel / Firebase
+  // Functions) the SDK's `getFirestore()` returns the same cached instance
+  // across our module reloads — so a module-scoped "already applied" flag
+  // is unreliable. The SDK doesn't expose a way to query current settings,
+  // so the cleanest approach is to attempt the call and swallow the
+  // "already initialized" error.
+  //
+  // Setting `ignoreUndefinedProperties: true` makes writes drop undefined
+  // fields instead of throwing — matches our schema convention where
+  // optional fields are simply omitted from documents.
+  try {
     db.settings({ ignoreUndefinedProperties: true });
-    dbSettingsApplied = true;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!msg.includes("already been initialized")) {
+      // Different error — surface it. We don't want to swallow real
+      // configuration bugs.
+      throw e;
+    }
+    // Settings already applied on a previous request in this runtime —
+    // safe to continue.
   }
   return db;
 }
