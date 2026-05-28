@@ -45,6 +45,8 @@ type AllocationRow = {
   qty: number;
   reservedIso: string | null;
   consumedIso: string | null;
+  released: boolean;
+  releaseReason: string | null;
   runId: string;
 };
 
@@ -130,6 +132,8 @@ async function loadAllocationRows(opts: {
       qty: a.qty,
       reservedIso: tsToIso(a.created_at),
       consumedIso: tsToIso(a.consumed_at ?? null),
+      released: !!a.released,
+      releaseReason: a.release_reason ?? null,
       runId: a.run_id,
     };
   });
@@ -296,9 +300,21 @@ export default async function AllocationsPage({
                     </td>
                     <td>
                       {r.consumedIso ? (
-                        <span className="text-xs text-emerald-700">
-                          ✓ {formatDate(r.consumedIso)}
-                        </span>
+                        r.released ? (
+                          <span
+                            className="text-xs text-brand-burgundy"
+                            title={r.releaseReason ?? undefined}
+                          >
+                            ↩ released
+                            <div className="text-[10px] text-brand-navy/50">
+                              {formatDate(r.consumedIso)}
+                            </div>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-emerald-700">
+                            ✓ {formatDate(r.consumedIso)}
+                          </span>
+                        )
                       ) : (
                         <span className="chip chip-amber">reserviert</span>
                       )}

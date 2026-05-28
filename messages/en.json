@@ -315,6 +315,13 @@
   },
   "orderDetail": {
     "back": "← Orders",
+    "cancelled": {
+      "title": "Order was cancelled in Shopify",
+      "reason": "Reason",
+      "reasonUnknown": "no reason given",
+      "cancelledAt": "Cancelled at",
+      "allocationsReleased": "Reserved batches have been released back to stock. Inventory was pushed back to Shopify."
+    },
     "metaOrderId": "Order ID",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Created",

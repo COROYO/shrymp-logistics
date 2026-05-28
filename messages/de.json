@@ -315,6 +315,13 @@
   },
   "orderDetail": {
     "back": "← Orders",
+    "cancelled": {
+      "title": "Order wurde in Shopify storniert",
+      "reason": "Grund",
+      "reasonUnknown": "kein Grund angegeben",
+      "cancelledAt": "Storniert am",
+      "allocationsReleased": "Reservierte Chargen wurden zurück in den Bestand gebucht. Lagerbestand wurde an Shopify gemeldet."
+    },
     "metaOrderId": "Order-ID",
     "metaShopifyGid": "Shopify-GID",
     "metaCreated": "Erstellt",

@@ -21,6 +21,7 @@ export type ShopifyOrderPayload = {
   financial_status?: string | null;
   fulfillment_status?: string | null;
   cancelled_at?: string | null;
+  cancel_reason?: string | null;
   /** Decimal string in shop currency, e.g. "49.90". */
   total_outstanding?: string | null;
   current_total_price?: string | null;

@@ -53,6 +53,7 @@ const PAGE_QUERY = /* GraphQL */ `
         createdAt
         updatedAt
         cancelledAt
+        cancelReason
         displayFinancialStatus
         displayFulfillmentStatus
         currencyCode
@@ -134,6 +135,7 @@ type GqlOrderNode = {
   createdAt: string;
   updatedAt: string;
   cancelledAt: string | null;
+  cancelReason: string | null;
   displayFinancialStatus: string | null;
   displayFulfillmentStatus: string | null;
   currencyCode: string | null;
@@ -299,6 +301,12 @@ export async function backfillOrders(
           n.totalOutstandingSet?.shopMoney?.currencyCode ??
           null,
         customer_note: n.note?.trim() ? n.note.trim() : null,
+        ...(n.cancelledAt
+          ? {
+              cancelled_at: new Date(n.cancelledAt),
+              cancel_reason: n.cancelReason ?? null,
+            }
+          : {}),
         customer: mapCustomerFromGql(n),
         total_price_cents: moneyDecimalToCents(
           n.currentTotalPriceSet?.shopMoney?.amount ?? null,

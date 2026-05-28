@@ -106,6 +106,45 @@ const TOPIC_ENUM_BY_DOT: Record<string, string> = {
   [TOPICS.APP_UNINSTALLED]: "APP_UNINSTALLED",
 };
 
+export async function runHealthCheckAction(): Promise<
+  | {
+      ok: boolean;
+      tokenValid: boolean;
+      webhooks: Array<{
+        topic: string;
+        present: boolean;
+        repaired?: boolean;
+      }>;
+      errors: string[];
+      checkedAt: string;
+    }
+  | { ok: false; error: string; checkedAt?: undefined }
+> {
+  try {
+    await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+  try {
+    const { checkShopifyHealth } = await import("@/server/shopify/health");
+    const r = await checkShopifyHealth({ autoHeal: true });
+    revalidatePath("/admin/settings");
+    return {
+      ok: r.ok,
+      tokenValid: r.tokenValid,
+      webhooks: r.webhooks.map((w) => ({
+        topic: w.topic,
+        present: w.present,
+        repaired: w.repaired,
+      })),
+      errors: r.errors,
+      checkedAt: r.checkedAt,
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
 export async function registerWebhooksAction(
   baseUrl: string,
 ): Promise<

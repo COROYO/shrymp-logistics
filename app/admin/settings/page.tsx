@@ -10,6 +10,8 @@ import { RunAllocationButton } from "./run-allocation-button";
 import { BackfillOrdersButton } from "./backfill-orders-button";
 import { PushInventoryButton } from "./push-inventory-button";
 import { DhlConfigForm, type DhlConfigFormValue } from "./dhl-config-form";
+import { HealthPanel, type HealthSnapshot } from "./health-panel";
+import { readLastHealth } from "@/server/shopify/health";
 
 export const dynamic = "force-dynamic";
 
@@ -84,13 +86,25 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ installed?: string }>;
 }) {
-  const [status, dhlCfg, env, sp] = await Promise.all([
+  const [status, dhlCfg, env, sp, lastHealth] = await Promise.all([
     getStatus(),
     getDhlConfig(),
     Promise.resolve(getEnvHealth()),
     searchParams,
+    readLastHealth(),
   ]);
   const justInstalled = sp.installed === "1";
+
+  const healthSnap: HealthSnapshot | null = lastHealth
+    ? {
+        ok: lastHealth.ok,
+        tokenValid: lastHealth.tokenValid,
+        shop: lastHealth.shop,
+        webhooks: lastHealth.webhooks,
+        errors: lastHealth.errors,
+        checkedAt: lastHealth.checkedAt,
+      }
+    : null;
 
   return (
     <div className="space-y-8">
@@ -183,15 +197,30 @@ export default async function SettingsPage({
       </section>
 
       <section className="card p-6">
+        <p className="eyebrow">Verbindung</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Health-Check & Auto-Heal
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">
+          Prüft Access-Token und alle Webhook-Subscriptions. Fehlende Webhooks
+          werden automatisch nachregistriert — damit die App nicht
+          &quot;auseinanderfällt&quot;, wenn Shopify einen Endpoint kurzzeitig verliert.
+        </p>
+        <div className="mt-5">
+          <HealthPanel initial={healthSnap} />
+        </div>
+      </section>
+
+      <section className="card p-6">
         <p className="eyebrow">Webhooks</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          Subscriptions registrieren
+          Subscriptions registrieren (manuell)
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
           Registriert Webhook-Subscriptions bei Shopify (orders/create,
           orders/updated, orders/cancelled, inventory_levels/update,
-          app/uninstalled). Idempotent. Setzt voraus, dass die App installiert
-          ist.
+          app/uninstalled). Idempotent. Wird durch den Health-Check oben
+          ohnehin automatisch ausgeführt — dieser Button ist nur für Notfälle.
         </p>
         <div className="mt-5">
           <RegisterWebhooksButton baseUrl={env.appUrl} />

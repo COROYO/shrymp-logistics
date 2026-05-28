@@ -111,23 +111,108 @@ async function cancelOrder(
   if (!payload || typeof payload.id !== "number") {
     return { kind: "error", reason: "invalid_order_payload" };
   }
+  const orderId = String(payload.id);
   const db = adminDb();
-  const ref = db.collection(Collections.Orders).doc(String(payload.id));
+  const ref = db.collection(Collections.Orders).doc(orderId);
+
+  const snap = await ref.get();
+  const prevStatus = snap.exists
+    ? ((snap.data() as Order | undefined)?.internal_status ?? null)
+    : null;
+
+  // Full mirror — same as create/update — so a cancellation event on an
+  // order we'd missed before still lands with all fields populated.
+  // mapShopifyOrderToFirestore already detects `cancelled_at` and sets
+  // internal_status = "CANCELLED" regardless of `previousStatus`.
+  const doc = mapShopifyOrderToFirestore(payload, prevStatus);
+
+  // Bundle enrichment, best-effort.
+  try {
+    const bundles = await fetchOrderBundleGroups(doc.shopify_gid);
+    if (bundles.size > 0) {
+      doc.line_items = doc.line_items.map((li) => {
+        const b = bundles.get(li.id);
+        return b ? { ...li, bundle: b } : li;
+      });
+    }
+  } catch (e) {
+    log.warn("bundle_enrich_failed", {
+      orderId: doc.id,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   await ref.set(
     {
+      ...doc,
       internal_status: "CANCELLED",
-      shopify_fulfillment_status: payload.fulfillment_status ?? null,
+      cancelled_at: payload.cancelled_at
+        ? new Date(payload.cancelled_at)
+        : new Date(),
+      cancel_reason: payload.cancel_reason ?? null,
       updated_at: FieldValue.serverTimestamp(),
     },
-    { merge: true },
+    { merge: false },
   );
 
-  // M9 reconcile or future cancellation flow will release reservations.
+  // Release any open allocations so the reserved stock comes back. We did
+  // NOT release if the order was already PACKED — those products already
+  // left the warehouse and the cancel becomes a return-handling problem,
+  // not a stock-release problem.
+  let releaseRes: { releasedAllocations: number; freedByVariant: Record<string, number> } | null = null;
+  if (prevStatus !== "PACKED") {
+    try {
+      const { releaseOrderAllocations } = await import(
+        "@/server/picking/release"
+      );
+      releaseRes = await releaseOrderAllocations(
+        orderId,
+        null,
+        "order_cancelled",
+      );
+    } catch (e) {
+      log.warn("release_on_cancel_failed", {
+        orderId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    // Push the freed inventory back to Shopify so the storefront reflects it.
+    if (releaseRes && releaseRes.releasedAllocations > 0) {
+      try {
+        const { queueInventoryPush } = await import(
+          "@/server/inventory/sync-to-shopify"
+        );
+        const { processOutbox } = await import("@/server/shopify/outbox");
+        for (const variantId of Object.keys(releaseRes.freedByVariant)) {
+          await queueInventoryPush(
+            variantId,
+            "cancellation",
+            `monolith-lager://order/${orderId}/cancelled`,
+          );
+        }
+        await processOutbox(20);
+      } catch (e) {
+        log.warn("inventory_push_on_cancel_failed", {
+          orderId,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
+
+  // Re-run allocation: freed stock may unblock STOP orders waiting for
+  // exactly those variants.
   await enqueueAllocationRun({
     triggeredBy: "ORDER_CANCELLED",
     triggerEventId: webhookId,
   });
-  log.info("shopify_order_cancelled", { orderId: String(payload.id) });
+  log.info("shopify_order_cancelled", {
+    orderId,
+    prevStatus,
+    released: releaseRes?.releasedAllocations ?? 0,
+    reason: payload.cancel_reason ?? null,
+  });
   return { kind: "ok", action: "cancelled" };
 }
 

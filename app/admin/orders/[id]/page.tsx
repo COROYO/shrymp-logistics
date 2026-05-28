@@ -87,7 +87,15 @@ export default async function AdminOrderDetailPage({
               {order.name}
             </span>
           </h1>
-          <span className="chip chip-soft">{order.internal_status}</span>
+          <span
+            className={
+              order.internal_status === "CANCELLED"
+                ? "chip chip-burgundy"
+                : "chip chip-soft"
+            }
+          >
+            {order.internal_status}
+          </span>
           {order.tags.map((t) => (
             <span
               key={t}
@@ -107,6 +115,31 @@ export default async function AdminOrderDetailPage({
           {createdIso ? new Date(createdIso).toLocaleString("de-DE") : "—"}
         </p>
       </div>
+
+      {order.internal_status === "CANCELLED" ? (
+        <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-4 py-3 text-sm text-brand-burgundy-dark">
+          <div className="font-semibold">{t("cancelled.title")}</div>
+          <div className="mt-1 text-xs">
+            {t("cancelled.reason")}:{" "}
+            <span className="font-mono">
+              {order.cancel_reason ?? t("cancelled.reasonUnknown")}
+            </span>
+            {order.cancelled_at ? (
+              <>
+                {" · "}
+                {t("cancelled.cancelledAt")}{" "}
+                {new Date(
+                  (order.cancelled_at as unknown as { toDate?(): Date })
+                    .toDate?.() ?? (order.cancelled_at as unknown as string),
+                ).toLocaleString("de-DE")}
+              </>
+            ) : null}
+          </div>
+          <div className="mt-2 text-[11px]">
+            {t("cancelled.allocationsReleased")}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-5">

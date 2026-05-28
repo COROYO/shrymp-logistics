@@ -315,6 +315,13 @@
   },
   "orderDetail": {
     "back": "← Заказы",
+    "cancelled": {
+      "title": "Заказ отменён в Shopify",
+      "reason": "Причина",
+      "reasonUnknown": "причина не указана",
+      "cancelledAt": "Отменён",
+      "allocationsReleased": "Зарезервированные партии возвращены в запас. Остатки отправлены в Shopify."
+    },
     "metaOrderId": "ID заказа",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Создан",

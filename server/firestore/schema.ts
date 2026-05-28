@@ -196,6 +196,9 @@ export const OrderSchema = z.object({
     .default(null),
   /** Order subtotal in cents (smallest unit) — used in customer history view. */
   total_price_cents: z.number().int().nonnegative().nullable().default(null),
+  /** Set when Shopify cancels the order. Reason is Shopify's string code (`customer`, `fraud`, `inventory`, `declined`, `other`). */
+  cancelled_at: FirestoreTimestamp.optional(),
+  cancel_reason: z.string().nullable().default(null).optional(),
   created_at_shopify: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });
@@ -212,6 +215,9 @@ export const AllocationSchema = z.object({
   run_id: z.string(),
   created_at: FirestoreTimestamp,
   consumed_at: FirestoreTimestamp.optional(),
+  /** True when the allocation was released (not actually consumed) — e.g. after order cancellation. Audit trail. */
+  released: z.boolean().optional(),
+  release_reason: z.string().optional(),
 });
 
 // ---------- inventory movements (audit log) ----------
