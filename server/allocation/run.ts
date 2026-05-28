@@ -79,10 +79,7 @@ export async function runAllocationInFirestore(
   try {
     // ----- 1. Load -----
     const [batchesSnap, ordersSnap] = await Promise.all([
-      db
-        .collection(Collections.Batches)
-        .where("status", "==", "ACTIVE")
-        .get(),
+      db.collection(Collections.Batches).where("status", "==", "ACTIVE").get(),
       db
         .collection(Collections.Orders)
         .where("internal_status", "in", [...ORDER_STATUSES_TO_REALLOCATE])
@@ -143,10 +140,11 @@ export async function runAllocationInFirestore(
       ...result.stats,
     });
 
-    // Drain Shopify outbox best-effort. Failures are logged + retried by M9.
-    processOutbox(100).catch((e) =>
-      log.warn("post_run_outbox_drain_failed", { error: String(e) }),
-    );
+    try {
+      await processOutbox(100);
+    } catch (e) {
+      log.warn("post_run_outbox_drain_failed", { error: String(e) });
+    }
 
     return {
       runId: runRef.id,
@@ -192,10 +190,7 @@ async function commitDecisions(
     // Firestore `in` is limited to 30 values per query; chunk if larger.
     const extraSnaps = await Promise.all(
       chunk(ordersToReallocate.slice(30), 30).map((c) =>
-        db
-          .collection(Collections.Allocations)
-          .where("order_id", "in", c)
-          .get(),
+        db.collection(Collections.Allocations).where("order_id", "in", c).get(),
       ),
     );
 
@@ -263,8 +258,7 @@ async function commitDecisions(
           order_id: o.id,
           line_item_id: a.lineItemId,
           variant_id:
-            o.line_items.find((li) => li.id === a.lineItemId)?.variant_id ??
-            "",
+            o.line_items.find((li) => li.id === a.lineItemId)?.variant_id ?? "",
           batch_id: a.batchId,
           qty: a.qty,
           run_id: runId,
@@ -272,16 +266,13 @@ async function commitDecisions(
         });
         opsInBatch++;
         // RESERVE movement
-        const movRef = db
-          .collection(Collections.InventoryMovements)
-          .doc();
+        const movRef = db.collection(Collections.InventoryMovements).doc();
         writeBatch.set(movRef, {
           id: movRef.id,
           type: "RESERVE",
           batch_id: a.batchId,
           variant_id:
-            o.line_items.find((li) => li.id === a.lineItemId)?.variant_id ??
-            "",
+            o.line_items.find((li) => li.id === a.lineItemId)?.variant_id ?? "",
           qty: a.qty,
           ref: { kind: "ALLOCATION_RUN", id: runId },
           user_id: null,
@@ -439,7 +430,11 @@ function toMs(ts: unknown): number {
   if (ts instanceof Date) return ts.getTime();
   if (typeof ts === "string") return new Date(ts).getTime();
   if (typeof ts === "object") {
-    const o = ts as { toMillis?: () => number; seconds?: number; nanoseconds?: number };
+    const o = ts as {
+      toMillis?: () => number;
+      seconds?: number;
+      nanoseconds?: number;
+    };
     if (typeof o.toMillis === "function") return o.toMillis();
     if (typeof o.seconds === "number") {
       return o.seconds * 1000 + (o.nanoseconds ?? 0) / 1e6;
