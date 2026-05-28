@@ -8,6 +8,13 @@ export type BatchRow = {
   id: string;
   chargeNumber: string;
   expiryDateIso: string;
+  /** Production date (ISO YYYY-MM-DD) — optional, audit-only. */
+  productionDateIso: string | null;
+  /** When the batch was booked into the system. */
+  receivedAtIso: string | null;
+  /** Who booked it — Firebase uid plus a human-readable label. */
+  receivedByUid: string;
+  receivedByName: string;
   remainingQty: number;
   initialQty: number;
   /**

@@ -5,6 +5,7 @@ import {
   type Allocation,
   type Batch,
   type Product,
+  type User,
   type Variant,
 } from "@/server/firestore/schema";
 import { ProductAccordion, type ProductRow } from "./product-accordion";
@@ -23,7 +24,7 @@ function tsToIso(t: unknown): string | null {
 
 async function loadProductRows(): Promise<ProductRow[]> {
   const db = adminDb();
-  const [productsSnap, variantsSnap, batchesSnap, allocationsSnap] =
+  const [productsSnap, variantsSnap, batchesSnap, allocationsSnap, usersSnap] =
     await Promise.all([
       db.collection(Collections.Products).get(),
       db.collection(Collections.Variants).get(),
@@ -36,7 +37,15 @@ async function loadProductRows(): Promise<ProductRow[]> {
       // allocations (cancelled orders) are skipped — they didn't leave
       // the warehouse.
       db.collection(Collections.Allocations).get(),
+      // Users — to resolve received_by_uid to a human-readable label.
+      db.collection(Collections.Users).get(),
     ]);
+
+  const userNameByUid: Record<string, string> = {};
+  for (const u of usersSnap.docs) {
+    const data = u.data() as User;
+    userNameByUid[u.id] = data.display_name || data.email || u.id;
+  }
 
   // Map batch_id → total sold qty (consumed, not released).
   const soldByBatch: Record<string, number> = {};
@@ -73,6 +82,11 @@ async function loadProductRows(): Promise<ProductRow[]> {
               id: b.id,
               chargeNumber: b.charge_number,
               expiryDateIso: tsToIso(b.expiry_date) ?? "",
+              productionDateIso: tsToIso(b.production_date),
+              receivedAtIso: tsToIso(b.received_at),
+              receivedByUid: b.received_by_uid,
+              receivedByName:
+                userNameByUid[b.received_by_uid] ?? b.received_by_uid,
               remainingQty: b.remaining_qty,
               initialQty: b.initial_qty,
               soldQty: soldByBatch[b.id] ?? 0,

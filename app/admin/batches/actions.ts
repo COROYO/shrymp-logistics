@@ -16,6 +16,11 @@ const ReceiveSchema = z.object({
   variantId: z.string().min(1),
   chargeNumber: z.string().min(1).max(64),
   expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  productionDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal("")),
   qty: z
     .union([z.number(), z.string()])
     .transform((v) => (typeof v === "string" ? Number(v) : v)),
@@ -42,6 +47,7 @@ export async function receiveBatchAction(
     variantId: formData.get("variantId"),
     chargeNumber: formData.get("chargeNumber"),
     expiryDate: formData.get("expiryDate"),
+    productionDate: formData.get("productionDate") ?? undefined,
     qty: formData.get("qty"),
     note: formData.get("note") ?? undefined,
   });
@@ -57,6 +63,9 @@ export async function receiveBatchAction(
       variantId: parsed.data.variantId,
       chargeNumber: parsed.data.chargeNumber.trim(),
       expiryDate: parsed.data.expiryDate,
+      productionDate: parsed.data.productionDate
+        ? parsed.data.productionDate
+        : undefined,
       qty: parsed.data.qty,
       note: parsed.data.note || undefined,
       userId: user.uid,
@@ -75,6 +84,12 @@ const EditSchema = z.object({
   batchId: z.string().min(1),
   chargeNumber: z.string().min(1).max(64).optional(),
   expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** Empty string clears the field; YYYY-MM-DD sets it. */
+  productionDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .or(z.literal(""))
+    .optional(),
   remainingQty: z
     .union([z.number(), z.string()])
     .transform((v) => (typeof v === "string" && v !== "" ? Number(v) : v))
@@ -110,6 +125,12 @@ export async function editBatchAction(
       {
         charge_number: parsed.data.chargeNumber,
         expiry_date: parsed.data.expiryDate,
+        production_date:
+          parsed.data.productionDate === undefined
+            ? undefined
+            : parsed.data.productionDate === ""
+              ? null
+              : parsed.data.productionDate,
         remaining_qty:
           typeof parsed.data.remainingQty === "number"
             ? parsed.data.remainingQty

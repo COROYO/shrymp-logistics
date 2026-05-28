@@ -26,6 +26,8 @@ export type EditBatchInput = {
   charge_number?: string;
   /** YYYY-MM-DD */
   expiry_date?: string;
+  /** YYYY-MM-DD or null to clear. */
+  production_date?: string | null;
   /** New remaining qty. Net delta vs. previous is written as an ADJUSTMENT movement. */
   remaining_qty?: number;
   status?: "ACTIVE" | "DEPLETED" | "EXPIRED";
@@ -40,6 +42,13 @@ export async function editBatch(
   if (
     patch.expiry_date !== undefined &&
     !/^\d{4}-\d{2}-\d{2}$/.test(patch.expiry_date)
+  ) {
+    throw new BatchEditError("invalid_date");
+  }
+  if (
+    typeof patch.production_date === "string" &&
+    patch.production_date !== "" &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(patch.production_date)
   ) {
     throw new BatchEditError("invalid_date");
   }
@@ -77,6 +86,18 @@ export async function editBatch(
         Number(patch.expiry_date.slice(8, 10)),
       );
       update.expiry_date = Timestamp.fromMillis(ms);
+    }
+    if (patch.production_date !== undefined) {
+      if (patch.production_date === null || patch.production_date === "") {
+        update.production_date = FieldValue.delete();
+      } else {
+        const ms = Date.UTC(
+          Number(patch.production_date.slice(0, 4)),
+          Number(patch.production_date.slice(5, 7)) - 1,
+          Number(patch.production_date.slice(8, 10)),
+        );
+        update.production_date = Timestamp.fromMillis(ms);
+      }
     }
     if (
       patch.remaining_qty !== undefined &&

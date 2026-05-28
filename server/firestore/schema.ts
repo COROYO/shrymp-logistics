@@ -67,6 +67,12 @@ export const BatchSchema = z.object({
   variant_id: z.string(),
   charge_number: z.string(),
   expiry_date: FirestoreTimestamp,
+  /**
+   * Produktionsdatum der Charge (optional). Wird beim Wareneingang
+   * miterfasst und ist nur für Audit/Tracebility relevant — die FEFO-
+   * Allokation richtet sich weiterhin nach `expiry_date`.
+   */
+  production_date: FirestoreTimestamp.optional(),
   initial_qty: z.number().int().positive(),
   remaining_qty: z.number().int().nonnegative(),
   received_at: FirestoreTimestamp,

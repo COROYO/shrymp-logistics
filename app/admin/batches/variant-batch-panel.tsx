@@ -69,9 +69,12 @@ export function VariantBatchPanel({
           <tr>
             <th className="px-4 py-2">{t("charge")}</th>
             <th className="px-4 py-2">{t("expiry")}</th>
+            <th className="px-4 py-2">{t("productionDate")}</th>
             <th className="px-4 py-2 text-right">{t("remaining")}</th>
             <th className="px-4 py-2 text-right">{t("sold")}</th>
             <th className="px-4 py-2 text-right">{t("initial")}</th>
+            <th className="px-4 py-2">{t("receivedAt")}</th>
+            <th className="px-4 py-2">{t("receivedBy")}</th>
             <th className="px-4 py-2">{t("note")}</th>
             <th className="px-4 py-2"></th>
           </tr>
@@ -80,7 +83,7 @@ export function VariantBatchPanel({
           {variant.batches.length === 0 ? (
             <tr>
               <td
-                colSpan={7}
+                colSpan={10}
                 className="px-4 py-3 text-xs text-brand-navy/60"
               >
                 {t("noActiveBatch")}
@@ -187,6 +190,9 @@ function BatchDisplayRow({
       <td className="px-4 py-2.5 font-mono text-brand-navy/80">
         {batch.expiryDateIso || "—"}
       </td>
+      <td className="px-4 py-2.5 font-mono text-brand-navy/80">
+        {batch.productionDateIso || "—"}
+      </td>
       <td className="px-4 py-2.5 text-right text-base font-bold text-brand-navy">
         {batch.remainingQty}
       </td>
@@ -195,6 +201,12 @@ function BatchDisplayRow({
       </td>
       <td className="px-4 py-2.5 text-right text-brand-navy/50">
         {batch.initialQty}
+      </td>
+      <td className="px-4 py-2.5 font-mono text-xs text-brand-navy/70">
+        {batch.receivedAtIso || "—"}
+      </td>
+      <td className="px-4 py-2.5 text-xs text-brand-navy/80">
+        {batch.receivedByName}
       </td>
       <td className="px-4 py-2.5 text-xs text-brand-navy/70">
         {batch.notes ?? ""}
@@ -237,6 +249,7 @@ function EditBatchRow({
   const t = useTranslations("batches.panel");
   const [chargeNumber, setChargeNumber] = useState(batch.chargeNumber);
   const [expiry, setExpiry] = useState(batch.expiryDateIso);
+  const [production, setProduction] = useState(batch.productionDateIso ?? "");
   const [remaining, setRemaining] = useState(String(batch.remainingQty));
   const [notes, setNotes] = useState(batch.notes ?? "");
   const [err, setErr] = useState<string | null>(null);
@@ -245,12 +258,15 @@ function EditBatchRow({
   function handleSave() {
     setErr(null);
     const remainingNum = remaining === "" ? undefined : Number(remaining);
+    const productionInitial = batch.productionDateIso ?? "";
     startTransition(async () => {
       const res = await editBatchAction({
         batchId: batch.id,
         chargeNumber:
           chargeNumber !== batch.chargeNumber ? chargeNumber : undefined,
         expiryDate: expiry !== batch.expiryDateIso ? expiry : undefined,
+        productionDate:
+          production !== productionInitial ? production : undefined,
         remainingQty:
           remainingNum !== undefined && remainingNum !== batch.remainingQty
             ? remainingNum
@@ -283,6 +299,14 @@ function EditBatchRow({
           className={`${inlineInput} w-36 font-mono`}
         />
       </td>
+      <td className="px-4 py-2">
+        <input
+          type="date"
+          value={production}
+          onChange={(e) => setProduction(e.target.value)}
+          className={`${inlineInput} w-36 font-mono`}
+        />
+      </td>
       <td className="px-4 py-2 text-right">
         <input
           type="number"
@@ -298,6 +322,12 @@ function EditBatchRow({
       </td>
       <td className="px-4 py-2 text-right text-brand-navy/50">
         {batch.initialQty}
+      </td>
+      <td className="px-4 py-2 font-mono text-xs text-brand-navy/60">
+        {batch.receivedAtIso || "—"}
+      </td>
+      <td className="px-4 py-2 text-xs text-brand-navy/70">
+        {batch.receivedByName}
       </td>
       <td className="px-4 py-2">
         <input
@@ -347,6 +377,7 @@ function NewBatchInlineForm({
   const t = useTranslations("batches.panel");
   const [chargeNumber, setChargeNumber] = useState("");
   const [expiry, setExpiry] = useState("");
+  const [production, setProduction] = useState("");
   const [qty, setQty] = useState("");
   const [notes, setNotes] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -358,6 +389,7 @@ function NewBatchInlineForm({
     fd.set("variantId", variantId);
     fd.set("chargeNumber", chargeNumber);
     fd.set("expiryDate", expiry);
+    if (production) fd.set("productionDate", production);
     fd.set("qty", qty);
     fd.set("note", notes);
     startTransition(async () => {
@@ -371,7 +403,7 @@ function NewBatchInlineForm({
     "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
   return (
-    <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_1fr_1fr_2fr_auto]">
+    <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_2fr_auto]">
       <input
         type="text"
         placeholder={t("chargeNoPlaceholder")}
@@ -381,8 +413,18 @@ function NewBatchInlineForm({
       />
       <input
         type="date"
+        placeholder={t("expiry")}
+        title={t("expiry")}
         value={expiry}
         onChange={(e) => setExpiry(e.target.value)}
+        className={`${input} font-mono`}
+      />
+      <input
+        type="date"
+        placeholder={t("productionDate")}
+        title={t("productionDate")}
+        value={production}
+        onChange={(e) => setProduction(e.target.value)}
         className={`${input} font-mono`}
       />
       <input
@@ -421,7 +463,7 @@ function NewBatchInlineForm({
         </button>
       </div>
       {err ? (
-        <div className="text-xs font-semibold text-brand-burgundy sm:col-span-5">
+        <div className="text-xs font-semibold text-brand-burgundy sm:col-span-6">
           {err}
         </div>
       ) : null}

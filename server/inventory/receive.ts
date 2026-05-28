@@ -12,6 +12,8 @@ export type ReceiveBatchInput = {
   chargeNumber: string;
   /** YYYY-MM-DD; interpreted as UTC midnight to keep things calendar-stable. */
   expiryDate: string;
+  /** Optional production date, YYYY-MM-DD; UTC-midnight anchored. */
+  productionDate?: string;
   qty: number;
   userId: string;
   note?: string;
@@ -39,7 +41,10 @@ export async function receiveBatch(
   const batchRef = db.collection(Collections.Batches).doc();
   const movementRef = db.collection(Collections.InventoryMovements).doc();
 
-  const expiryTs = parseExpiryToTimestamp(input.expiryDate);
+  const expiryTs = parseYmdToTimestamp(input.expiryDate);
+  const productionTs = input.productionDate
+    ? parseYmdToTimestamp(input.productionDate)
+    : null;
 
   const newOnHandTotal = await db.runTransaction(async (tx) => {
     const variantSnap = await tx.get(variantRef);
@@ -62,6 +67,7 @@ export async function receiveBatch(
       received_at: FieldValue.serverTimestamp(),
       received_by_uid: input.userId,
       status: "ACTIVE",
+      ...(productionTs ? { production_date: productionTs } : {}),
       ...(input.note ? { notes: input.note } : {}),
     });
 
@@ -126,9 +132,15 @@ function validateReceiveInput(input: ReceiveBatchInput) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expiryDate)) {
     throw new Error("expiryDate must be YYYY-MM-DD");
   }
+  if (
+    input.productionDate &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(input.productionDate)
+  ) {
+    throw new Error("productionDate must be YYYY-MM-DD");
+  }
 }
 
-function parseExpiryToTimestamp(dateYmd: string): Timestamp {
+function parseYmdToTimestamp(dateYmd: string): Timestamp {
   // Anchor at UTC midnight so the calendar date is stable across timezones.
   const ms = Date.UTC(
     Number(dateYmd.slice(0, 4)),
