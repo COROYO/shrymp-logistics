@@ -5,8 +5,13 @@ import {
   type Allocation,
   type Batch,
   type Order,
+  type Product,
   type Variant,
 } from "@/server/firestore/schema";
+import {
+  AllocationsTable,
+  type AllocationTableRow,
+} from "./allocations-table";
 
 export const dynamic = "force-dynamic";
 
@@ -22,39 +27,11 @@ function tsToIso(t: unknown): string | null {
   return null;
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("de-DE");
-}
-
-function formatExpiry(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("de-DE");
-}
-
-type AllocationRow = {
-  id: string;
-  orderId: string;
-  orderName: string;
-  orderStatus: Order["internal_status"];
-  chargeNumber: string;
-  batchId: string;
-  expiryDateIso: string | null;
-  variantId: string;
-  sku: string | null;
-  qty: number;
-  reservedIso: string | null;
-  consumedIso: string | null;
-  released: boolean;
-  releaseReason: string | null;
-  runId: string;
-};
-
 async function loadAllocationRows(opts: {
   status: StatusFilter;
   orderId?: string;
   batchId?: string;
-}): Promise<AllocationRow[]> {
+}): Promise<AllocationTableRow[]> {
   const db = adminDb();
 
   let allocSnap;
@@ -113,10 +90,30 @@ async function loadAllocationRows(opts: {
     if (v.exists) variantById.set(v.id, v.data() as Variant);
   }
 
-  const rows = allocs.map<AllocationRow>((a) => {
+  // Product lookup for the "Produkt" column — only batch the products we
+  // actually need rather than scanning the whole collection.
+  const productIds = Array.from(
+    new Set(
+      [...variantById.values()]
+        .map((v) => v.product_id)
+        .filter((p): p is string => !!p),
+    ),
+  );
+  const productSnaps = productIds.length
+    ? await db.getAll(
+        ...productIds.map((id) => db.collection(Collections.Products).doc(id)),
+      )
+    : [];
+  const productById = new Map<string, Product>();
+  for (const p of productSnaps) {
+    if (p.exists) productById.set(p.id, p.data() as Product);
+  }
+
+  const rows = allocs.map<AllocationTableRow>((a) => {
     const order = orderById.get(a.order_id);
     const batch = batchById.get(a.batch_id);
     const variant = variantById.get(a.variant_id);
+    const product = variant ? productById.get(variant.product_id) : undefined;
     const lineItem = order?.line_items.find((li) => li.id === a.line_item_id);
 
     return {
@@ -124,6 +121,8 @@ async function loadAllocationRows(opts: {
       orderId: a.order_id,
       orderName: order?.name ?? a.order_id,
       orderStatus: order?.internal_status ?? "NEW",
+      productTitle: product?.title ?? lineItem?.title ?? "—",
+      variantTitle: variant?.title ?? null,
       chargeNumber: batch?.charge_number ?? a.batch_id.slice(0, 8),
       batchId: a.batch_id,
       expiryDateIso: tsToIso(batch?.expiry_date ?? null),
@@ -136,12 +135,6 @@ async function loadAllocationRows(opts: {
       releaseReason: a.release_reason ?? null,
       runId: a.run_id,
     };
-  });
-
-  rows.sort((a, b) => {
-    const ia = a.reservedIso ?? "";
-    const ib = b.reservedIso ?? "";
-    return ib.localeCompare(ia);
   });
 
   return rows;
@@ -242,93 +235,7 @@ export default async function AllocationsPage({
         })}
       </nav>
 
-      <section className="card overflow-hidden">
-        <div className="border-b border-zinc-200 px-6 py-4">
-          <p className="eyebrow">Allokationen</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-            {rows.length} Zuordnung{rows.length === 1 ? "" : "en"}
-          </h2>
-        </div>
-        {rows.length === 0 ? (
-          <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
-            Keine Allokationen für diesen Filter.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table-brand">
-              <thead>
-                <tr>
-                  <th>Order</th>
-                  <th>Charge</th>
-                  <th>MHD</th>
-                  <th>SKU</th>
-                  <th className="text-right">Menge</th>
-                  <th>Status</th>
-                  <th>Reserviert</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <Link
-                        href={`/admin/orders/${r.orderId}`}
-                        className="font-mono font-semibold text-brand-navy transition hover:text-brand-burgundy"
-                      >
-                        {r.orderName}
-                      </Link>
-                      <div className="mt-0.5">
-                        <span className="chip chip-soft">{r.orderStatus}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <Link
-                        href={`/admin/allocations?batch_id=${r.batchId}`}
-                        className="rounded-md bg-brand-navy px-2 py-0.5 font-mono text-xs font-semibold text-white transition hover:bg-brand-burgundy"
-                      >
-                        {r.chargeNumber}
-                      </Link>
-                    </td>
-                    <td className="text-xs text-brand-navy/70">
-                      {formatExpiry(r.expiryDateIso)}
-                    </td>
-                    <td className="font-mono text-xs text-brand-navy/70">
-                      {r.sku ?? "—"}
-                    </td>
-                    <td className="text-right text-base font-bold text-brand-navy">
-                      {r.qty}
-                    </td>
-                    <td>
-                      {r.consumedIso ? (
-                        r.released ? (
-                          <span
-                            className="text-xs text-brand-burgundy"
-                            title={r.releaseReason ?? undefined}
-                          >
-                            ↩ released
-                            <div className="text-[10px] text-brand-navy/50">
-                              {formatDate(r.consumedIso)}
-                            </div>
-                          </span>
-                        ) : (
-                          <span className="text-xs text-emerald-700">
-                            ✓ {formatDate(r.consumedIso)}
-                          </span>
-                        )
-                      ) : (
-                        <span className="chip chip-amber">reserviert</span>
-                      )}
-                    </td>
-                    <td className="text-xs text-brand-navy/60">
-                      {formatDate(r.reservedIso)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <AllocationsTable rows={rows} />
     </div>
   );
 }
