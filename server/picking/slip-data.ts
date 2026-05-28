@@ -10,6 +10,8 @@ import {
   getOrAssignLieferscheinNo,
   type LieferscheinRef,
 } from "./lieferschein";
+import { reAllocateOrder } from "@/server/allocation/reallocate-one";
+import { log } from "@/lib/logger";
 
 export type SlipAllocLine = {
   lineItemId: string;
@@ -32,6 +34,21 @@ export type SlipData = {
  */
 export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   const db = adminDb();
+
+  // Re-pin this order's allocations to the currently-oldest batches BEFORE
+  // we read them. Pickers may work orders in arbitrary sequence, but each
+  // slip must always print the oldest-MHD charge that's still on the shelf.
+  // Best-effort: a failure here doesn't block the slip — we'll just print
+  // whatever assignment was last persisted.
+  try {
+    await reAllocateOrder(orderId);
+  } catch (e) {
+    log.warn("realloc_on_slip_failed", {
+      orderId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   const orderSnap = await db
     .collection(Collections.Orders)
     .doc(orderId)

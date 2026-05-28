@@ -101,6 +101,39 @@ async function mirrorOrder(
     { merge: false },
   );
 
+  // If Shopify is reporting the order as fulfilled (someone clicked "Fulfill"
+  // inside Shopify Admin, or another integration created the fulfillment),
+  // mirror that state on our side: consume the FEFO-allocated stock, swap
+  // the LAGER_SHIP tag for LAGER_PACKED, push the new inventory level.
+  // We do NOT enqueue an allocation run in that branch — the external-fulfill
+  // helper queues its own.
+  const fulfillmentStatus = (doc.shopify_fulfillment_status ?? "").toLowerCase();
+  const isFulfilled =
+    fulfillmentStatus === "fulfilled" || fulfillmentStatus === "partial";
+  const wasPacked = previousStatus === "PACKED";
+
+  if (isFulfilled && !wasPacked) {
+    try {
+      const { applyExternalFulfillment } = await import(
+        "@/server/picking/external-fulfillment"
+      );
+      const res = await applyExternalFulfillment(doc.id);
+      log.info("shopify_external_fulfillment", {
+        orderId: doc.id,
+        applied: res.applied,
+        reason: res.reason,
+      });
+      return { kind: "ok", action: `external_fulfilled:${res.applied}` };
+    } catch (e) {
+      log.warn("external_fulfillment_failed", {
+        orderId: doc.id,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      // Fall through to normal allocation enqueue so the order at least
+      // stays on the queue.
+    }
+  }
+
   await enqueueAllocationRun({
     triggeredBy: trigger,
     triggerEventId: webhookId,
