@@ -403,47 +403,53 @@ function NewBatchInlineForm({
     "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
   return (
-    <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_2fr_auto]">
-      <input
-        type="text"
-        placeholder={t("chargeNoPlaceholder")}
-        value={chargeNumber}
-        onChange={(e) => setChargeNumber(e.target.value)}
-        className={`${input} font-mono`}
-      />
-      <input
-        type="date"
-        placeholder={t("expiry")}
-        title={t("expiry")}
-        value={expiry}
-        onChange={(e) => setExpiry(e.target.value)}
-        className={`${input} font-mono`}
-      />
-      <input
-        type="date"
-        placeholder={t("productionDate")}
-        title={t("productionDate")}
-        value={production}
-        onChange={(e) => setProduction(e.target.value)}
-        className={`${input} font-mono`}
-      />
-      <input
-        type="number"
-        placeholder={t("qtyPlaceholder")}
-        min={1}
-        step={1}
-        value={qty}
-        onChange={(e) => setQty(e.target.value)}
-        className={`${input} text-right`}
-      />
-      <input
-        type="text"
-        placeholder={t("notePlaceholder")}
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        maxLength={500}
-        className={input}
-      />
+    <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_1fr_2fr_auto]">
+      <Field label={t("charge")}>
+        <input
+          type="text"
+          placeholder={t("chargeNoPlaceholder")}
+          value={chargeNumber}
+          onChange={(e) => setChargeNumber(e.target.value)}
+          className={`${input} font-mono`}
+        />
+      </Field>
+      <Field label={t("expiry")}>
+        <input
+          type="date"
+          value={expiry}
+          onChange={(e) => setExpiry(e.target.value)}
+          className={`${input} font-mono`}
+        />
+      </Field>
+      <Field label={t("productionDate")}>
+        <input
+          type="date"
+          value={production}
+          onChange={(e) => setProduction(e.target.value)}
+          className={`${input} font-mono`}
+        />
+      </Field>
+      <Field label={t("qtyPlaceholder")}>
+        <input
+          type="number"
+          placeholder={t("qtyPlaceholder")}
+          min={1}
+          step={1}
+          value={qty}
+          onChange={(e) => setQty(e.target.value)}
+          className={`${input} text-right`}
+        />
+      </Field>
+      <Field label={t("note")}>
+        <input
+          type="text"
+          placeholder={t("notePlaceholder")}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          maxLength={500}
+          className={input}
+        />
+      </Field>
       <div className="flex items-center gap-3 sm:flex-col sm:items-end">
         <button
           type="button"
@@ -468,5 +474,22 @@ function NewBatchInlineForm({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
