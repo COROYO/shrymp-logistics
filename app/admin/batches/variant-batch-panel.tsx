@@ -377,7 +377,10 @@ function NewBatchInlineForm({
   const t = useTranslations("batches.panel");
   const [chargeNumber, setChargeNumber] = useState("");
   const [expiry, setExpiry] = useState("");
-  const [production, setProduction] = useState("");
+  // Produktionsdatum default = heute (lokale Zeitzone). Wareneingänge werden
+  // praktisch immer am Tag der Produktion oder kurz danach gebucht, deshalb
+  // ist "heute" der mit Abstand häufigste Wert — überschreibbar.
+  const [production, setProduction] = useState(todayLocalYmd());
   const [qty, setQty] = useState("");
   const [notes, setNotes] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -475,6 +478,19 @@ function NewBatchInlineForm({
       ) : null}
     </div>
   );
+}
+
+/**
+ * YYYY-MM-DD for the current calendar day in the user's local timezone.
+ * `toISOString` would shift to UTC and roll over near midnight — we use the
+ * local components instead so the warehouse staff always sees "their" today.
+ */
+function todayLocalYmd(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function Field({

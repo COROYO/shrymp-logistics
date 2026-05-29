@@ -164,7 +164,7 @@ function Row({
           <span className="font-semibold text-brand-navy">
             {order.itemCount}
           </span>{" "}
-          <span className="text-xs text-brand-navy/50">
+          <span className="text-xs text-brand-navy/50 font-mono block text-nowrap">
             ({order.lineItems.length} {t("table.lineItems")})
           </span>
         </td>
@@ -174,9 +174,7 @@ function Row({
               <span
                 key={t}
                 className={
-                  t === "EXPRESS_DHL"
-                    ? "chip chip-burgundy"
-                    : "chip chip-soft"
+                  t === "EXPRESS_DHL" ? "chip chip-burgundy" : "chip chip-soft"
                 }
               >
                 {t}
@@ -184,9 +182,7 @@ function Row({
             ))}
           </div>
         </td>
-        <td className="text-xs text-brand-navy/60">
-          {order.stopReason ?? ""}
-        </td>
+        <td className="text-xs text-brand-navy/60">{order.stopReason ?? ""}</td>
       </tr>
       {isOpen ? (
         <tr className="bg-brand-navy-50">

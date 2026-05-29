@@ -14,8 +14,9 @@ import {
  *
  * Three phases (see plan):
  *   A. Express priority — orders tagged EXPRESS_DHL, ordered by createdAt ASC.
- *   B. Standard greedy — smallest total demand first, tiebreak createdAt ASC,
- *      then order id ASC.
+ *   B. Standard — chronological, oldest createdAt first (tiebreak order id ASC).
+ *      All-or-nothing per order; an order that doesn't fit is stopped and
+ *      skipped, leaving stock for later (smaller) orders.
  *   C. (Out of scope here — implemented separately in `swap.ts`.)
  *
  * Within an order, batches are consumed FEFO: oldest expiry first.
@@ -38,15 +39,12 @@ export function allocate(input: AllocationInput): AllocationResult {
     tryAllocate(order, pool, decisions, "EXPRESS");
   }
 
-  // Phase B: Standard orders, smallest total demand first.
+  // Phase B: Standard orders, chronological (oldest createdAt first).
+  // Each order is all-or-nothing; an order that doesn't fit is stopped and
+  // skipped, but later (smaller) orders may still be filled from the rest.
   const standard = input.orders
     .filter((o) => !o.tags.includes(EXPRESS_TAG))
-    .sort((a, b) => {
-      const da = totalUnits(a);
-      const db = totalUnits(b);
-      if (da !== db) return da - db;
-      return byCreatedAtThenId(a, b);
-    });
+    .sort(byCreatedAtThenId);
 
   for (const order of standard) {
     tryAllocate(order, pool, decisions, "STANDARD");
@@ -153,12 +151,6 @@ function tryAllocate(
     allocations: tentative,
     mode,
   });
-}
-
-function totalUnits(order: OrderInput): number {
-  let sum = 0;
-  for (const li of order.lineItems) sum += li.qty;
-  return sum;
 }
 
 function byCreatedAtThenId(a: OrderInput, b: OrderInput): number {

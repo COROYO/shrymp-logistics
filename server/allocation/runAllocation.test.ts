@@ -44,79 +44,64 @@ function order(
   };
 }
 
-describe("allocate — customer scenario (Black Cod + Dorschrogen)", () => {
+describe("allocate — chronological standard allocation", () => {
   /**
-   * State from the customer brief:
-   *   Black Cod 10 stk (Charge 0001: 5x, 0002: 5x)
-   *   Dorschrogen 5 stk (Charge 0003: 5x)
-   * Orders:
-   *   #1001 BC 4
-   *   #1002 BC 6, DR 1
-   *   #1003 DR 3
-   *   #1004 BC 5
-   *   #1005 BC 2, DR 4
-   *   #1006 DR 2
-   * Optimal SHIP count is 4 — proof:
-   *   BC budget = 10, DR budget = 5.
-   *   Total demand 27 > 15 → can't ship all 6.
-   *   The combination #1001+#1003+#1004+#1006 uses BC 9 + DR 5 = 14 ≤ 15. ✓
-   *   No subset of 5 orders fits (would need ≥ {2+3+4+5+6=20 BC alone} etc.).
+   * Product A = 10 stk (Charge 0001: 5x @30d, 0002: 5x @60d).
+   * Orders processed oldest-first (#1001 → #1004):
+   *   #1001 A 3  → SHIP (0001: 5→2)
+   *   #1002 A 4  → SHIP (0001: 2→0, 0002: 5→3)
+   *   #1003 A 5  → STOP (only 3 left) — skipped, stock untouched
+   *   #1004 A 3  → SHIP (0002: 3→0)  ← later, smaller order still fits
+   * Net: 3 SHIP, 1 STOP. An order that doesn't fit is stopped but does NOT
+   * block later orders that still fit the remaining stock.
    */
   const input: AllocationInput = {
     batches: [
-      batch("b-bc-1", "v-bc", "0001", 5, 30),
-      batch("b-bc-2", "v-bc", "0002", 5, 60),
-      batch("b-dr-1", "v-dr", "0003", 5, 45),
+      batch("b-a-1", "v-a", "0001", 5, 30),
+      batch("b-a-2", "v-a", "0002", 5, 60),
     ],
     orders: [
-      order("1001", 1, [{ variantId: "v-bc", qty: 4 }]),
-      order("1002", 2, [
-        { variantId: "v-bc", qty: 6 },
-        { variantId: "v-dr", qty: 1 },
-      ]),
-      order("1003", 3, [{ variantId: "v-dr", qty: 3 }]),
-      order("1004", 4, [{ variantId: "v-bc", qty: 5 }]),
-      order("1005", 5, [
-        { variantId: "v-bc", qty: 2 },
-        { variantId: "v-dr", qty: 4 },
-      ]),
-      order("1006", 6, [{ variantId: "v-dr", qty: 2 }]),
+      order("1001", 1, [{ variantId: "v-a", qty: 3 }]),
+      order("1002", 2, [{ variantId: "v-a", qty: 4 }]),
+      order("1003", 3, [{ variantId: "v-a", qty: 5 }]),
+      order("1004", 4, [{ variantId: "v-a", qty: 3 }]),
     ],
   };
 
   const { decisions, stats } = allocate(input);
   const byId = new Map(decisions.map((d) => [d.orderId, d]));
 
-  it("ships 4 orders (the optimal count)", () => {
-    expect(stats.shipCount).toBe(4);
-    expect(stats.stopCount).toBe(2);
+  it("ships chronologically and skips the order that doesn't fit", () => {
+    expect(stats.shipCount).toBe(3);
+    expect(stats.stopCount).toBe(1);
+    expect(byId.get("1001")?.status).toBe("SHIP");
+    expect(byId.get("1002")?.status).toBe("SHIP");
+    expect(byId.get("1003")?.status).toBe("STOP");
+    expect(byId.get("1004")?.status).toBe("SHIP");
   });
 
-  it("ships the smallest-demand orders first (1006, 1003, 1001, 1004)", () => {
-    expect(byId.get("1006")?.status).toBe("SHIP");
-    expect(byId.get("1003")?.status).toBe("SHIP");
-    expect(byId.get("1001")?.status).toBe("SHIP");
-    expect(byId.get("1004")?.status).toBe("SHIP");
-    expect(byId.get("1005")?.status).toBe("STOP");
-    expect(byId.get("1002")?.status).toBe("STOP");
+  it("a stopped order does not consume stock (#1004 still ships after #1003 stops)", () => {
+    const d = byId.get("1004");
+    if (d?.status !== "SHIP") throw new Error("expected SHIP");
+    expect(d.allocations).toEqual([
+      { lineItemId: "1004-li-0", batchId: "b-a-2", qty: 3 },
+    ]);
   });
 
   it("uses FEFO: #1001 takes only from batch 0001 (earliest MHD)", () => {
     const d = byId.get("1001");
     if (d?.status !== "SHIP") throw new Error("expected SHIP");
     expect(d.allocations).toEqual([
-      { lineItemId: "1001-li-0", batchId: "b-bc-1", qty: 4 },
+      { lineItemId: "1001-li-0", batchId: "b-a-1", qty: 3 },
     ]);
   });
 
-  it("splits across batches when one is partially depleted (#1004)", () => {
-    const d = byId.get("1004");
+  it("splits across batches FEFO when one is partially depleted (#1002)", () => {
+    const d = byId.get("1002");
     if (d?.status !== "SHIP") throw new Error("expected SHIP");
-    // After 1006 (DR -2 → 3), 1003 (DR -3 → 0), 1001 (BC 0001 -4 → 1),
-    // 1004 needs BC 5 → 1 from 0001 then 4 from 0002.
     expect(d.allocations).toEqual([
-      { lineItemId: "1004-li-0", batchId: "b-bc-1", qty: 1 },
-      { lineItemId: "1004-li-0", batchId: "b-bc-2", qty: 4 },
+      { lineItemId: "1002-li-0", batchId: "b-a-1", qty: 2 },
+      { lineItemId: "1002-li-0", batchId: "b-a-2", qty: 2 },
     ]);
   });
 });

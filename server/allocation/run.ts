@@ -20,6 +20,7 @@ import type {
   Decision,
 } from "./types";
 import { processOutbox } from "@/server/shopify/outbox";
+import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
 
 /**
@@ -49,7 +50,9 @@ export type RunAllocationInFirestoreOptions = {
     | "ORDER_CANCELLED"
     | "INBOUND"
     | "PACKING_DONE"
-    | "MANUAL";
+    | "MANUAL"
+    | "RECONCILE"
+    | "TAIL_SWEEP";
   triggerEventId?: string;
 };
 
@@ -59,6 +62,7 @@ export type RunAllocationInFirestoreResult = {
   stopCount: number;
   expressShipCount: number;
   durationMs: number;
+  outbox: { processed: number; failed: number; done: number };
 };
 
 export async function runAllocationInFirestore(
@@ -140,10 +144,39 @@ export async function runAllocationInFirestore(
       ...result.stats,
     });
 
+    let outbox = { processed: 0, failed: 0, done: 0 };
     try {
-      await processOutbox(100);
+      outbox = await processOutbox(100);
     } catch (e) {
       log.warn("post_run_outbox_drain_failed", { error: String(e) });
+    }
+
+    // ---- Tail sweep: catch orders that were written DURING this run ----
+    // The pre-run snapshot fixed the set we'd process. If a webhook arrived
+    // between snapshot read and commit, that order is still in NEW and would
+    // otherwise wait for the next external trigger. Re-enqueue if any exist.
+    // We bound recursion with an opts flag so we don't loop forever during
+    // a steady stream of inbound orders.
+    if (opts.triggeredBy !== "TAIL_SWEEP") {
+      try {
+        const leftover = await db
+          .collection(Collections.Orders)
+          .where("internal_status", "==", "NEW")
+          .limit(1)
+          .get();
+        if (!leftover.empty) {
+          log.info("allocation_tail_sweep_enqueue", {
+            runId: runRef.id,
+            leftoverNew: leftover.size,
+          });
+          await enqueueAllocationRun({
+            triggeredBy: "TAIL_SWEEP",
+            triggerEventId: runRef.id,
+          });
+        }
+      } catch (e) {
+        log.warn("tail_sweep_check_failed", { error: String(e) });
+      }
     }
 
     return {
@@ -152,6 +185,7 @@ export async function runAllocationInFirestore(
       stopCount: result.stats.stopCount,
       expressShipCount: result.stats.expressShipCount,
       durationMs: result.stats.durationMs,
+      outbox,
     };
   } catch (e) {
     log.error("allocation_run_failed", {

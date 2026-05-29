@@ -178,7 +178,14 @@ export async function registerWebhooksAction(
 }
 
 export async function runAllocationAction(): Promise<
-  | { ok: true; runId: string; shipCount: number; stopCount: number }
+  | {
+      ok: true;
+      runId: string;
+      shipCount: number;
+      stopCount: number;
+      tagsPushed: number;
+      tagsFailed: number;
+    }
   | { ok: false; error: string }
 > {
   try {
@@ -195,6 +202,8 @@ export async function runAllocationAction(): Promise<
       runId: r.runId,
       shipCount: r.shipCount,
       stopCount: r.stopCount,
+      tagsPushed: r.outbox.processed,
+      tagsFailed: r.outbox.failed,
     };
   } catch (e) {
     log.error("manual_allocation_failed", { error: String(e) });
