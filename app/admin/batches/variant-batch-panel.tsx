@@ -64,7 +64,8 @@ export function VariantBatchPanel({
         </div>
       </div>
 
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1100px] text-sm">
         <thead className="bg-brand-cream text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
           <tr>
             <th className="px-4 py-2">{t("charge")}</th>
@@ -108,6 +109,7 @@ export function VariantBatchPanel({
           )}
         </tbody>
       </table>
+      </div>
 
       <div className="border-t border-zinc-200 p-3">
         {adding ? (
