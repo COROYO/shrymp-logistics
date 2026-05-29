@@ -3,6 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 import { log } from "@/lib/logger";
 import { runAllocationInFirestore } from "@/server/allocation/run";
+import { AllocationTriggerSchema } from "@/server/firestore/schema";
 
 /**
  * Cloud Tasks → this endpoint, called with an OIDC token signed for
@@ -14,14 +15,7 @@ import { runAllocationInFirestore } from "@/server/allocation/run";
  */
 
 const Body = z.object({
-  triggeredBy: z.enum([
-    "ORDER_CREATED",
-    "ORDER_UPDATED",
-    "ORDER_CANCELLED",
-    "INBOUND",
-    "PACKING_DONE",
-    "MANUAL",
-  ]),
+  triggeredBy: AllocationTriggerSchema,
   triggerEventId: z.string().optional(),
 });
 

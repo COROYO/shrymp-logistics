@@ -1,24 +1,15 @@
 import "server-only";
-import {
-  FieldValue,
-  type DocumentReference,
-  type WriteBatch,
-} from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
   type Allocation,
   type AllocationRunStatus,
-  type Batch,
+  type AllocationTrigger,
   type Order,
 } from "@/server/firestore/schema";
 import { allocate } from "./runAllocation";
-import type {
-  AllocationInput,
-  BatchAvail,
-  OrderInput,
-  Decision,
-} from "./types";
+import type { AllocationInput, OrderInput, VariantAvail, Decision } from "./types";
 import { processOutbox, processOutboxByIds } from "@/server/shopify/outbox";
 import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
@@ -27,32 +18,26 @@ import { log } from "@/lib/logger";
  * Firestore-backed allocation run.
  *
  * High-level flow (queue concurrency guarantees no parallel writers):
- *   1. Read `batches` (ACTIVE, remaining_qty > 0).
- *   2. Read `orders` (status ∈ {NEW, SHIP, STOP}).
- *   3. Build pure inputs, run `allocate()`.
- *   4. In bulk-writer batches: delete prior allocations for those orders,
- *      write new allocations, update orders, recompute variant.reserved_total.
- *   5. Append RESERVE/RELEASE inventory_movements (audit).
- *   6. Queue LAGER_TAGS_SET outbox entries wherever the decision differs from
+ *   1. Read `orders` (status ∈ {NEW, SHIP, STOP}) and the `variants` they
+ *      reference.
+ *   2. Compute per-variant available-to-reserve and run `allocate()` — this
+ *      only decides SHIP/STOP, it does NOT bind Chargen. The concrete batch is
+ *      picked FEFO later, at packing-slip print time (see assign-batches.ts).
+ *   3. Update orders' internal_status and adjust variant.reserved_total by the
+ *      in-memory delta (RECONCILE/MANUAL recompute from scratch instead).
+ *   4. Release any printed Charge assignments for orders flipped back to STOP
+ *      (restore batch.remaining_qty).
+ *   5. Queue LAGER_TAGS_SET outbox entries wherever the decision differs from
  *      the LAGER tag state we last confirmed on Shopify (`lager_tag_synced`).
- *      LAGER tags are system-owned; this repairs drift, not just status changes.
- *   7. Persist `allocation_runs/{runId}` with stats.
+ *   6. Persist `allocation_runs/{runId}` with stats.
  *
- * Orders in PACKED or CANCELLED state are NEVER touched.
+ * Orders in PICKING, PACKED or CANCELLED state are NEVER touched.
  */
 
 const ORDER_STATUSES_TO_REALLOCATE = ["NEW", "SHIP", "STOP"] as const;
 
 export type RunAllocationInFirestoreOptions = {
-  triggeredBy:
-    | "ORDER_CREATED"
-    | "ORDER_UPDATED"
-    | "ORDER_CANCELLED"
-    | "INBOUND"
-    | "PACKING_DONE"
-    | "MANUAL"
-    | "RECONCILE"
-    | "TAIL_SWEEP";
+  triggeredBy: AllocationTrigger;
   triggerEventId?: string;
 };
 
@@ -81,27 +66,49 @@ export async function runAllocationInFirestore(
   });
 
   try {
-    // ----- 1. Load -----
-    const [batchesSnap, ordersSnap] = await Promise.all([
-      db.collection(Collections.Batches).where("status", "==", "ACTIVE").get(),
-      db
-        .collection(Collections.Orders)
-        .where("internal_status", "in", [...ORDER_STATUSES_TO_REALLOCATE])
-        .get(),
-    ]);
-
-    const batches: BatchAvail[] = batchesSnap.docs
-      .map((d) => d.data() as Batch)
-      .filter((b) => (b.remaining_qty ?? 0) > 0)
-      .map((b) => ({
-        id: b.id,
-        variantId: b.variant_id,
-        chargeNumber: b.charge_number,
-        expiryDateMs: toMs(b.expiry_date),
-        remaining: b.remaining_qty,
-      }));
-
+    // ----- 1. Load orders -----
+    const ordersSnap = await db
+      .collection(Collections.Orders)
+      .where("internal_status", "in", [...ORDER_STATUSES_TO_REALLOCATE])
+      .get();
     const ordersRaw = ordersSnap.docs.map((d) => d.data() as Order);
+
+    // Quantity currently reserved BY THIS SET (orders presently in SHIP). We
+    // "give it back" into the pool, then let the algorithm re-compete for it —
+    // so a re-run is idempotent and reservation deltas net out correctly.
+    const oldSetReserved = new Map<string, number>();
+    for (const o of ordersRaw) {
+      if (o.internal_status !== "SHIP") continue;
+      for (const li of o.line_items) {
+        oldSetReserved.set(
+          li.variant_id,
+          (oldSetReserved.get(li.variant_id) ?? 0) + li.qty,
+        );
+      }
+    }
+
+    // ----- 2. Load referenced variants → available-to-reserve -----
+    const variantIds = Array.from(
+      new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
+    );
+    const variants: VariantAvail[] = [];
+    if (variantIds.length > 0) {
+      const variantRefs = variantIds.map((id) =>
+        db.collection(Collections.Variants).doc(id),
+      );
+      const variantSnaps = await db.getAll(...variantRefs);
+      for (const snap of variantSnaps) {
+        if (!snap.exists) continue; // missing → allocate() reports UNKNOWN_VARIANT
+        const d = snap.data() ?? {};
+        const onHand = (d["on_hand_total"] as number | undefined) ?? 0;
+        const reserved = (d["reserved_total"] as number | undefined) ?? 0;
+        // available for this run = free stock + what this set already holds.
+        const available =
+          onHand - reserved + (oldSetReserved.get(snap.id) ?? 0);
+        variants.push({ variantId: snap.id, available });
+      }
+    }
+
     const orders: OrderInput[] = ordersRaw.map((o) => ({
       id: o.id,
       createdAtMs: toMs(o.created_at_shopify),
@@ -113,15 +120,24 @@ export async function runAllocationInFirestore(
       })),
     }));
 
-    // ----- 2. Allocate (pure) -----
-    const input: AllocationInput = { batches, orders };
+    // ----- 3. Allocate (pure) -----
+    const input: AllocationInput = { variants, orders };
     const result = allocate(input);
 
-    // ----- 3. Commit -----
+    // ----- 4. Commit -----
+    // RECONCILE/MANUAL are rare, operator-initiated safety nets: recompute
+    // reserved_total from order state (self-healing of any drift). The hot
+    // path uses cheap in-memory deltas instead.
+    const recomputeMode: "delta" | "full" =
+      opts.triggeredBy === "RECONCILE" || opts.triggeredBy === "MANUAL"
+        ? "full"
+        : "delta";
     const lagerOutboxIds = await commitDecisions(
-      runRef,
+      runRef.id,
       result.decisions,
       ordersRaw,
+      oldSetReserved,
+      recomputeMode,
     );
 
     await runRef.update({
@@ -212,68 +228,27 @@ export async function runAllocationInFirestore(
 }
 
 async function commitDecisions(
-  runRef: DocumentReference,
+  runId: string,
   decisions: Decision[],
   ordersRaw: Order[],
+  oldSetReserved: Map<string, number>,
+  recomputeMode: "delta" | "full",
 ): Promise<string[]> {
   const db = adminDb();
-  const runId = runRef.id;
-
-  const ordersToReallocate = ordersRaw.map((o) => o.id);
   const decisionByOrderId = new Map(decisions.map((d) => [d.orderId, d]));
 
-  // --- Step A: delete prior allocations for orders being reallocated ---
-  if (ordersToReallocate.length > 0) {
-    const oldAllocSnap = await db
-      .collection(Collections.Allocations)
-      .where("order_id", "in", ordersToReallocate.slice(0, 30))
-      .get();
-    // Firestore `in` is limited to 30 values per query; chunk if larger.
-    const extraSnaps = await Promise.all(
-      chunk(ordersToReallocate.slice(30), 30).map((c) =>
-        db.collection(Collections.Allocations).where("order_id", "in", c).get(),
-      ),
-    );
+  // BulkWriter handles batching, throughput throttling and retries for us —
+  // no manual 450-op WriteBatch bookkeeping, and writes are parallelized.
+  const bulk = db.bulkWriter();
 
-    let delBatch = db.batch();
-    let opsInBatch = 0;
-    const flush = async (b: WriteBatch) => {
-      if (opsInBatch > 0) {
-        await b.commit();
-        opsInBatch = 0;
-      }
-    };
-    for (const snap of [oldAllocSnap, ...extraSnaps]) {
-      for (const doc of snap.docs) {
-        const alloc = doc.data() as Allocation;
-        if (alloc.consumed_at) continue; // already consumed (packed) → keep
-        delBatch.delete(doc.ref);
-        opsInBatch++;
-        if (opsInBatch >= 450) {
-          await delBatch.commit();
-          delBatch = db.batch();
-          opsInBatch = 0;
-        }
-      }
-    }
-    await flush(delBatch);
-  }
-
-  // --- Step B: write new allocations + update orders + recompute reservations ---
-  // Variant reservation deltas: variantId → delta (+ reserved, - reserved)
-  const reservedDelta = new Map<string, number>();
+  // Quantity this set reserves AFTER the run (orders now in SHIP), per variant.
+  const newSetReserved = new Map<string, number>();
+  // Orders flipped to STOP — if any of them were already printed (have open
+  // Charge assignments) we must hand the batch stock back.
+  const stopOrderIds: string[] = [];
   // Orders whose confirmed LAGER tag state differs from the new decision and
   // therefore need a (re-)push to Shopify: orderId → target status.
   const lagerTagSyncs = new Map<string, "SHIP" | "STOP">();
-
-  let writeBatch = db.batch();
-  let opsInBatch = 0;
-  const flush = async (b: WriteBatch) => {
-    if (opsInBatch > 0) {
-      await b.commit();
-      opsInBatch = 0;
-    }
-  };
 
   for (const o of ordersRaw) {
     const decision =
@@ -282,53 +257,23 @@ async function commitDecisions(
     const nextStatus = decision.status === "SHIP" ? "SHIP" : "STOP";
 
     const orderRef = db.collection(Collections.Orders).doc(o.id);
-    writeBatch.update(orderRef, {
+    void bulk.update(orderRef, {
       internal_status: nextStatus,
       stop_reason:
         decision.status === "STOP" ? decision.reason : FieldValue.delete(),
       allocation_run_id: runId,
       updated_at: FieldValue.serverTimestamp(),
     });
-    opsInBatch++;
 
-    if (decision.status === "SHIP") {
-      for (const a of decision.allocations) {
-        const ref = db.collection(Collections.Allocations).doc();
-        writeBatch.set(ref, {
-          id: ref.id,
-          order_id: o.id,
-          line_item_id: a.lineItemId,
-          variant_id:
-            o.line_items.find((li) => li.id === a.lineItemId)?.variant_id ?? "",
-          batch_id: a.batchId,
-          qty: a.qty,
-          run_id: runId,
-          created_at: FieldValue.serverTimestamp(),
-        });
-        opsInBatch++;
-        // RESERVE movement
-        const movRef = db.collection(Collections.InventoryMovements).doc();
-        writeBatch.set(movRef, {
-          id: movRef.id,
-          type: "RESERVE",
-          batch_id: a.batchId,
-          variant_id:
-            o.line_items.find((li) => li.id === a.lineItemId)?.variant_id ?? "",
-          qty: a.qty,
-          ref: { kind: "ALLOCATION_RUN", id: runId },
-          user_id: null,
-          created_at: FieldValue.serverTimestamp(),
-        });
-        opsInBatch++;
-
-        const li = o.line_items.find((x) => x.id === a.lineItemId);
-        if (li) {
-          reservedDelta.set(
-            li.variant_id,
-            (reservedDelta.get(li.variant_id) ?? 0) + a.qty,
-          );
-        }
+    if (nextStatus === "SHIP") {
+      for (const li of o.line_items) {
+        newSetReserved.set(
+          li.variant_id,
+          (newSetReserved.get(li.variant_id) ?? 0) + li.qty,
+        );
       }
+    } else {
+      stopOrderIds.push(o.id);
     }
 
     // LAGER tags are owned by our system — never derived from Shopify's tag
@@ -339,83 +284,136 @@ async function commitDecisions(
     if (nextStatus !== o.lager_tag_synced) {
       lagerTagSyncs.set(o.id, nextStatus);
     }
-
-    if (opsInBatch >= 450) {
-      await writeBatch.commit();
-      writeBatch = db.batch();
-      opsInBatch = 0;
-    }
   }
-  await flush(writeBatch);
 
-  // --- Step C: also account for RELEASE movements for orders whose
-  //              SHIP reservation got revoked. We just need to update
-  //              variant.reserved_total based on the new set of allocations.
-  //              Easiest: recompute reserved_total per affected variant from
-  //              the current allocations table.
-  // -------------------------------------------------------------------------
-  await recomputeReservedTotals(
-    new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
-  );
+  // --- Release Charge assignments for orders flipped back to STOP ---
+  // Normally a SHIP order isn't printed until PICKING (which the run never
+  // touches), but external inventory drift can force a printed SHIP order to
+  // STOP. Give its assigned batch stock back so it's assignable again.
+  if (stopOrderIds.length > 0) {
+    await releaseAssignmentsForStoppedOrders(bulk, stopOrderIds);
+  }
 
-  // --- Step D: outbox entries for Shopify LAGER tag pushes ---
+  // --- Update variant reserved_total / available ---
+  if (recomputeMode === "full") {
+    // Self-healing path (RECONCILE/MANUAL): flush writes first, then recompute
+    // reserved_total from authoritative order state.
+    await bulk.close();
+    await recomputeReservedTotals(
+      new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
+    );
+  } else {
+    // Hot path: apply the in-memory delta = (now reserved by set) − (was
+    // reserved by set). on_hand is untouched, so available moves opposite.
+    const vids = new Set<string>([
+      ...oldSetReserved.keys(),
+      ...newSetReserved.keys(),
+    ]);
+    for (const vid of vids) {
+      const delta =
+        (newSetReserved.get(vid) ?? 0) - (oldSetReserved.get(vid) ?? 0);
+      if (delta === 0) continue;
+      const ref = db.collection(Collections.Variants).doc(vid);
+      void bulk.update(ref, {
+        reserved_total: FieldValue.increment(delta),
+        available: FieldValue.increment(-delta),
+        updated_at: FieldValue.serverTimestamp(),
+      });
+    }
+    await bulk.close();
+  }
+
+  // --- Outbox entries for Shopify LAGER tag pushes ---
   if (lagerTagSyncs.size === 0) return [];
   return enqueueLagerTagSync(lagerTagSyncs);
 }
 
+/**
+ * Delete any open (un-consumed) Charge assignments for the given orders and
+ * return their stock to the batches (`remaining_qty += qty`). Uses atomic
+ * increments so it's safe against a concurrent print transaction on the same
+ * batch.
+ */
+async function releaseAssignmentsForStoppedOrders(
+  bulk: FirebaseFirestore.BulkWriter,
+  orderIds: string[],
+): Promise<void> {
+  const db = adminDb();
+  const snaps = await Promise.all(
+    chunk(orderIds, 30).map((c) =>
+      db.collection(Collections.Allocations).where("order_id", "in", c).get(),
+    ),
+  );
+  const restoreByBatch = new Map<string, number>();
+  for (const snap of snaps) {
+    for (const doc of snap.docs) {
+      const a = doc.data() as Allocation;
+      if (a.consumed_at) continue; // packed or already released → leave
+      void bulk.delete(doc.ref);
+      restoreByBatch.set(a.batch_id, (restoreByBatch.get(a.batch_id) ?? 0) + a.qty);
+    }
+  }
+  for (const [batchId, qty] of restoreByBatch) {
+    if (qty === 0) continue;
+    const ref = db.collection(Collections.Batches).doc(batchId);
+    void bulk.update(ref, {
+      remaining_qty: FieldValue.increment(qty),
+      status: "ACTIVE",
+    });
+  }
+}
+
+/**
+ * Recompute reserved_total from authoritative order state: a variant's
+ * reservation = Σ line-item qty over all orders in SHIP or PICKING (decided to
+ * ship, not yet packed). Used only by the rare RECONCILE/MANUAL self-heal.
+ */
 async function recomputeReservedTotals(variantIds: Set<string>): Promise<void> {
   const db = adminDb();
   const ids = [...variantIds];
   if (ids.length === 0) return;
 
-  // Reservation per variant = sum of allocations.qty where consumed_at is null.
-  // We aggregate by reading all open allocations for these variants in chunks of 30.
   const reservedByVariant = new Map<string, number>();
-  for (const c of chunk(ids, 30)) {
+  for (const status of ["SHIP", "PICKING"] as const) {
     const snap = await db
-      .collection(Collections.Allocations)
-      .where("variant_id", "in", c)
+      .collection(Collections.Orders)
+      .where("internal_status", "==", status)
       .get();
     for (const d of snap.docs) {
-      const a = d.data() as Allocation;
-      if (a.consumed_at) continue;
-      reservedByVariant.set(
-        a.variant_id,
-        (reservedByVariant.get(a.variant_id) ?? 0) + a.qty,
-      );
+      const o = d.data() as Order;
+      for (const li of o.line_items) {
+        if (!variantIds.has(li.variant_id)) continue;
+        reservedByVariant.set(
+          li.variant_id,
+          (reservedByVariant.get(li.variant_id) ?? 0) + li.qty,
+        );
+      }
     }
   }
 
-  let batch = db.batch();
-  let ops = 0;
-  for (const vid of ids) {
-    const ref = db.collection(Collections.Variants).doc(vid);
-    const snap = await ref.get();
+  const refs = ids.map((vid) => db.collection(Collections.Variants).doc(vid));
+  const snaps = await db.getAll(...refs);
+
+  const bulk = db.bulkWriter();
+  for (const snap of snaps) {
     if (!snap.exists) continue;
     const cur = snap.data() ?? {};
     const onHand = (cur["on_hand_total"] as number | undefined) ?? 0;
-    const reserved = reservedByVariant.get(vid) ?? 0;
-    batch.update(ref, {
+    const reserved = reservedByVariant.get(snap.id) ?? 0;
+    void bulk.update(snap.ref, {
       reserved_total: reserved,
       available: onHand - reserved,
       updated_at: FieldValue.serverTimestamp(),
     });
-    ops++;
-    if (ops >= 450) {
-      await batch.commit();
-      batch = db.batch();
-      ops = 0;
-    }
   }
-  if (ops > 0) await batch.commit();
+  await bulk.close();
 }
 
 async function enqueueLagerTagSync(
   syncs: Map<string, "SHIP" | "STOP">,
 ): Promise<string[]> {
   const db = adminDb();
-  let batch = db.batch();
-  let ops = 0;
+  const bulk = db.bulkWriter();
   const now = FieldValue.serverTimestamp();
   const ids: string[] = [];
 
@@ -425,7 +423,7 @@ async function enqueueLagerTagSync(
     const ref = db
       .collection(Collections.ShopifyOutbox)
       .doc(`lagertags_${orderId}`);
-    batch.set(ref, {
+    void bulk.set(ref, {
       id: ref.id,
       op: "LAGER_TAGS_SET",
       payload: { orderId, status },
@@ -434,14 +432,8 @@ async function enqueueLagerTagSync(
       created_at: now,
     });
     ids.push(ref.id);
-    ops++;
-    if (ops >= 450) {
-      await batch.commit();
-      batch = db.batch();
-      ops = 0;
-    }
   }
-  if (ops > 0) await batch.commit();
+  await bulk.close();
   return ids;
 }
 

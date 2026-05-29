@@ -306,6 +306,8 @@
       "reserved": "Reserviert",
       "available": "Verfügbar",
       "stock": "Bestand",
+      "charge": "Charge",
+      "mhd": "MHD",
       "noLineItems": "Keine Line Items.",
       "bundleBadge": "Bundle",
       "bundles": "Bundles",

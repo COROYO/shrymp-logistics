@@ -214,6 +214,13 @@ async function cancelOrder(
         orderId,
         null,
         "order_cancelled",
+        {
+          internal_status: prevStatus ?? undefined,
+          line_items: prevData?.line_items?.map((li) => ({
+            variant_id: li.variant_id,
+            qty: li.qty,
+          })),
+        },
       );
     } catch (e) {
       log.warn("release_on_cancel_failed", {
@@ -223,7 +230,7 @@ async function cancelOrder(
     }
 
     // Push the freed inventory back to Shopify so the storefront reflects it.
-    if (releaseRes && releaseRes.releasedAllocations > 0) {
+    if (releaseRes && Object.keys(releaseRes.freedByVariant).length > 0) {
       try {
         const { queueInventoryPush } = await import(
           "@/server/inventory/sync-to-shopify"

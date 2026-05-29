@@ -6,14 +6,18 @@
  * The caller is responsible for mapping Firestore docs ↔ these types.
  */
 
-export type BatchAvail = {
-  id: string;
+/**
+ * Available-to-reserve units for a single variant.
+ *
+ * Batches (Chargen) are no longer part of the allocation decision — the run
+ * only decides SHIP/STOP and reserves quantity at the variant level. The
+ * concrete Charge is picked FEFO later, when the packing slip is printed.
+ */
+export type VariantAvail = {
   variantId: string;
-  chargeNumber: string;
-  /** Epoch milliseconds. Earlier = sooner expiry = picked first (FEFO). */
-  expiryDateMs: number;
-  /** Currently available units (i.e. remaining_qty minus existing reservations). */
-  remaining: number;
+  /** Units free to reserve = on_hand_total - reserved_total (by orders
+   *  outside the set currently being (re)allocated). */
+  available: number;
 };
 
 export type OrderLineItemInput = {
@@ -30,17 +34,10 @@ export type OrderInput = {
   lineItems: OrderLineItemInput[];
 };
 
-export type AllocLine = {
-  lineItemId: string;
-  batchId: string;
-  qty: number;
-};
-
 export type Decision =
   | {
       orderId: string;
       status: "SHIP";
-      allocations: AllocLine[];
       mode: "EXPRESS" | "STANDARD";
     }
   | {
@@ -55,7 +52,7 @@ export type StopReason =
   | "EMPTY_ORDER";
 
 export type AllocationInput = {
-  batches: BatchAvail[];
+  variants: VariantAvail[];
   orders: OrderInput[];
 };
 

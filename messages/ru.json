@@ -309,6 +309,8 @@
       "reserved": "Зарезервировано",
       "available": "Доступно",
       "stock": "Остаток",
+      "charge": "Партия",
+      "mhd": "Срок",
       "noLineItems": "Позиций нет.",
       "bundleBadge": "Набор",
       "bundles": "наборов",

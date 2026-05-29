@@ -14,6 +14,13 @@ export type OrderLineItemBundleRef = {
   variantSku: string | null;
 };
 
+/** A Charge (batch) pinned to a line item, set at packing-slip print. */
+export type ChargeRow = {
+  chargeNumber: string;
+  expiryIso: string | null;
+  qty: number;
+};
+
 export type OrderLineItemRow = {
   id: string;
   title: string;
@@ -26,6 +33,8 @@ export type OrderLineItemRow = {
   onHand: number;
   reserved: number;
   available: number;
+  /** Assigned Chargen (FEFO), present once the packing slip was printed. */
+  charges: ChargeRow[];
   /** Original Shopify line-item ids that were folded into this row. */
   mergedFromIds: string[];
   bundle: OrderLineItemBundleRef | null;
@@ -241,6 +250,7 @@ function LineItems({ items }: { items: OrderLineItemRow[] }) {
             <th className="w-16 px-3 py-2">{t("table.image")}</th>
             <th className="px-3 py-2">{t("table.product")}</th>
             <th className="px-3 py-2">{t("table.skuLbl")}</th>
+            <th className="px-3 py-2">{t("table.charge")}</th>
             <th className="px-3 py-2 text-right">{t("table.qty")}</th>
             <th className="px-3 py-2 text-right">{t("table.stock")}</th>
           </tr>
@@ -274,7 +284,7 @@ function BundleSection({
   return (
     <>
       <tr className="bg-indigo-50/60">
-        <td colSpan={5} className="px-3 py-2">
+        <td colSpan={6} className="px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
               {t("table.bundleBadge")}
@@ -375,6 +385,9 @@ function ItemRow({
         ) : null}
       </td>
       <td className="px-3 py-2 font-mono text-xs">{li.sku ?? "—"}</td>
+      <td className="px-3 py-2">
+        <ChargeCell charges={li.charges} />
+      </td>
       <td className="px-3 py-2 text-right text-base font-semibold tabular-nums">
         {li.qty}
       </td>
@@ -387,6 +400,32 @@ function ItemRow({
         />
       </td>
     </tr>
+  );
+}
+
+function ChargeCell({ charges }: { charges: ChargeRow[] }) {
+  const t = useTranslations("ordersAdmin.table");
+  if (charges.length === 0) {
+    return <span className="text-xs text-brand-navy/30">—</span>;
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      {charges.map((c) => (
+        <span
+          key={c.chargeNumber}
+          className="inline-flex w-fit items-center gap-1.5 rounded bg-brand-navy/5 px-1.5 py-0.5 text-xs"
+        >
+          <span className="font-mono font-semibold text-brand-navy">
+            {c.chargeNumber}
+          </span>
+          {charges.length > 1 ? (
+            <span className="font-mono text-brand-navy/45 tabular-nums">
+              ×{c.qty}
+            </span>
+          ) : null}
+        </span>
+      ))}
+    </div>
   );
 }
 

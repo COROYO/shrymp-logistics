@@ -1,40 +1,46 @@
 import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
-import {
-  Collections,
-  type Allocation,
-} from "@/server/firestore/schema";
+import { Collections, type Allocation } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 
 /**
- * Release every open (not-yet-consumed) allocation for an order:
- *   - Mark the allocation `consumed_at` with a special `released_at` marker
- *     so it drops out of "open" queries but the audit trail is preserved
- *   - Decrement `variant.reserved_total` so the freed stock counts as
- *     available again
- *   - Write a RELEASE inventory_movement per allocation for audit
+ * Release an order's stock hold when it's cancelled:
+ *   - Free the variant-level reservation (`reserved_total -= order qty`) if the
+ *     order was SHIP or PICKING. Reservations now live on the order's status,
+ *     not on allocation rows — a SHIP order that was never printed has no
+ *     allocations but still holds a reservation.
+ *   - Give back any printed Charge assignment (`batch.remaining_qty += qty`) and
+ *     mark those allocations released (audit-preserving `consumed_at` marker).
+ *   - `on_hand_total` is untouched — the goods never left the warehouse.
  *
- * Used when an order is cancelled in Shopify. Idempotent: re-running on the
- * same order is a no-op (no allocations marked open anymore).
+ * The caller passes the order's PRE-cancel snapshot (`prevOrder`) because the
+ * cancel webhook flips `internal_status` to CANCELLED before calling this, so we
+ * can no longer read the reserving status off the doc.
  *
- * Returns the number of allocations released and the total quantity freed
- * per variant.
+ * Idempotent: re-running frees nothing (no open allocations, and the caller
+ * won't pass a reserved prevStatus twice in practice).
  */
 export type ReleaseResult = {
   releasedAllocations: number;
   freedByVariant: Record<string, number>;
 };
 
+export type ReleasePrevOrder = {
+  internal_status?: string;
+  line_items?: { variant_id: string; qty: number }[];
+};
+
 export async function releaseOrderAllocations(
   orderId: string,
   userId: string | null,
   reason: string = "order_cancelled",
+  prevOrder?: ReleasePrevOrder | null,
 ): Promise<ReleaseResult> {
   const db = adminDb();
   const releasedAt = FieldValue.serverTimestamp();
 
-  // Read open allocations outside the txn (Firestore txn read limits).
+  // Open (printed) Charge assignments, if any.
   const allocSnap = await db
     .collection(Collections.Allocations)
     .where("order_id", "==", orderId)
@@ -43,15 +49,37 @@ export async function releaseOrderAllocations(
     .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
     .filter((a) => !a.data.consumed_at);
 
-  if (open.length === 0) {
-    log.info("release_allocations_noop", { orderId });
-    return { releasedAllocations: 0, freedByVariant: {} };
+  // Batch stock to give back (only printed orders hold batch stock).
+  const restoreByBatch = new Map<string, number>();
+  for (const { data } of open) {
+    restoreByBatch.set(
+      data.batch_id,
+      (restoreByBatch.get(data.batch_id) ?? 0) + data.qty,
+    );
   }
 
+  // Reservation to free, per variant. Authoritative source = the pre-cancel
+  // order line items IF it was in a reserving state. Fall back to the open
+  // allocations when no prev snapshot was supplied (legacy callers).
   const freedByVariant: Record<string, number> = {};
-  for (const { data } of open) {
-    freedByVariant[data.variant_id] =
-      (freedByVariant[data.variant_id] ?? 0) + data.qty;
+  const wasReserved =
+    prevOrder?.internal_status === "SHIP" ||
+    prevOrder?.internal_status === "PICKING";
+  if (wasReserved && prevOrder?.line_items) {
+    for (const li of prevOrder.line_items) {
+      freedByVariant[li.variant_id] =
+        (freedByVariant[li.variant_id] ?? 0) + li.qty;
+    }
+  } else if (!prevOrder) {
+    for (const { data } of open) {
+      freedByVariant[data.variant_id] =
+        (freedByVariant[data.variant_id] ?? 0) + data.qty;
+    }
+  }
+
+  if (open.length === 0 && Object.keys(freedByVariant).length === 0) {
+    log.info("release_allocations_noop", { orderId });
+    return { releasedAllocations: 0, freedByVariant: {} };
   }
 
   const variantIds = Object.keys(freedByVariant);
@@ -63,11 +91,8 @@ export async function releaseOrderAllocations(
     );
     const variantSnaps = await Promise.all(variantRefs.map((r) => tx.get(r)));
 
-    // Writes.
+    // Writes — mark allocations released (keep audit trail).
     for (const { ref } of open) {
-      // We re-use `consumed_at` as the marker so the existing "open" filter
-      // (consumed_at == null) already excludes released ones. The `released`
-      // flag distinguishes a real CONSUME from a RELEASE in the audit log.
       tx.update(ref, {
         consumed_at: releasedAt,
         released: true,
@@ -75,6 +100,16 @@ export async function releaseOrderAllocations(
       });
     }
 
+    // Give batch stock back (atomic increment — no read needed).
+    for (const [batchId, qty] of restoreByBatch) {
+      if (qty === 0) continue;
+      tx.update(db.collection(Collections.Batches).doc(batchId), {
+        remaining_qty: FieldValue.increment(qty),
+        status: "ACTIVE",
+      });
+    }
+
+    // Free the variant reservation.
     for (let i = 0; i < variantIds.length; i++) {
       const vid = variantIds[i]!;
       const vSnap = variantSnaps[i];
@@ -95,14 +130,14 @@ export async function releaseOrderAllocations(
   // Audit log (outside the txn; failure here doesn't roll back the release).
   try {
     const batch = db.batch();
-    for (const { data } of open) {
+    for (const [vid, qty] of Object.entries(freedByVariant)) {
       const movRef = db.collection(Collections.InventoryMovements).doc();
       batch.set(movRef, {
         id: movRef.id,
         type: "RELEASE",
-        batch_id: data.batch_id,
-        variant_id: data.variant_id,
-        qty: data.qty, // positive — stock returns to available pool
+        batch_id: null,
+        variant_id: vid,
+        qty, // positive — stock returns to available pool
         ref: { kind: "ORDER", id: orderId },
         user_id: userId,
         note: reason,

@@ -7,7 +7,7 @@ import {
   type Order,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
-import { reAllocateOrder } from "@/server/allocation/reallocate-one";
+import { assignBatchesForOrder } from "./assign-batches";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 
 /**
@@ -58,12 +58,12 @@ export async function applyExternalFulfillment(
     return { ok: true, applied: false, reason: "cancelled" };
   }
 
-  // Refresh FEFO so we consume the oldest batches that are physically here.
-  // Best-effort — even if it bails, we still need to mark PACKED.
+  // Pin the oldest-MHD Chargen (decrements batch.remaining_qty) so we consume
+  // the right batches. Best-effort — even if it bails, we still mark PACKED.
   try {
-    await reAllocateOrder(orderId);
+    await assignBatchesForOrder(orderId);
   } catch (e) {
-    log.warn("external_fulfill_realloc_failed", {
+    log.warn("external_fulfill_assign_failed", {
       orderId,
       error: e instanceof Error ? e.message : String(e),
     });
@@ -84,7 +84,6 @@ export async function applyExternalFulfillment(
       .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
       .filter((a) => !a.data.consumed_at);
 
-    const consumedByBatch: Record<string, number> = {};
     const consumedByVariant: Record<string, number> = {};
 
     if (open.length === 0) {
@@ -102,12 +101,8 @@ export async function applyExternalFulfillment(
       return consumedByVariant;
     }
 
-    // Reads first: batches + variants the open allocations touch.
-    const batchIds = Array.from(new Set(open.map((a) => a.data.batch_id)));
-    const batchRefs = batchIds.map((id) =>
-      db.collection(Collections.Batches).doc(id),
-    );
-    const batchSnaps = await Promise.all(batchRefs.map((r) => tx.get(r)));
+    // Reads first: variants the open allocations touch. (batch.remaining_qty
+    // was already decremented at assignment, so packing doesn't touch it.)
     const variantIds = Array.from(new Set(open.map((a) => a.data.variant_id)));
     const variantRefs = variantIds.map((id) =>
       db.collection(Collections.Variants).doc(id),
@@ -115,24 +110,8 @@ export async function applyExternalFulfillment(
     const variantSnaps = await Promise.all(variantRefs.map((r) => tx.get(r)));
 
     for (const a of open) {
-      consumedByBatch[a.data.batch_id] =
-        (consumedByBatch[a.data.batch_id] ?? 0) + a.data.qty;
       consumedByVariant[a.data.variant_id] =
         (consumedByVariant[a.data.variant_id] ?? 0) + a.data.qty;
-    }
-
-    // Writes — batches.
-    for (let i = 0; i < batchIds.length; i++) {
-      const id = batchIds[i] as string;
-      const snap = batchSnaps[i];
-      const ref = batchRefs[i];
-      if (!snap?.exists || !ref) continue;
-      const remaining = (snap.data()?.remaining_qty as number) ?? 0;
-      const next = remaining - (consumedByBatch[id] ?? 0);
-      tx.update(ref, {
-        remaining_qty: next,
-        status: next === 0 ? "DEPLETED" : "ACTIVE",
-      });
     }
 
     // Allocations: mark consumed.

@@ -73,16 +73,27 @@ firebase.json, .firebaserc, firestore.rules, firestore.indexes.json
 
 ## Allocation invariants
 
-The allocation algorithm runs in a single Cloud Function consumer with
-queue concurrency = 1, so there is only ever one writer to `batches` and
-`allocations`. Wareneingang and Packing use Firestore transactions on
-`batches`. See `server/allocation/runAllocation.ts`.
+The allocation run decides **SHIP/STOP only** and reserves quantity at the
+**variant** level — it does NOT bind Chargen. It runs in a single Cloud
+Function consumer with queue concurrency = 1. See `server/allocation/`.
 
 - **All-or-nothing** per order (no partial fulfillment).
 - **EXPRESS_DHL** orders are allocated first, ignoring everything else.
-- **FEFO** within an allocation: oldest MHD first.
-- Decisions are committed transactionally; the run is deterministic
-  given the same `(orders, batches)` snapshot.
+- SHIP iff `variant.on_hand_total - reserved_total` covers the order
+  (chronological, oldest order first; tiebreak by order id).
+- `reserved_total` = Σ line-item qty over orders in `SHIP`/`PICKING`.
+  Hot path adjusts it by in-memory delta; RECONCILE/MANUAL recompute it
+  from order state. The run is deterministic for a given snapshot.
+
+### Charge (batch) assignment — at slip print, not allocation
+
+Chargen are pinned **only when the packing slip is printed**
+(`server/picking/assign-batches.ts`), FEFO (oldest MHD first), in one
+transaction over the batch docs (the serialization point against concurrent
+prints). This guarantees the oldest Charge ships first regardless of the order
+in which staff pack. `batch.remaining_qty` = *assignable* units, decremented at
+assignment and restored on cancel/STOP-flip; physical `on_hand_total` only
+drops at packing-confirm. Reprints reuse the same Charge (idempotent).
 
 ## Commands
 
@@ -91,6 +102,8 @@ queue concurrency = 1, so there is only ever one writer to `batches` and
 - `pnpm lint` — ESLint
 - `pnpm test` — Vitest
 - `firebase emulators:start` — local Firestore/Auth/Functions emulators
+
+Deploy / Cloud Scheduler / allocation-queue setup: see `docs/scheduler.md`.
 
 ## Plan
 

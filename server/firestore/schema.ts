@@ -292,16 +292,32 @@ export const AllocationRunStatusSchema = z.enum([
   "FAILED",
 ]);
 
+/**
+ * Every way an allocation run can be triggered. Single source of truth —
+ * the Cloud Tasks consumer endpoint, the enqueue helper and the run options
+ * all derive from this so a new trigger can't be added in one place and
+ * silently rejected (HTTP 400) at another.
+ *
+ *   - realtime: ORDER_CREATED/UPDATED/CANCELLED, INBOUND, PACKING_DONE
+ *   - operator: MANUAL (admin button)
+ *   - safety nets: RECONCILE (5-min sweep), TAIL_SWEEP (post-run leftover),
+ *     CRON (2-min "run if NEW orders exist" tick)
+ */
+export const AllocationTriggerSchema = z.enum([
+  "ORDER_CREATED",
+  "ORDER_UPDATED",
+  "ORDER_CANCELLED",
+  "INBOUND",
+  "PACKING_DONE",
+  "MANUAL",
+  "RECONCILE",
+  "TAIL_SWEEP",
+  "CRON",
+]);
+
 export const AllocationRunSchema = z.object({
   id: z.string(),
-  triggered_by: z.enum([
-    "ORDER_CREATED",
-    "ORDER_UPDATED",
-    "ORDER_CANCELLED",
-    "INBOUND",
-    "PACKING_DONE",
-    "MANUAL",
-  ]),
+  triggered_by: AllocationTriggerSchema,
   trigger_event_id: z.string().optional(),
   started_at: FirestoreTimestamp,
   finished_at: FirestoreTimestamp.optional(),
@@ -431,6 +447,7 @@ export type User = z.infer<typeof UserSchema>;
 export type UserRole = z.infer<typeof UserRoleSchema>;
 export type AllocationRun = z.infer<typeof AllocationRunSchema>;
 export type AllocationRunStatus = z.infer<typeof AllocationRunStatusSchema>;
+export type AllocationTrigger = z.infer<typeof AllocationTriggerSchema>;
 export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 export type ShopifyOutbox = z.infer<typeof ShopifyOutboxSchema>;
 export type ShopifyConfig = z.infer<typeof ShopifyConfigSchema>;

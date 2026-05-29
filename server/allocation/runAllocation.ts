@@ -1,9 +1,6 @@
-import { buildBatchPool, clonePool } from "./fefo";
 import {
-  type AllocLine,
   type AllocationInput,
   type AllocationResult,
-  type BatchAvail,
   type Decision,
   EXPRESS_TAG,
   type OrderInput,
@@ -12,43 +9,38 @@ import {
 /**
  * Pure, deterministic allocation algorithm.
  *
- * Three phases (see plan):
+ * Decides only SHIP vs STOP and reserves quantity at the *variant* level.
+ * Concrete Charge (batch) selection happens later, at packing-slip print
+ * time (FEFO), so this algorithm no longer knows about batches at all.
+ *
+ * Two phases (see plan):
  *   A. Express priority — orders tagged EXPRESS_DHL, ordered by createdAt ASC.
  *   B. Standard — chronological, oldest createdAt first (tiebreak order id ASC).
  *      All-or-nothing per order; an order that doesn't fit is stopped and
  *      skipped, leaving stock for later (smaller) orders.
- *   C. (Out of scope here — implemented separately in `swap.ts`.)
  *
- * Within an order, batches are consumed FEFO: oldest expiry first.
- *
- * Returns decisions in the *same order* as the input `orders` array,
- * which keeps the caller's iteration predictable.
+ * Returns decisions in the *same order* as the input `orders` array.
  */
 export function allocate(input: AllocationInput): AllocationResult {
   const t0 = nowMs();
 
-  const pool = buildBatchPool(input.batches);
+  // Mutable available-to-reserve pool per variant.
+  const avail = new Map<string, number>();
+  for (const v of input.variants) avail.set(v.variantId, v.available);
+
   const decisions = new Map<string, Decision>();
 
   // Phase A: Express orders (hard priority).
   const express = input.orders
     .filter((o) => o.tags.includes(EXPRESS_TAG))
     .sort(byCreatedAtThenId);
-
-  for (const order of express) {
-    tryAllocate(order, pool, decisions, "EXPRESS");
-  }
+  for (const order of express) tryAllocate(order, avail, decisions, "EXPRESS");
 
   // Phase B: Standard orders, chronological (oldest createdAt first).
-  // Each order is all-or-nothing; an order that doesn't fit is stopped and
-  // skipped, but later (smaller) orders may still be filled from the rest.
   const standard = input.orders
     .filter((o) => !o.tags.includes(EXPRESS_TAG))
     .sort(byCreatedAtThenId);
-
-  for (const order of standard) {
-    tryAllocate(order, pool, decisions, "STANDARD");
-  }
+  for (const order of standard) tryAllocate(order, avail, decisions, "STANDARD");
 
   const ordered: Decision[] = input.orders.map(
     (o) =>
@@ -84,7 +76,7 @@ export function allocate(input: AllocationInput): AllocationResult {
 
 function tryAllocate(
   order: OrderInput,
-  pool: Map<string, BatchAvail[]>,
+  avail: Map<string, number>,
   decisions: Map<string, Decision>,
   mode: "EXPRESS" | "STANDARD",
 ): void {
@@ -97,37 +89,25 @@ function tryAllocate(
     return;
   }
 
-  // Probe on a clone — if any line item can't be fully fulfilled,
-  // roll back by never committing to `pool`.
-  const probe = clonePool(pool);
-  const tentative: AllocLine[] = [];
-
+  // Aggregate required quantity per variant (a variant can appear on several
+  // line items of the same order).
+  const need = new Map<string, number>();
   for (const li of order.lineItems) {
-    const list = probe.get(li.variantId);
-    if (!list || list.length === 0) {
+    need.set(li.variantId, (need.get(li.variantId) ?? 0) + li.qty);
+  }
+
+  // All-or-nothing probe: every variant must have enough available.
+  for (const [variantId, qty] of need) {
+    const have = avail.get(variantId);
+    if (have === undefined) {
       decisions.set(order.id, {
         orderId: order.id,
         status: "STOP",
-        reason: list === undefined ? "UNKNOWN_VARIANT" : "INSUFFICIENT_STOCK",
+        reason: "UNKNOWN_VARIANT",
       });
       return;
     }
-
-    let need = li.qty;
-    for (const batch of list) {
-      if (need === 0) break;
-      if (batch.remaining <= 0) continue;
-      const take = Math.min(batch.remaining, need);
-      batch.remaining -= take;
-      need -= take;
-      tentative.push({
-        lineItemId: li.id,
-        batchId: batch.id,
-        qty: take,
-      });
-    }
-
-    if (need > 0) {
+    if (have < qty) {
       decisions.set(order.id, {
         orderId: order.id,
         status: "STOP",
@@ -137,18 +117,14 @@ function tryAllocate(
     }
   }
 
-  // Commit: copy probe → pool.
-  for (const [variantId, list] of probe) {
-    pool.set(
-      variantId,
-      list.map((b) => ({ ...b })),
-    );
+  // Commit: consume from the pool.
+  for (const [variantId, qty] of need) {
+    avail.set(variantId, (avail.get(variantId) ?? 0) - qty);
   }
 
   decisions.set(order.id, {
     orderId: order.id,
     status: "SHIP",
-    allocations: tentative,
     mode,
   });
 }
@@ -159,7 +135,8 @@ function byCreatedAtThenId(a: OrderInput, b: OrderInput): number {
 }
 
 function nowMs(): number {
-  return typeof performance !== "undefined" && typeof performance.now === "function"
+  return typeof performance !== "undefined" &&
+    typeof performance.now === "function"
     ? performance.now()
     : Date.now();
 }

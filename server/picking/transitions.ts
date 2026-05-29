@@ -9,6 +9,7 @@ import {
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+import { assignBatchesForOrder } from "./assign-batches";
 
 /**
  * Atomic state transitions for the picking/packing workflow.
@@ -113,14 +114,17 @@ export type ConfirmPackingResult = {
 /**
  * Final commit of a packed order.
  *
+ * Charge assignment happens at slip print, but we ensure it here too (idempotent)
+ * so packing can't proceed without pinned batches — e.g. if the operator packs
+ * without printing. `batch.remaining_qty` was already decremented at assignment,
+ * so packing does NOT touch it; it only realizes the physical outflow.
+ *
  * In ONE Firestore transaction:
  *   1. Verify order is in PICKING state
  *   2. Read all open allocations for the order
- *   3. Decrement batch.remaining_qty by allocation.qty
- *   4. Mark batches DEPLETED if remaining = 0
- *   5. Mark allocations.consumed_at
- *   6. Decrement variant.on_hand_total and reserved_total, recompute available
- *   7. Set order.internal_status = PACKED
+ *   3. Mark allocations.consumed_at
+ *   4. Decrement variant.on_hand_total and reserved_total, recompute available
+ *   5. Set order.internal_status = PACKED
  *
  * Outside the transaction (best-effort):
  *   - Write CONSUME inventory_movements (audit)
@@ -134,6 +138,10 @@ export async function confirmPacking(
 ): Promise<ConfirmPackingResult> {
   const db = adminDb();
   const orderRef = db.collection(Collections.Orders).doc(orderId);
+
+  // Ensure the order has its FEFO Charge assignment before we consume it.
+  // Idempotent: a no-op when the slip was already printed.
+  await assignBatchesForOrder(orderId);
 
   const { consumedQtyByBatch, consumedQtyByVariant, lineItems, effectiveTracking } =
     await db.runTransaction(async (tx) => {
@@ -163,33 +171,6 @@ export async function confirmPacking(
 
       const consumedByBatch: Record<string, number> = {};
       const consumedByVariant: Record<string, number> = {};
-
-      // Read all distinct batches in this allocation set (tx reads must
-      // happen before writes).
-      const batchIds = Array.from(
-        new Set(openAllocs.map((a) => a.data.batch_id)),
-      );
-      const batchRefs = batchIds.map((id) =>
-        db.collection(Collections.Batches).doc(id),
-      );
-      const batchSnaps = await Promise.all(batchRefs.map((r) => tx.get(r)));
-      const batchById = new Map<
-        string,
-        { ref: FirebaseFirestore.DocumentReference; remaining: number }
-      >();
-      for (let i = 0; i < batchIds.length; i++) {
-        const snap = batchSnaps[i];
-        if (!snap?.exists) {
-          throw new TransitionError(
-            "batch_inconsistency",
-            `batch ${batchIds[i]} existiert nicht mehr`,
-          );
-        }
-        const remaining = (snap.data()?.remaining_qty as number) ?? 0;
-        const ref = batchRefs[i];
-        if (!ref) throw new Error("batchRefs index out of bounds");
-        batchById.set(batchIds[i] as string, { ref, remaining });
-      }
 
       const variantIds = Array.from(
         new Set(openAllocs.map((a) => a.data.variant_id)),
@@ -224,7 +205,8 @@ export async function confirmPacking(
         });
       }
 
-      // Aggregate consumption.
+      // Aggregate consumption (batch totals are for the audit log only —
+      // remaining_qty was already decremented at assignment).
       for (const a of openAllocs) {
         consumedByBatch[a.data.batch_id] =
           (consumedByBatch[a.data.batch_id] ?? 0) + a.data.qty;
@@ -232,30 +214,7 @@ export async function confirmPacking(
           (consumedByVariant[a.data.variant_id] ?? 0) + a.data.qty;
       }
 
-      // Sanity: each batch must have enough stock.
-      for (const [batchId, qty] of Object.entries(consumedByBatch)) {
-        const b = batchById.get(batchId);
-        if (!b) continue;
-        if (b.remaining < qty) {
-          throw new TransitionError(
-            "batch_inconsistency",
-            `batch ${batchId}: remaining=${b.remaining}, need=${qty}`,
-          );
-        }
-      }
-
       // ---- Writes ----
-      // Batches
-      for (const [batchId, qty] of Object.entries(consumedByBatch)) {
-        const b = batchById.get(batchId);
-        if (!b) continue;
-        const next = b.remaining - qty;
-        tx.update(b.ref, {
-          remaining_qty: next,
-          status: next === 0 ? "DEPLETED" : "ACTIVE",
-        });
-      }
-
       // Allocations: mark consumed
       for (const a of openAllocs) {
         tx.update(a.ref, { consumed_at: FieldValue.serverTimestamp() });

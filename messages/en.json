@@ -306,6 +306,8 @@
       "reserved": "Reserved",
       "available": "Available",
       "stock": "Stock",
+      "charge": "Batch",
+      "mhd": "BBD",
       "noLineItems": "No line items.",
       "bundleBadge": "Bundle",
       "bundles": "bundles",

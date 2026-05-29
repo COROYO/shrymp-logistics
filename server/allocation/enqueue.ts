@@ -1,5 +1,6 @@
 import "server-only";
 import { log } from "@/lib/logger";
+import type { AllocationTrigger } from "@/server/firestore/schema";
 
 /**
  * Enqueue an allocation run via Cloud Tasks.
@@ -30,16 +31,6 @@ const BUCKET_MS = 2000;
 // commit-to-read visibility (~tens of ms). 500ms is comfortably more than
 // enough and barely slows perceived latency.
 const SCHEDULE_BUFFER_MS = 500;
-
-export type AllocationTrigger =
-  | "ORDER_CREATED"
-  | "ORDER_UPDATED"
-  | "ORDER_CANCELLED"
-  | "INBOUND"
-  | "PACKING_DONE"
-  | "MANUAL"
-  | "RECONCILE"
-  | "TAIL_SWEEP";
 
 export type EnqueueOptions = {
   triggeredBy: AllocationTrigger;

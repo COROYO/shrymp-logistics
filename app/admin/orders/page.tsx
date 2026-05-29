@@ -4,6 +4,8 @@ import { adminDb } from "@/server/firestore/admin";
 import { SyncOrdersButton } from "./sync-orders-button";
 import {
   Collections,
+  type Allocation,
+  type Batch,
   type Order,
   type OrderInternalStatus,
   type Product,
@@ -11,6 +13,7 @@ import {
 } from "@/server/firestore/schema";
 import {
   OrdersTable,
+  type ChargeRow,
   type OrderLineItemRow,
   type OrderRow,
 } from "./orders-table";
@@ -88,7 +91,50 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
     }
   }
 
+  // Charge (batch) assignments. These exist only after the packing slip is
+  // printed (PICKING onward) and stay visible through PACKED. We exclude only
+  // *released* allocations (cancelled orders) — a consumed (packed) allocation
+  // still represents the Charge that physically shipped.
+  // orderId → lineItemId → ChargeRef[]
+  const chargesByOrderLine = new Map<string, Map<string, ChargeRow[]>>();
+  {
+    const allocSnaps = await Promise.all(
+      chunkIds(orders.map((o) => o.id), 30).map((c) =>
+        db.collection(Collections.Allocations).where("order_id", "in", c).get(),
+      ),
+    );
+    const allocs = allocSnaps
+      .flatMap((s) => s.docs.map((d) => d.data() as Allocation))
+      .filter((a) => !a.released);
+    if (allocs.length > 0) {
+      const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
+      const batchById = new Map<string, Batch>();
+      const batchSnaps = await db.getAll(
+        ...batchIds.map((id) => db.collection(Collections.Batches).doc(id)),
+      );
+      for (const b of batchSnaps) {
+        if (b.exists) batchById.set(b.id, b.data() as Batch);
+      }
+      for (const a of allocs) {
+        const b = batchById.get(a.batch_id);
+        if (!b) continue;
+        const byLine =
+          chargesByOrderLine.get(a.order_id) ??
+          new Map<string, ChargeRow[]>();
+        const list = byLine.get(a.line_item_id) ?? [];
+        list.push({
+          chargeNumber: b.charge_number,
+          expiryIso: tsToIso(b.expiry_date) || null,
+          qty: a.qty,
+        });
+        byLine.set(a.line_item_id, list);
+        chargesByOrderLine.set(a.order_id, byLine);
+      }
+    }
+  }
+
   return orders.map<OrderRow>((o) => {
+    const chargesByLine = chargesByOrderLine.get(o.id);
     const itemCount = o.line_items.reduce((sum, li) => sum + li.qty, 0);
     const rawItems: OrderLineItemRow[] = o.line_items.map((li) => {
       const variant = variantById.get(li.variant_id);
@@ -115,6 +161,7 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
         onHand: variant?.on_hand_total ?? 0,
         reserved: variant?.reserved_total ?? 0,
         available: variant?.available ?? 0,
+        charges: chargesByLine?.get(li.id) ?? [],
         mergedFromIds: [li.id],
         bundle: li.bundle
           ? {
@@ -163,10 +210,28 @@ function mergeDuplicateLineItems(
     merged[existingIdx] = {
       ...existing,
       qty: existing.qty + li.qty,
+      charges: mergeCharges(existing.charges, li.charges),
       mergedFromIds: [...existing.mergedFromIds, li.id],
     };
   }
   return merged;
+}
+
+/** Combine two Charge lists, summing qty for the same charge number. */
+function mergeCharges(a: ChargeRow[], b: ChargeRow[]): ChargeRow[] {
+  const byNumber = new Map<string, ChargeRow>();
+  for (const c of [...a, ...b]) {
+    const existing = byNumber.get(c.chargeNumber);
+    if (existing) existing.qty += c.qty;
+    else byNumber.set(c.chargeNumber, { ...c });
+  }
+  return Array.from(byNumber.values());
+}
+
+function chunkIds<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
 
 export default async function OrdersPage({
