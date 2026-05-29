@@ -3,3 +3,18 @@ env:
     secret: SHOPIFY_API_KEY
   - variable: SHOPIFY_API_SECRET
     secret: SHOPIFY_API_SECRET
+  # Cloud Tasks queue for serialized allocation runs (concurrency = 1).
+  # Without these the allocation falls back to inline (synchronous) runs.
+  - variable: GCP_PROJECT_ID
+    value: monolith-lager
+  - variable: GCP_LOCATION
+    value: europe-west3
+  - variable: ALLOCATION_QUEUE
+    value: allocation-runs
+  - variable: ALLOCATION_TARGET_URL
+    value: https://monolith-lager--monolith-lager.europe-west4.hosted.app/api/internal/allocation/run
+  # Consumer endpoint auth is currently open (matches the open cron endpoints).
+  # Harden later: drop this and configure OIDC (ALLOCATION_INVOKER_SERVICE_ACCOUNT)
+  # together with CRON_SECRET.
+  - variable: ALLOCATION_ALLOW_UNAUTHENTICATED
+    value: "1"
