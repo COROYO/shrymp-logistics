@@ -139,6 +139,7 @@ export function mapShippingMethod(
 export function mapShopifyOrderToFirestore(
   payload: ShopifyOrderPayload,
   previousInternalStatus: OrderInternalStatus | null,
+  previousLagerTagSynced: "SHIP" | "STOP" | null = null,
 ): Omit<Order, "updated_at"> {
   const cancelled = !!payload.cancelled_at;
   const internalStatus: OrderInternalStatus = cancelled
@@ -157,6 +158,7 @@ export function mapShopifyOrderToFirestore(
     shopify_financial_status: payload.financial_status ?? null,
     shopify_fulfillment_status: payload.fulfillment_status ?? null,
     internal_status: internalStatus,
+    lager_tag_synced: previousLagerTagSynced,
     cod_amount_cents:
       moneyDecimalToCents(payload.total_outstanding) ??
       moneyDecimalToCents(payload.current_total_price),

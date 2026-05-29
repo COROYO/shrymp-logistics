@@ -227,6 +227,11 @@ export async function backfillOrders(
         existing.exists
           ? ((existing.data()?.internal_status as OrderInternalStatus) ?? null)
           : null;
+      // LAGER tags are system-owned; preserve our confirmed push state across
+      // mirrors so a Shopify webhook doesn't reset it and re-trigger a push.
+      const prevLagerSynced = existing.exists
+        ? ((existing.data()?.lager_tag_synced as "SHIP" | "STOP" | null) ?? null)
+        : null;
       const cancelled = !!n.cancelledAt;
       const internalStatus: OrderInternalStatus = cancelled
         ? "CANCELLED"
@@ -289,6 +294,7 @@ export async function backfillOrders(
         shopify_financial_status: n.displayFinancialStatus ?? null,
         shopify_fulfillment_status: n.displayFulfillmentStatus ?? null,
         internal_status: internalStatus,
+        lager_tag_synced: prevLagerSynced,
         cod_amount_cents:
           moneyDecimalToCents(
             n.totalOutstandingSet?.shopMoney?.amount ?? null,

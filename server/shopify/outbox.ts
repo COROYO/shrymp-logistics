@@ -10,15 +10,18 @@ import {
   tagsRemoveFromOrder,
 } from "./mutations";
 
+const LAGER_SHIP = "LAGER_SHIP";
+const LAGER_STOP = "LAGER_STOP";
+
 /**
  * Drain pending Shopify outbox entries.
  *
  * Idempotent + safe to call concurrently because each row is claimed via
  * a transaction that increments `attempts` and bumps `next_retry_at`.
  */
-export async function processOutbox(
-  limit = 50,
-): Promise<{ processed: number; failed: number; done: number }> {
+type OutboxDrainResult = { processed: number; failed: number; done: number };
+
+export async function processOutbox(limit = 50): Promise<OutboxDrainResult> {
   const db = adminDb();
   const now = Timestamp.now();
 
@@ -28,51 +31,74 @@ export async function processOutbox(
     .limit(limit)
     .get();
 
-  let processed = 0;
-  let failed = 0;
-  let done = 0;
-
+  const result: OutboxDrainResult = { processed: 0, failed: 0, done: 0 };
   for (const docSnap of dueSnap.docs) {
-    const row = docSnap.data() as ShopifyOutbox;
-    if (row.done_at) continue;
+    await processRow(docSnap, result);
+  }
+  return result;
+}
 
-    // Claim: bump attempts + push next_retry_at out, so a concurrent worker
-    // ignores it. If we succeed below, we mark done_at and the row drops out
-    // of the due query for good.
-    try {
-      const nextRetry = Timestamp.fromMillis(
-        Date.now() + backoffMs(row.attempts),
-      );
-      await docSnap.ref.update({
-        attempts: FieldValue.increment(1),
-        next_retry_at: nextRetry,
-      });
-    } catch (e) {
-      log.warn("outbox_claim_failed", { id: row.id, error: String(e) });
-      continue;
-    }
+/**
+ * Drain specific outbox rows by document id, regardless of `next_retry_at`.
+ *
+ * Used by the allocation run to push the LAGER tag entries it just created
+ * *immediately* and deterministically — the time-windowed `processOutbox`
+ * can starve fresh rows when a backlog of older due entries fills its limit,
+ * which previously left manually-triggered tag pushes unsent.
+ */
+export async function processOutboxByIds(
+  ids: string[],
+): Promise<OutboxDrainResult> {
+  const db = adminDb();
+  const result: OutboxDrainResult = { processed: 0, failed: 0, done: 0 };
+  if (ids.length === 0) return result;
 
-    try {
-      await dispatch(row);
-      await docSnap.ref.update({
-        done_at: FieldValue.serverTimestamp(),
-      });
-      processed++;
-      done++;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      log.warn("outbox_dispatch_failed", {
-        id: row.id,
-        op: row.op,
-        attempts: row.attempts + 1,
-        error: msg,
-      });
-      await docSnap.ref.update({ last_error: msg });
-      failed++;
-    }
+  const refs = ids.map((id) => db.collection(Collections.ShopifyOutbox).doc(id));
+  const snaps = await db.getAll(...refs);
+  for (const docSnap of snaps) {
+    if (!docSnap.exists) continue;
+    await processRow(docSnap, result);
+  }
+  return result;
+}
+
+async function processRow(
+  docSnap: FirebaseFirestore.DocumentSnapshot,
+  result: OutboxDrainResult,
+): Promise<void> {
+  const row = docSnap.data() as ShopifyOutbox;
+  if (row.done_at) return;
+
+  // Claim: bump attempts + push next_retry_at out, so a concurrent worker
+  // ignores it. If we succeed below, we mark done_at and the row drops out
+  // of the due query for good.
+  try {
+    const nextRetry = Timestamp.fromMillis(Date.now() + backoffMs(row.attempts));
+    await docSnap.ref.update({
+      attempts: FieldValue.increment(1),
+      next_retry_at: nextRetry,
+    });
+  } catch (e) {
+    log.warn("outbox_claim_failed", { id: row.id, error: String(e) });
+    return;
   }
 
-  return { processed, failed, done };
+  try {
+    await dispatch(row);
+    await docSnap.ref.update({ done_at: FieldValue.serverTimestamp() });
+    result.processed++;
+    result.done++;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.warn("outbox_dispatch_failed", {
+      id: row.id,
+      op: row.op,
+      attempts: row.attempts + 1,
+      error: msg,
+    });
+    await docSnap.ref.update({ last_error: msg });
+    result.failed++;
+  }
 }
 
 async function dispatch(row: ShopifyOutbox): Promise<void> {
@@ -93,6 +119,26 @@ async function dispatch(row: ShopifyOutbox): Promise<void> {
       };
       await tagsRemoveFromOrder(orderId, tags);
       await verifyOrderTagState(orderId, tags, "must_exclude");
+      return;
+    }
+    case "LAGER_TAGS_SET": {
+      // LAGER tags are owned by our system: set the correct one and strip the
+      // opposite in a single op, verify both landed, then record the confirmed
+      // state on the order so the next allocation run won't re-push needlessly.
+      const { orderId, status } = row.payload as {
+        orderId: string;
+        status: "SHIP" | "STOP";
+      };
+      const want = status === "SHIP" ? LAGER_SHIP : LAGER_STOP;
+      const drop = status === "SHIP" ? LAGER_STOP : LAGER_SHIP;
+      await tagsAddOnOrder(orderId, [want]);
+      await tagsRemoveFromOrder(orderId, [drop]);
+      await verifyOrderTagState(orderId, [want], "must_include");
+      await verifyOrderTagState(orderId, [drop], "must_exclude");
+      await adminDb()
+        .collection(Collections.Orders)
+        .doc(orderId)
+        .update({ lager_tag_synced: status });
       return;
     }
     case "FULFILLMENT_CREATE": {

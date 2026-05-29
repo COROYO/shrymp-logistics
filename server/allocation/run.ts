@@ -19,7 +19,7 @@ import type {
   OrderInput,
   Decision,
 } from "./types";
-import { processOutbox } from "@/server/shopify/outbox";
+import { processOutbox, processOutboxByIds } from "@/server/shopify/outbox";
 import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
 
@@ -33,15 +33,15 @@ import { log } from "@/lib/logger";
  *   4. In bulk-writer batches: delete prior allocations for those orders,
  *      write new allocations, update orders, recompute variant.reserved_total.
  *   5. Append RESERVE/RELEASE inventory_movements (audit).
- *   6. Queue Shopify tag-push outbox entries for orders whose status changed.
+ *   6. Queue LAGER_TAGS_SET outbox entries wherever the decision differs from
+ *      the LAGER tag state we last confirmed on Shopify (`lager_tag_synced`).
+ *      LAGER tags are system-owned; this repairs drift, not just status changes.
  *   7. Persist `allocation_runs/{runId}` with stats.
  *
  * Orders in PACKED or CANCELLED state are NEVER touched.
  */
 
 const ORDER_STATUSES_TO_REALLOCATE = ["NEW", "SHIP", "STOP"] as const;
-const TAG_SHIP = "LAGER_SHIP";
-const TAG_STOP = "LAGER_STOP";
 
 export type RunAllocationInFirestoreOptions = {
   triggeredBy:
@@ -113,20 +113,15 @@ export async function runAllocationInFirestore(
       })),
     }));
 
-    const priorStatusByOrder = new Map(
-      ordersRaw.map((o) => [o.id, o.internal_status]),
-    );
-
     // ----- 2. Allocate (pure) -----
     const input: AllocationInput = { batches, orders };
     const result = allocate(input);
 
     // ----- 3. Commit -----
-    await commitDecisions(
+    const lagerOutboxIds = await commitDecisions(
       runRef,
       result.decisions,
       ordersRaw,
-      priorStatusByOrder,
     );
 
     await runRef.update({
@@ -144,9 +139,22 @@ export async function runAllocationInFirestore(
       ...result.stats,
     });
 
-    let outbox = { processed: 0, failed: 0, done: 0 };
+    const outbox = { processed: 0, failed: 0, done: 0 };
+    // Push the LAGER tag entries we just created *first* and by id, so they
+    // can't be starved by a backlog of older due rows in the windowed drain.
     try {
-      outbox = await processOutbox(100);
+      const r = await processOutboxByIds(lagerOutboxIds);
+      outbox.processed += r.processed;
+      outbox.failed += r.failed;
+      outbox.done += r.done;
+    } catch (e) {
+      log.warn("post_run_lager_tag_drain_failed", { error: String(e) });
+    }
+    try {
+      const r = await processOutbox(100);
+      outbox.processed += r.processed;
+      outbox.failed += r.failed;
+      outbox.done += r.done;
     } catch (e) {
       log.warn("post_run_outbox_drain_failed", { error: String(e) });
     }
@@ -207,8 +215,7 @@ async function commitDecisions(
   runRef: DocumentReference,
   decisions: Decision[],
   ordersRaw: Order[],
-  priorStatusByOrder: Map<string, Order["internal_status"]>,
-): Promise<void> {
+): Promise<string[]> {
   const db = adminDb();
   const runId = runRef.id;
 
@@ -255,8 +262,9 @@ async function commitDecisions(
   // --- Step B: write new allocations + update orders + recompute reservations ---
   // Variant reservation deltas: variantId → delta (+ reserved, - reserved)
   const reservedDelta = new Map<string, number>();
-  const tagsToAddByOrder = new Map<string, string[]>();
-  const tagsToRemoveByOrder = new Map<string, string[]>();
+  // Orders whose confirmed LAGER tag state differs from the new decision and
+  // therefore need a (re-)push to Shopify: orderId → target status.
+  const lagerTagSyncs = new Map<string, "SHIP" | "STOP">();
 
   let writeBatch = db.batch();
   let opsInBatch = 0;
@@ -271,7 +279,6 @@ async function commitDecisions(
     const decision =
       decisionByOrderId.get(o.id) ??
       ({ orderId: o.id, status: "STOP", reason: "EMPTY_ORDER" } as const);
-    const prior = priorStatusByOrder.get(o.id);
     const nextStatus = decision.status === "SHIP" ? "SHIP" : "STOP";
 
     const orderRef = db.collection(Collections.Orders).doc(o.id);
@@ -324,15 +331,13 @@ async function commitDecisions(
       }
     }
 
-    // Determine Shopify tag delta vs prior status.
-    if (prior !== nextStatus) {
-      if (nextStatus === "SHIP") {
-        tagsToAddByOrder.set(o.id, [TAG_SHIP]);
-        tagsToRemoveByOrder.set(o.id, [TAG_STOP]);
-      } else {
-        tagsToAddByOrder.set(o.id, [TAG_STOP]);
-        tagsToRemoveByOrder.set(o.id, [TAG_SHIP]);
-      }
+    // LAGER tags are owned by our system — never derived from Shopify's tag
+    // mirror. Push (set the correct LAGER tag, drop the opposite) whenever the
+    // decision differs from the tag state we last *confirmed* on Shopify. This
+    // repairs drift: a previous push that silently failed left `lager_tag_synced`
+    // unchanged, so it gets retried here instead of being skipped.
+    if (nextStatus !== o.lager_tag_synced) {
+      lagerTagSyncs.set(o.id, nextStatus);
     }
 
     if (opsInBatch >= 450) {
@@ -353,10 +358,9 @@ async function commitDecisions(
     new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
   );
 
-  // --- Step D: outbox entries for Shopify tag pushes ---
-  if (tagsToAddByOrder.size > 0 || tagsToRemoveByOrder.size > 0) {
-    await enqueueTagOutbox(tagsToAddByOrder, tagsToRemoveByOrder);
-  }
+  // --- Step D: outbox entries for Shopify LAGER tag pushes ---
+  if (lagerTagSyncs.size === 0) return [];
+  return enqueueLagerTagSync(lagerTagSyncs);
 }
 
 async function recomputeReservedTotals(variantIds: Set<string>): Promise<void> {
@@ -406,42 +410,30 @@ async function recomputeReservedTotals(variantIds: Set<string>): Promise<void> {
   if (ops > 0) await batch.commit();
 }
 
-async function enqueueTagOutbox(
-  add: Map<string, string[]>,
-  remove: Map<string, string[]>,
-): Promise<void> {
+async function enqueueLagerTagSync(
+  syncs: Map<string, "SHIP" | "STOP">,
+): Promise<string[]> {
   const db = adminDb();
   let batch = db.batch();
   let ops = 0;
   const now = FieldValue.serverTimestamp();
+  const ids: string[] = [];
 
-  for (const [orderId, tags] of add) {
-    const ref = db.collection(Collections.ShopifyOutbox).doc();
+  for (const [orderId, status] of syncs) {
+    // Deterministic id per order: a re-enqueue overwrites any still-pending
+    // entry instead of piling up duplicate tag pushes for the same order.
+    const ref = db
+      .collection(Collections.ShopifyOutbox)
+      .doc(`lagertags_${orderId}`);
     batch.set(ref, {
       id: ref.id,
-      op: "TAGS_ADD",
-      payload: { orderId, tags },
+      op: "LAGER_TAGS_SET",
+      payload: { orderId, status },
       attempts: 0,
       next_retry_at: now,
       created_at: now,
     });
-    ops++;
-    if (ops >= 450) {
-      await batch.commit();
-      batch = db.batch();
-      ops = 0;
-    }
-  }
-  for (const [orderId, tags] of remove) {
-    const ref = db.collection(Collections.ShopifyOutbox).doc();
-    batch.set(ref, {
-      id: ref.id,
-      op: "TAGS_REMOVE",
-      payload: { orderId, tags },
-      attempts: 0,
-      next_retry_at: now,
-      created_at: now,
-    });
+    ids.push(ref.id);
     ops++;
     if (ops >= 450) {
       await batch.commit();
@@ -450,6 +442,7 @@ async function enqueueTagOutbox(
     }
   }
   if (ops > 0) await batch.commit();
+  return ids;
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {

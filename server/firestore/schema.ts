@@ -171,6 +171,14 @@ export const OrderSchema = z.object({
   internal_status: OrderInternalStatusSchema.default("NEW"),
   stop_reason: z.string().optional(),
   allocation_run_id: z.string().optional(),
+  /**
+   * The LAGER_* tag state we have *confirmed pushed* to Shopify. LAGER tags
+   * are owned by our system (never sourced from Shopify's mirror); this field
+   * is the source of truth for "do the Shopify tags need updating". Advanced
+   * only after the LAGER_TAGS_SET outbox op succeeds, so a failed push is
+   * retried on the next run instead of being skipped. `null` = never pushed.
+   */
+  lager_tag_synced: z.enum(["SHIP", "STOP"]).nullable().default(null),
   dhl_shipment: OrderDhlShipmentSchema.optional(),
   /**
    * Outstanding amount in smallest currency unit (cents) — used as the
@@ -327,6 +335,7 @@ export const ShopifyOutboxSchema = z.object({
   op: z.enum([
     "TAGS_ADD",
     "TAGS_REMOVE",
+    "LAGER_TAGS_SET",
     "FULFILLMENT_CREATE",
     "INVENTORY_SET",
   ]),

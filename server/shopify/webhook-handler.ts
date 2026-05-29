@@ -63,7 +63,11 @@ async function mirrorOrder(
   const previousStatus: OrderInternalStatus | null =
     prev?.internal_status ?? null;
 
-  const doc = mapShopifyOrderToFirestore(payload, previousStatus);
+  const doc = mapShopifyOrderToFirestore(
+    payload,
+    previousStatus,
+    prev?.lager_tag_synced ?? null,
+  );
 
   // Replace line_items with the canonical GraphQL view. The REST webhook
   // payload's `line_items` array keeps entries for items that were REMOVED
@@ -159,15 +163,18 @@ async function cancelOrder(
   const ref = db.collection(Collections.Orders).doc(orderId);
 
   const snap = await ref.get();
-  const prevStatus = snap.exists
-    ? ((snap.data() as Order | undefined)?.internal_status ?? null)
-    : null;
+  const prevData = snap.exists ? (snap.data() as Order | undefined) : undefined;
+  const prevStatus = prevData?.internal_status ?? null;
 
   // Full mirror — same as create/update — so a cancellation event on an
   // order we'd missed before still lands with all fields populated.
   // mapShopifyOrderToFirestore already detects `cancelled_at` and sets
   // internal_status = "CANCELLED" regardless of `previousStatus`.
-  const doc = mapShopifyOrderToFirestore(payload, prevStatus);
+  const doc = mapShopifyOrderToFirestore(
+    payload,
+    prevStatus,
+    prevData?.lager_tag_synced ?? null,
+  );
 
   // Same canonical re-fetch as in mirrorOrder — see comment there.
   try {
