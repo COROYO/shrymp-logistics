@@ -435,6 +435,7 @@
       "history": "",
       "historyTitle": "Batch history",
       "historyEmpty": "No movements recorded.",
+      "adjustReasonPlaceholder": "Reason for quantity change",
       "systemActor": "System",
       "showArchived": "Show {count} empty/old batches",
       "hideArchived": "Hide empty/old batches",

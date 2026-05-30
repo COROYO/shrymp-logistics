@@ -435,6 +435,7 @@
       "history": "",
       "historyTitle": "Chargen-Historie",
       "historyEmpty": "Keine Bewegungen erfasst.",
+      "adjustReasonPlaceholder": "Grund der Mengenänderung",
       "systemActor": "System",
       "showArchived": "{count} leere/alte Chargen anzeigen",
       "hideArchived": "Leere/alte Chargen ausblenden",

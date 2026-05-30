@@ -393,12 +393,17 @@ function EditBatchRow({
   const [production, setProduction] = useState(batch.productionDateIso ?? "");
   const [remaining, setRemaining] = useState(String(batch.remainingQty));
   const [notes, setNotes] = useState(batch.notes ?? "");
+  const [reason, setReason] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const remainingNum = remaining === "" ? undefined : Number(remaining);
+  const qtyChanged =
+    remainingNum !== undefined && remainingNum !== batch.remainingQty;
+  const qtyDelta = qtyChanged ? remainingNum - batch.remainingQty : 0;
+
   function handleSave() {
     setErr(null);
-    const remainingNum = remaining === "" ? undefined : Number(remaining);
     const productionInitial = batch.productionDateIso ?? "";
     startTransition(async () => {
       const res = await editBatchAction({
@@ -408,11 +413,9 @@ function EditBatchRow({
         expiryDate: expiry !== batch.expiryDateIso ? expiry : undefined,
         productionDate:
           production !== productionInitial ? production : undefined,
-        remainingQty:
-          remainingNum !== undefined && remainingNum !== batch.remainingQty
-            ? remainingNum
-            : undefined,
+        remainingQty: qtyChanged ? remainingNum : undefined,
         notes: notes !== (batch.notes ?? "") ? notes : undefined,
+        reason: qtyChanged ? reason : undefined,
       });
       if (res.ok) onClose();
       else setErr(res.error);
@@ -457,6 +460,15 @@ function EditBatchRow({
           onChange={(e) => setRemaining(e.target.value)}
           className={`${inlineInput} w-20 text-right`}
         />
+        {qtyChanged ? (
+          <div
+            className={`mt-1 text-[10px] font-bold tabular-nums ${
+              qtyDelta >= 0 ? "text-emerald-700" : "text-brand-burgundy"
+            }`}
+          >
+            {qtyDelta >= 0 ? `+${qtyDelta}` : qtyDelta}
+          </div>
+        ) : null}
       </td>
       <td className="px-4 py-2 text-right text-emerald-700/70">
         {batch.soldQty > 0 ? batch.soldQty : "—"}
@@ -476,8 +488,19 @@ function EditBatchRow({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           maxLength={500}
+          placeholder={t("notePlaceholder")}
           className={`${inlineInput} w-full`}
         />
+        {qtyChanged ? (
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={500}
+            placeholder={t("adjustReasonPlaceholder")}
+            className={`${inlineInput} mt-1 w-full border-amber-300`}
+          />
+        ) : null}
       </td>
       <td className="px-4 py-2 text-right">
         <div className="inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">

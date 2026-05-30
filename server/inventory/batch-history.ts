@@ -28,11 +28,26 @@ function tsToIso(t: unknown): string | null {
 }
 
 /**
- * Full movement history for a single batch — every INBOUND, ADJUSTMENT,
- * RESERVE, RELEASE and CONSUME that touched it, newest first.
+ * Movement types that represent a real, *physical* stock change for a batch —
+ * the additions and write-offs the warehouse cares about. RESERVE / RELEASE
+ * are reservation bookkeeping (they move `reserved_total`, never the batch's
+ * physical `remaining_qty`) and the allocation run rewrites them on every
+ * re-run, so including them would flood the history with meaningless
+ * "Reserviert +N System" churn.
+ */
+const PHYSICAL_TYPES = [
+  "INBOUND", // Wareneingang
+  "ADJUSTMENT", // manuelle Korrektur (+/-)
+  "CONSUME", // beim Packen abgebucht
+  "EXTERNAL_DRIFT", // extern erkannte Abweichung
+] as const;
+
+/**
+ * Physical movement history for a single batch — every goods-receipt,
+ * manual correction, consumption and external drift that changed its stock,
+ * newest first. RESERVE/RELEASE allocation churn is intentionally excluded.
  *
- * `user_id` is resolved to a human-readable name where possible (system
- * movements like RESERVE from an allocation run have no user → null).
+ * `user_id` is resolved to a human-readable name where possible.
  */
 export async function getBatchHistory(
   batchId: string,
@@ -42,6 +57,7 @@ export async function getBatchHistory(
   const snap = await db
     .collection(Collections.InventoryMovements)
     .where("batch_id", "==", batchId)
+    .where("type", "in", [...PHYSICAL_TYPES])
     .orderBy("created_at", "desc")
     .limit(limit)
     .get();

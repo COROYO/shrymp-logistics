@@ -31,6 +31,12 @@ export type EditBatchInput = {
   remaining_qty?: number;
   status?: "ACTIVE" | "DEPLETED" | "EXPIRED";
   notes?: string | null;
+  /**
+   * Reason for a quantity change (free text). Stored on the ADJUSTMENT
+   * movement so the batch history shows *why* stock was added/written off —
+   * distinct from the batch's permanent `notes`.
+   */
+  reason?: string | null;
 };
 
 export async function editBatch(
@@ -140,6 +146,10 @@ export async function editBatch(
         updated_at: FieldValue.serverTimestamp(),
       });
 
+      const adjustmentNote =
+        patch.reason && patch.reason.trim()
+          ? patch.reason.trim()
+          : (patch.notes ?? undefined);
       tx.set(movRef, {
         id: movRef.id,
         type: "ADJUSTMENT",
@@ -148,7 +158,7 @@ export async function editBatch(
         qty: delta, // signed
         ref: { kind: "MANUAL", id: batchId },
         user_id: userId,
-        note: patch.notes ?? undefined,
+        ...(adjustmentNote ? { note: adjustmentNote } : {}),
         created_at: FieldValue.serverTimestamp(),
       });
     }

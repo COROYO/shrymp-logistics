@@ -95,6 +95,8 @@ const EditSchema = z.object({
     .transform((v) => (typeof v === "string" && v !== "" ? Number(v) : v))
     .optional(),
   notes: z.string().max(500).optional().or(z.literal("")).optional(),
+  /** Reason for a quantity change — recorded on the ADJUSTMENT movement. */
+  reason: z.string().max(500).optional().or(z.literal("")).optional(),
 });
 
 export type EditBatchResult =
@@ -141,6 +143,10 @@ export async function editBatchAction(
             : parsed.data.notes === ""
               ? null
               : parsed.data.notes,
+        reason:
+          parsed.data.reason && parsed.data.reason.trim()
+            ? parsed.data.reason.trim()
+            : undefined,
       },
       user.uid,
     );
