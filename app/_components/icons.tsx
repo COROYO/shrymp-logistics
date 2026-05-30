@@ -129,3 +129,32 @@ export function AdminIcon({ className }: IconProps) {
     </Svg>
   );
 }
+
+export function HistoryIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M3.5 10a6.5 6.5 0 1 1 1.9 4.6" />
+      <path d="M3.5 14v-3.5H7" />
+      <path d="M10 6.5V10l2.5 1.5" />
+    </Svg>
+  );
+}
+
+export function EditIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M13.5 4.5 15.5 6.5 7 15H5v-2z" />
+      <path d="M12 6 14 8" />
+    </Svg>
+  );
+}
+
+export function ArchiveIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M3.5 5.5h13v3h-13z" />
+      <path d="M4.5 8.5V15a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V8.5" />
+      <path d="M8 11h4" />
+    </Svg>
+  );
+}

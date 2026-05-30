@@ -1,14 +1,23 @@
 "use client";
-import { useState, useTransition } from "react";
+import { Fragment, useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import {
   archiveBatchAction,
   editBatchAction,
+  getBatchHistoryAction,
   receiveBatchAction,
   type ReceiveBatchActionState,
 } from "./actions";
+import type { BatchHistoryEntry } from "@/server/inventory/batch-history";
+import { ArchiveIcon, EditIcon, HistoryIcon } from "@/app/_components/icons";
 import type { BatchRow, VariantRow } from "./product-accordion";
+
+const COLSPAN = 10;
+
+function isVisibleByDefault(b: BatchRow): boolean {
+  return b.status === "ACTIVE" && b.remainingQty > 0;
+}
 
 export function VariantBatchPanel({
   variant,
@@ -20,6 +29,15 @@ export function VariantBatchPanel({
   const t = useTranslations("batches.panel");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [historyId, setHistoryId] = useState<string | null>(null);
+
+  const archivedCount = variant.batches.filter(
+    (b) => !isVisibleByDefault(b),
+  ).length;
+  const visibleBatches = showArchived
+    ? variant.batches
+    : variant.batches.filter(isVisibleByDefault);
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white shadow-sm">
@@ -81,37 +99,39 @@ export function VariantBatchPanel({
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-100">
-          {variant.batches.length === 0 ? (
+          {visibleBatches.length === 0 ? (
             <tr>
               <td
-                colSpan={10}
+                colSpan={COLSPAN}
                 className="px-4 py-3 text-xs text-brand-navy/60"
               >
                 {t("noActiveBatch")}
               </td>
             </tr>
           ) : (
-            variant.batches.map((b) =>
-              editingId === b.id ? (
-                <EditBatchRow
-                  key={b.id}
-                  batch={b}
-                  onClose={() => setEditingId(null)}
-                />
-              ) : (
-                <BatchDisplayRow
-                  key={b.id}
-                  batch={b}
-                  onEdit={() => setEditingId(b.id)}
-                />
-              ),
-            )
+            visibleBatches.map((b) => (
+              <Fragment key={b.id}>
+                {editingId === b.id ? (
+                  <EditBatchRow batch={b} onClose={() => setEditingId(null)} />
+                ) : (
+                  <BatchDisplayRow
+                    batch={b}
+                    onEdit={() => setEditingId(b.id)}
+                    historyOpen={historyId === b.id}
+                    onToggleHistory={() =>
+                      setHistoryId((cur) => (cur === b.id ? null : b.id))
+                    }
+                  />
+                )}
+                {historyId === b.id ? <BatchHistoryRow batchId={b.id} /> : null}
+              </Fragment>
+            ))
           )}
         </tbody>
       </table>
       </div>
 
-      <div className="border-t border-zinc-200 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 p-3">
         {adding ? (
           <NewBatchInlineForm
             variantId={variant.id}
@@ -126,6 +146,17 @@ export function VariantBatchPanel({
             {t("newBatch")}
           </button>
         )}
+        {archivedCount > 0 && !adding ? (
+          <button
+            type="button"
+            onClick={() => setShowArchived((v) => !v)}
+            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60 transition hover:text-brand-navy"
+          >
+            {showArchived
+              ? t("hideArchived")
+              : t("showArchived", { count: archivedCount })}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -159,13 +190,18 @@ function Cell({
 function BatchDisplayRow({
   batch,
   onEdit,
+  historyOpen,
+  onToggleHistory,
 }: {
   batch: BatchRow;
   onEdit: () => void;
+  historyOpen: boolean;
+  onToggleHistory: () => void;
 }) {
   const t = useTranslations("batches.panel");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const archived = !(batch.status === "ACTIVE" && batch.remainingQty > 0);
 
   function handleArchive() {
     if (
@@ -185,8 +221,12 @@ function BatchDisplayRow({
   }
 
   return (
-    <tr className="align-top transition hover:bg-brand-navy-50">
-      <td className="px-4 py-2.5 font-mono font-semibold text-brand-navy">
+    <tr
+      className={`align-top transition hover:bg-brand-navy-50 ${
+        archived ? "bg-zinc-50/60 text-brand-navy/45" : ""
+      }`}
+    >
+      <td className="px-4 py-2.5 font-mono font-semibold">
         {batch.chargeNumber}
       </td>
       <td className="px-4 py-2.5 font-mono text-brand-navy/80">
@@ -217,19 +257,42 @@ function BatchDisplayRow({
         <div className="inline-flex gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
           <button
             type="button"
-            onClick={onEdit}
-            className="text-brand-navy/70 transition hover:text-brand-burgundy"
+            onClick={onToggleHistory}
+            title={t("history")}
+            className={`inline-flex items-center gap-1.5 transition hover:text-brand-burgundy ${
+              historyOpen ? "text-brand-burgundy" : "text-brand-navy/70"
+            }`}
           >
-            {t("edit")}
+            <HistoryIcon className="h-4 w-4" />
+            {t("history")}
           </button>
           <button
             type="button"
-            onClick={handleArchive}
-            disabled={pending}
-            className="text-brand-burgundy transition hover:text-brand-burgundy-dark disabled:opacity-50"
+            onClick={onEdit}
+            title={t("edit")}
+            className="inline-flex items-center gap-1.5 text-brand-navy/70 transition hover:text-brand-burgundy"
           >
-            {pending ? "…" : t("archive")}
+            <EditIcon className="h-4 w-4" />
+            {t("edit")}
           </button>
+          {!archived ? (
+            <button
+              type="button"
+              onClick={handleArchive}
+              disabled={pending}
+              title={t("archive")}
+              className="inline-flex items-center gap-1.5 text-brand-burgundy transition hover:text-brand-burgundy-dark disabled:opacity-50"
+            >
+              {pending ? (
+                "…"
+              ) : (
+                <>
+                  <ArchiveIcon className="h-4 w-4" />
+                  {t("archive")}
+                </>
+              )}
+            </button>
+          ) : null}
         </div>
         {err ? (
           <div className="mt-1 text-[10px] font-semibold text-brand-burgundy">
@@ -239,6 +302,82 @@ function BatchDisplayRow({
       </td>
     </tr>
   );
+}
+
+function BatchHistoryRow({ batchId }: { batchId: string }) {
+  const t = useTranslations("batches.panel");
+  const [entries, setEntries] = useState<BatchHistoryEntry[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getBatchHistoryAction(batchId).then((res) => {
+      if (cancelled) return;
+      if (res.ok) setEntries(res.entries);
+      else setErr(res.error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [batchId]);
+
+  return (
+    <tr className="bg-brand-cream/40">
+      <td colSpan={COLSPAN} className="px-4 py-3">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+          {t("historyTitle")}
+        </div>
+        {entries === null && !err ? (
+          <div className="mt-2 text-xs text-brand-navy/50">…</div>
+        ) : null}
+        {err ? (
+          <div className="mt-2 text-xs font-semibold text-brand-burgundy">
+            {err}
+          </div>
+        ) : null}
+        {entries && entries.length === 0 ? (
+          <div className="mt-2 text-xs text-brand-navy/50">
+            {t("historyEmpty")}
+          </div>
+        ) : null}
+        {entries && entries.length > 0 ? (
+          <ul className="mt-2 space-y-1">
+            {entries.map((e) => (
+              <li
+                key={e.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs"
+              >
+                <span className="w-36 font-mono text-brand-navy/60">
+                  {formatDateTime(e.createdAtIso)}
+                </span>
+                <span className="w-28 font-semibold text-brand-navy/80">
+                  {t(`movement.${e.type}`)}
+                </span>
+                <span
+                  className={`w-10 text-right font-bold tabular-nums ${
+                    e.qty >= 0 ? "text-emerald-700" : "text-brand-burgundy"
+                  }`}
+                >
+                  {e.qty >= 0 ? `+${e.qty}` : e.qty}
+                </span>
+                <span className="text-brand-navy/70">
+                  {e.userName ?? t("systemActor")}
+                </span>
+                {e.note ? (
+                  <span className="text-brand-navy/50">· {e.note}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </td>
+    </tr>
+  );
+}
+
+function formatDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("de-DE");
 }
 
 function EditBatchRow({

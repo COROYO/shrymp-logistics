@@ -427,14 +427,28 @@
       "note": "Заметка",
       "noActiveBatch": "Активных партий пока нет.",
       "edit": "Редактировать",
-      "archive": "Архивировать",
-      "save": "Сохранить",
+      "archive": "",
+      "save": "",
       "cancel": "Отмена",
       "newBatch": "+ Новая партия",
       "archiveConfirm": "Архивировать партию {charge}? Остаток {qty} будет списан.",
       "chargeNoPlaceholder": "Номер партии",
       "qtyPlaceholder": "Кол-во",
-      "notePlaceholder": "Заметка (необязательно)"
+      "notePlaceholder": "Заметка (необязательно)",
+      "history": "",
+      "historyTitle": "История партии",
+      "historyEmpty": "Движений не зафиксировано.",
+      "systemActor": "Система",
+      "showArchived": "Показать {count} пустых/старых партий",
+      "hideArchived": "Скрыть пустые/старые партии",
+      "movement": {
+        "INBOUND": "Поступление",
+        "RESERVE": "Зарезервировано",
+        "RELEASE": "Освобождено",
+        "CONSUME": "Списано",
+        "ADJUSTMENT": "Корректировка",
+        "EXTERNAL_DRIFT": "Внешнее отклонение"
+      }
     }
   },
   "users": {

@@ -28,10 +28,10 @@ async function loadProductRows(): Promise<ProductRow[]> {
     await Promise.all([
       db.collection(Collections.Products).get(),
       db.collection(Collections.Variants).get(),
-      db
-        .collection(Collections.Batches)
-        .where("status", "==", "ACTIVE")
-        .get(),
+      // Load ALL batches (incl. DEPLETED/EXPIRED + emptied ones). The panel
+      // hides non-active/empty ones behind a toggle, but they must be in the
+      // payload so the toggle can reveal them without a round-trip.
+      db.collection(Collections.Batches).get(),
       // For "verkauft"-counter per batch: only allocations that were
       // actually consumed (= packed + shipped) count as sold. Released
       // allocations (cancelled orders) are skipped — they didn't leave
@@ -132,7 +132,16 @@ async function loadProductRows(): Promise<ProductRow[]> {
         variants,
         totalOnHand,
         totalAvailable,
-        batchCount: variants.reduce((s, v) => s + v.batches.length, 0),
+        // Header count reflects the active, non-empty batches (the ones shown
+        // by default). Archived/empty ones live behind the panel toggle.
+        batchCount: variants.reduce(
+          (s, v) =>
+            s +
+            v.batches.filter(
+              (b) => b.status === "ACTIVE" && b.remainingQty > 0,
+            ).length,
+          0,
+        ),
       };
     })
     .sort((a, b) => a.title.localeCompare(b.title));

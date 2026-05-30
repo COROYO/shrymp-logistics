@@ -11,7 +11,6 @@ export class BatchEditError extends Error {
   constructor(
     public readonly code:
       | "batch_not_found"
-      | "remaining_below_reserved"
       | "qty_negative"
       | "invalid_date"
       | "cannot_edit_consumed",
@@ -120,22 +119,12 @@ export async function editBatch(
       return { variantId: before.variant_id, delta: 0 };
     }
 
-    // Sanity: remaining_qty must not drop below currently-reserved (per the
-    // open allocations against THIS batch). We approximate via the variant's
-    // reserved_total — exact per-batch reservation isn't tracked at the
-    // variant doc level, so use the var total as a guardrail floor.
-    if (patch.remaining_qty !== undefined && vSnap.exists) {
-      const reserved =
-        (vSnap.data()?.["reserved_total"] as number | undefined) ?? 0;
-      const onHandAfter =
-        ((vSnap.data()?.["on_hand_total"] as number | undefined) ?? 0) + delta;
-      if (onHandAfter < reserved) {
-        throw new BatchEditError(
-          "remaining_below_reserved",
-          `Bestand wäre ${onHandAfter}, reserviert sind aber ${reserved} Stk in offenen Orders.`,
-        );
-      }
-    }
+    // NOTE: We intentionally do NOT block reductions that take on_hand below
+    // reserved_total. Staff must always be able to correct a batch to reflect
+    // physical reality (spoilage, miscount, breakage). If that leaves
+    // available negative, the allocation re-run triggered below will flip the
+    // now-unfulfillable orders back to STOP and the audit trail (ADJUSTMENT
+    // movement) records exactly what changed.
 
     tx.update(batchRef, update);
 
@@ -214,20 +203,9 @@ export async function archiveBatch(
       .doc(before.variant_id);
     const vSnap = await tx.get(variantRef);
 
-    // Disallow archiving with remaining > 0 if that would create negative
-    // available stock (because of open reservations).
-    if (remaining > 0 && vSnap.exists) {
-      const reserved =
-        (vSnap.data()?.["reserved_total"] as number | undefined) ?? 0;
-      const onHand =
-        (vSnap.data()?.["on_hand_total"] as number | undefined) ?? 0;
-      if (onHand - remaining < reserved) {
-        throw new BatchEditError(
-          "remaining_below_reserved",
-          `Bestand würde ${onHand - remaining} fallen, reserviert sind aber ${reserved} Stk.`,
-        );
-      }
-    }
+    // Archiving is always allowed — even with open reservations. The
+    // allocation re-run afterwards reconciles any orders that can no longer
+    // ship, and the RELEASE/ADJUSTMENT audit trail keeps it traceable.
 
     tx.update(batchRef, {
       remaining_qty: 0,

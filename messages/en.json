@@ -424,14 +424,28 @@
       "note": "Note",
       "noActiveBatch": "No active batch yet.",
       "edit": "Edit",
-      "archive": "Archive",
-      "save": "Save",
+      "archive": "",
+      "save": "",
       "cancel": "Cancel",
       "newBatch": "+ New batch",
       "archiveConfirm": "Archive batch {charge}? Remaining qty {qty} will be booked out.",
       "chargeNoPlaceholder": "Batch #",
       "qtyPlaceholder": "Qty",
-      "notePlaceholder": "Note (optional)"
+      "notePlaceholder": "Note (optional)",
+      "history": "",
+      "historyTitle": "Batch history",
+      "historyEmpty": "No movements recorded.",
+      "systemActor": "System",
+      "showArchived": "Show {count} empty/old batches",
+      "hideArchived": "Hide empty/old batches",
+      "movement": {
+        "INBOUND": "Goods receipt",
+        "RESERVE": "Reserved",
+        "RELEASE": "Released",
+        "CONSUME": "Consumed",
+        "ADJUSTMENT": "Adjustment",
+        "EXTERNAL_DRIFT": "External drift"
+      }
     }
   },
   "users": {

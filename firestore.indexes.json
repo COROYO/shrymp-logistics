@@ -56,6 +56,14 @@
         { "fieldPath": "variant_id", "order": "ASCENDING" },
         { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "inventory_movements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "batch_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -423,15 +423,29 @@
       "receivedBy": "Erfasst von",
       "note": "Notiz",
       "noActiveBatch": "Noch keine aktive Charge.",
-      "edit": "Bearbeiten",
-      "archive": "Archivieren",
+      "edit": "",
+      "archive": "",
       "save": "Speichern",
       "cancel": "Abbrechen",
       "newBatch": "+ Neue Charge",
       "archiveConfirm": "Charge {charge} archivieren? Restmenge {qty} wird ausgebucht.",
       "chargeNoPlaceholder": "Charge-Nr",
       "qtyPlaceholder": "Menge",
-      "notePlaceholder": "Notiz (optional)"
+      "notePlaceholder": "Notiz (optional)",
+      "history": "",
+      "historyTitle": "Chargen-Historie",
+      "historyEmpty": "Keine Bewegungen erfasst.",
+      "systemActor": "System",
+      "showArchived": "{count} leere/alte Chargen anzeigen",
+      "hideArchived": "Leere/alte Chargen ausblenden",
+      "movement": {
+        "INBOUND": "Wareneingang",
+        "RESERVE": "Reserviert",
+        "RELEASE": "Freigegeben",
+        "CONSUME": "Verbraucht",
+        "ADJUSTMENT": "Korrektur",
+        "EXTERNAL_DRIFT": "Externe Abweichung"
+      }
     }
   },
   "users": {

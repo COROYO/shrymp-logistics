@@ -176,3 +176,29 @@ export async function archiveBatchAction(
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
 }
+
+// ----------------------- history -----------------------
+
+export type BatchHistoryActionResult =
+  | { ok: true; entries: import("@/server/inventory/batch-history").BatchHistoryEntry[] }
+  | { ok: false; error: string };
+
+export async function getBatchHistoryAction(
+  batchId: string,
+): Promise<BatchHistoryActionResult> {
+  try {
+    await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+  try {
+    const { getBatchHistory } = await import(
+      "@/server/inventory/batch-history"
+    );
+    const entries = await getBatchHistory(batchId);
+    return { ok: true, entries };
+  } catch (e) {
+    log.warn("batch_history_failed", { error: String(e) });
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
