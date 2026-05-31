@@ -1,8 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { VariantBatchPanel } from "./variant-batch-panel";
+import {
+  TOGGLEABLE_COLUMNS,
+  useColumnVisibility,
+  type BatchColumnKey,
+} from "./columns";
 
 export type BatchRow = {
   id: string;
@@ -67,8 +72,10 @@ function formatPrice(cents: number | null, currency: string | null): string {
 
 export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
   const t = useTranslations("batches.accordion");
+  const tp = useTranslations("batches.panel");
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState("");
+  const { cols, toggle: toggleCol, reset: resetCols } = useColumnVisibility();
 
   function toggle(id: string) {
     setOpenIds((cur) => {
@@ -104,6 +111,16 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
         />
         <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
           {t("filterCount", { filtered: filtered.length, total: rows.length })}
+        </div>
+        <div className="ml-auto">
+          <ColumnMenu
+            cols={cols}
+            onToggle={toggleCol}
+            onReset={resetCols}
+            label={tp("columns")}
+            resetLabel={tp("columnsReset")}
+            columnLabel={(key) => tp(key === "production" ? "productionDate" : key)}
+          />
         </div>
       </div>
 
@@ -188,6 +205,7 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
                         key={v.id}
                         variant={v}
                         priceLabel={formatPrice(v.priceCents, v.currency)}
+                        cols={cols}
                       />
                     ))
                   )}
@@ -197,6 +215,82 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+function ColumnMenu({
+  cols,
+  onToggle,
+  onReset,
+  label,
+  resetLabel,
+  columnLabel,
+}: {
+  cols: Record<BatchColumnKey, boolean>;
+  onToggle: (key: BatchColumnKey) => void;
+  onReset: () => void;
+  label: string;
+  resetLabel: string;
+  columnLabel: (key: BatchColumnKey) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  const hiddenCount = TOGGLEABLE_COLUMNS.filter((k) => !cols[k]).length;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70 shadow-sm transition hover:border-brand-navy hover:text-brand-navy"
+      >
+        {label}
+        {hiddenCount > 0 ? (
+          <span className="rounded bg-brand-navy/10 px-1.5 py-0.5 text-[10px] tabular-nums text-brand-navy">
+            −{hiddenCount}
+          </span>
+        ) : null}
+        <span className="text-[9px] opacity-70">{open ? "▲" : "▼"}</span>
+      </button>
+      {open ? (
+        <div className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg">
+          <ul className="space-y-0.5">
+            {TOGGLEABLE_COLUMNS.map((key) => (
+              <li key={key}>
+                <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-brand-navy transition hover:bg-brand-cream">
+                  <input
+                    type="checkbox"
+                    checked={cols[key]}
+                    onChange={() => onToggle(key)}
+                    className="h-4 w-4 rounded border-zinc-300 text-brand-burgundy focus:ring-brand-navy/30"
+                  />
+                  {columnLabel(key)}
+                </label>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={onReset}
+            className="mt-1 w-full rounded px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/60 transition hover:bg-brand-cream hover:text-brand-navy"
+          >
+            {resetLabel}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

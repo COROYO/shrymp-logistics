@@ -11,20 +11,26 @@ import {
 } from "./actions";
 import type { BatchHistoryEntry } from "@/server/inventory/batch-history";
 import { ArchiveIcon, EditIcon, HistoryIcon } from "@/app/_components/icons";
+import { TOGGLEABLE_COLUMNS, type ColumnVisibility } from "./columns";
 import type { BatchRow, VariantRow } from "./product-accordion";
-
-const COLSPAN = 10;
 
 function isVisibleByDefault(b: BatchRow): boolean {
   return b.status === "ACTIVE" && b.remainingQty > 0;
 }
 
+/** Charge + actions are always shown; the rest are toggleable. */
+function colSpanFor(cols: ColumnVisibility): number {
+  return 2 + TOGGLEABLE_COLUMNS.filter((k) => cols[k]).length;
+}
+
 export function VariantBatchPanel({
   variant,
   priceLabel,
+  cols,
 }: {
   variant: VariantRow;
   priceLabel: string;
+  cols: ColumnVisibility;
 }) {
   const t = useTranslations("batches.panel");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -32,6 +38,7 @@ export function VariantBatchPanel({
   const [showArchived, setShowArchived] = useState(false);
   const [historyId, setHistoryId] = useState<string | null>(null);
 
+  const colSpan = colSpanFor(cols);
   const archivedCount = variant.batches.filter(
     (b) => !isVisibleByDefault(b),
   ).length;
@@ -87,14 +94,26 @@ export function VariantBatchPanel({
         <thead className="bg-brand-cream text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
           <tr>
             <th className="px-4 py-2">{t("charge")}</th>
-            <th className="px-4 py-2">{t("expiry")}</th>
-            <th className="px-4 py-2">{t("productionDate")}</th>
-            <th className="px-4 py-2 text-right">{t("remaining")}</th>
-            <th className="px-4 py-2 text-right">{t("sold")}</th>
-            <th className="px-4 py-2 text-right">{t("initial")}</th>
-            <th className="px-4 py-2">{t("receivedAt")}</th>
-            <th className="px-4 py-2">{t("receivedBy")}</th>
-            <th className="px-4 py-2">{t("note")}</th>
+            {cols.expiry ? <th className="px-4 py-2">{t("expiry")}</th> : null}
+            {cols.production ? (
+              <th className="px-4 py-2">{t("productionDate")}</th>
+            ) : null}
+            {cols.remaining ? (
+              <th className="px-4 py-2 text-right">{t("remaining")}</th>
+            ) : null}
+            {cols.sold ? (
+              <th className="px-4 py-2 text-right">{t("sold")}</th>
+            ) : null}
+            {cols.initial ? (
+              <th className="px-4 py-2 text-right">{t("initial")}</th>
+            ) : null}
+            {cols.receivedAt ? (
+              <th className="px-4 py-2">{t("receivedAt")}</th>
+            ) : null}
+            {cols.receivedBy ? (
+              <th className="px-4 py-2">{t("receivedBy")}</th>
+            ) : null}
+            {cols.note ? <th className="px-4 py-2">{t("note")}</th> : null}
             <th className="px-4 py-2"></th>
           </tr>
         </thead>
@@ -102,7 +121,7 @@ export function VariantBatchPanel({
           {visibleBatches.length === 0 ? (
             <tr>
               <td
-                colSpan={COLSPAN}
+                colSpan={colSpan}
                 className="px-4 py-3 text-xs text-brand-navy/60"
               >
                 {t("noActiveBatch")}
@@ -112,10 +131,15 @@ export function VariantBatchPanel({
             visibleBatches.map((b) => (
               <Fragment key={b.id}>
                 {editingId === b.id ? (
-                  <EditBatchRow batch={b} onClose={() => setEditingId(null)} />
+                  <EditBatchRow
+                    batch={b}
+                    cols={cols}
+                    onClose={() => setEditingId(null)}
+                  />
                 ) : (
                   <BatchDisplayRow
                     batch={b}
+                    cols={cols}
                     onEdit={() => setEditingId(b.id)}
                     historyOpen={historyId === b.id}
                     onToggleHistory={() =>
@@ -123,7 +147,9 @@ export function VariantBatchPanel({
                     }
                   />
                 )}
-                {historyId === b.id ? <BatchHistoryRow batchId={b.id} /> : null}
+                {historyId === b.id ? (
+                  <BatchHistoryRow batchId={b.id} colSpan={colSpan} />
+                ) : null}
               </Fragment>
             ))
           )}
@@ -189,11 +215,13 @@ function Cell({
 
 function BatchDisplayRow({
   batch,
+  cols,
   onEdit,
   historyOpen,
   onToggleHistory,
 }: {
   batch: BatchRow;
+  cols: ColumnVisibility;
   onEdit: () => void;
   historyOpen: boolean;
   onToggleHistory: () => void;
@@ -229,30 +257,46 @@ function BatchDisplayRow({
       <td className="px-4 py-2.5 font-mono font-semibold">
         {batch.chargeNumber}
       </td>
-      <td className="px-4 py-2.5 font-mono text-brand-navy/80">
-        {batch.expiryDateIso || "—"}
-      </td>
-      <td className="px-4 py-2.5 font-mono text-brand-navy/80">
-        {batch.productionDateIso || "—"}
-      </td>
-      <td className="px-4 py-2.5 text-right text-base font-bold text-brand-navy">
-        {batch.remainingQty}
-      </td>
-      <td className="px-4 py-2.5 text-right text-emerald-700">
-        {batch.soldQty > 0 ? batch.soldQty : "—"}
-      </td>
-      <td className="px-4 py-2.5 text-right text-brand-navy/50">
-        {batch.initialQty}
-      </td>
-      <td className="px-4 py-2.5 font-mono text-xs text-brand-navy/70">
-        {batch.receivedAtIso || "—"}
-      </td>
-      <td className="px-4 py-2.5 text-xs text-brand-navy/80">
-        {batch.receivedByName}
-      </td>
-      <td className="px-4 py-2.5 text-xs text-brand-navy/70">
-        {batch.notes ?? ""}
-      </td>
+      {cols.expiry ? (
+        <td className="px-4 py-2.5 font-mono text-brand-navy/80">
+          {batch.expiryDateIso || "—"}
+        </td>
+      ) : null}
+      {cols.production ? (
+        <td className="px-4 py-2.5 font-mono text-brand-navy/80">
+          {batch.productionDateIso || "—"}
+        </td>
+      ) : null}
+      {cols.remaining ? (
+        <td className="px-4 py-2.5 text-right text-base font-bold text-brand-navy">
+          {batch.remainingQty}
+        </td>
+      ) : null}
+      {cols.sold ? (
+        <td className="px-4 py-2.5 text-right text-emerald-700">
+          {batch.soldQty > 0 ? batch.soldQty : "—"}
+        </td>
+      ) : null}
+      {cols.initial ? (
+        <td className="px-4 py-2.5 text-right text-brand-navy/50">
+          {batch.initialQty}
+        </td>
+      ) : null}
+      {cols.receivedAt ? (
+        <td className="px-4 py-2.5 font-mono text-xs text-brand-navy/70">
+          {batch.receivedAtIso || "—"}
+        </td>
+      ) : null}
+      {cols.receivedBy ? (
+        <td className="px-4 py-2.5 text-xs text-brand-navy/80">
+          {batch.receivedByName}
+        </td>
+      ) : null}
+      {cols.note ? (
+        <td className="px-4 py-2.5 text-xs text-brand-navy/70">
+          {batch.notes ?? ""}
+        </td>
+      ) : null}
       <td className="px-4 py-2.5 text-right">
         <div className="inline-flex gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
           <button
@@ -304,7 +348,13 @@ function BatchDisplayRow({
   );
 }
 
-function BatchHistoryRow({ batchId }: { batchId: string }) {
+function BatchHistoryRow({
+  batchId,
+  colSpan,
+}: {
+  batchId: string;
+  colSpan: number;
+}) {
   const t = useTranslations("batches.panel");
   const [entries, setEntries] = useState<BatchHistoryEntry[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -323,7 +373,7 @@ function BatchHistoryRow({ batchId }: { batchId: string }) {
 
   return (
     <tr className="bg-brand-cream/40">
-      <td colSpan={COLSPAN} className="px-4 py-3">
+      <td colSpan={colSpan} className="px-4 py-3">
         <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
           {t("historyTitle")}
         </div>
@@ -382,9 +432,11 @@ function formatDateTime(iso: string | null): string {
 
 function EditBatchRow({
   batch,
+  cols,
   onClose,
 }: {
   batch: BatchRow;
+  cols: ColumnVisibility;
   onClose: () => void;
 }) {
   const t = useTranslations("batches.panel");
@@ -435,73 +487,89 @@ function EditBatchRow({
           className={`${inlineInput} w-24 font-mono`}
         />
       </td>
-      <td className="px-4 py-2">
-        <input
-          type="date"
-          value={expiry}
-          onChange={(e) => setExpiry(e.target.value)}
-          className={`${inlineInput} w-36 font-mono`}
-        />
-      </td>
-      <td className="px-4 py-2">
-        <input
-          type="date"
-          value={production}
-          onChange={(e) => setProduction(e.target.value)}
-          className={`${inlineInput} w-36 font-mono`}
-        />
-      </td>
-      <td className="px-4 py-2 text-right">
-        <input
-          type="number"
-          min={0}
-          step={1}
-          value={remaining}
-          onChange={(e) => setRemaining(e.target.value)}
-          className={`${inlineInput} w-20 text-right`}
-        />
-        {qtyChanged ? (
-          <div
-            className={`mt-1 text-[10px] font-bold tabular-nums ${
-              qtyDelta >= 0 ? "text-emerald-700" : "text-brand-burgundy"
-            }`}
-          >
-            {qtyDelta >= 0 ? `+${qtyDelta}` : qtyDelta}
-          </div>
-        ) : null}
-      </td>
-      <td className="px-4 py-2 text-right text-emerald-700/70">
-        {batch.soldQty > 0 ? batch.soldQty : "—"}
-      </td>
-      <td className="px-4 py-2 text-right text-brand-navy/50">
-        {batch.initialQty}
-      </td>
-      <td className="px-4 py-2 font-mono text-xs text-brand-navy/60">
-        {batch.receivedAtIso || "—"}
-      </td>
-      <td className="px-4 py-2 text-xs text-brand-navy/70">
-        {batch.receivedByName}
-      </td>
-      <td className="px-4 py-2">
-        <input
-          type="text"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={500}
-          placeholder={t("notePlaceholder")}
-          className={`${inlineInput} w-full`}
-        />
-        {qtyChanged ? (
+      {cols.expiry ? (
+        <td className="px-4 py-2">
+          <input
+            type="date"
+            value={expiry}
+            onChange={(e) => setExpiry(e.target.value)}
+            className={`${inlineInput} w-36 font-mono`}
+          />
+        </td>
+      ) : null}
+      {cols.production ? (
+        <td className="px-4 py-2">
+          <input
+            type="date"
+            value={production}
+            onChange={(e) => setProduction(e.target.value)}
+            className={`${inlineInput} w-36 font-mono`}
+          />
+        </td>
+      ) : null}
+      {cols.remaining ? (
+        <td className="px-4 py-2 text-right">
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={remaining}
+            onChange={(e) => setRemaining(e.target.value)}
+            className={`${inlineInput} w-20 text-right`}
+          />
+          {qtyChanged ? (
+            <div
+              className={`mt-1 text-[10px] font-bold tabular-nums ${
+                qtyDelta >= 0 ? "text-emerald-700" : "text-brand-burgundy"
+              }`}
+            >
+              {qtyDelta >= 0 ? `+${qtyDelta}` : qtyDelta}
+            </div>
+          ) : null}
+        </td>
+      ) : null}
+      {cols.sold ? (
+        <td className="px-4 py-2 text-right text-emerald-700/70">
+          {batch.soldQty > 0 ? batch.soldQty : "—"}
+        </td>
+      ) : null}
+      {cols.initial ? (
+        <td className="px-4 py-2 text-right text-brand-navy/50">
+          {batch.initialQty}
+        </td>
+      ) : null}
+      {cols.receivedAt ? (
+        <td className="px-4 py-2 font-mono text-xs text-brand-navy/60">
+          {batch.receivedAtIso || "—"}
+        </td>
+      ) : null}
+      {cols.receivedBy ? (
+        <td className="px-4 py-2 text-xs text-brand-navy/70">
+          {batch.receivedByName}
+        </td>
+      ) : null}
+      {cols.note ? (
+        <td className="px-4 py-2">
           <input
             type="text"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             maxLength={500}
-            placeholder={t("adjustReasonPlaceholder")}
-            className={`${inlineInput} mt-1 w-full border-amber-300`}
+            placeholder={t("notePlaceholder")}
+            className={`${inlineInput} w-full`}
           />
-        ) : null}
-      </td>
+          {qtyChanged ? (
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={500}
+              placeholder={t("adjustReasonPlaceholder")}
+              className={`${inlineInput} mt-1 w-full border-amber-300`}
+            />
+          ) : null}
+        </td>
+      ) : null}
       <td className="px-4 py-2 text-right">
         <div className="inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
           <button

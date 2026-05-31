@@ -439,6 +439,8 @@
       "historyTitle": "История партии",
       "historyEmpty": "Движений не зафиксировано.",
       "adjustReasonPlaceholder": "Причина изменения количества",
+      "columns": "Столбцы",
+      "columnsReset": "Сбросить",
       "systemActor": "Система",
       "showArchived": "Показать {count} пустых/старых партий",
       "hideArchived": "Скрыть пустые/старые партии",
