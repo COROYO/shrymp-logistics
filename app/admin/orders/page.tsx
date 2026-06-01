@@ -56,6 +56,12 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
   const orders = snap.docs.map((d) => d.data() as Order);
   if (orders.length === 0) return [];
 
+  // Live reserved per variant, computed from SHIP/PICKING order demand (the
+  // authoritative source) rather than the drift-prone variant.reserved_total
+  // cache. See server/inventory/reserved.ts.
+  const { loadReservedByVariant } = await import("@/server/inventory/reserved");
+  const reservedByVariant = await loadReservedByVariant();
+
   const variantIds = Array.from(
     new Set(
       orders.flatMap((o) => o.line_items.map((li) => li.variant_id)),
@@ -159,8 +165,10 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
         imageMissingReason,
         variantId: li.variant_id,
         onHand: variant?.on_hand_total ?? 0,
-        reserved: variant?.reserved_total ?? 0,
-        available: variant?.available ?? 0,
+        reserved: reservedByVariant.get(li.variant_id) ?? 0,
+        available:
+          (variant?.on_hand_total ?? 0) -
+          (reservedByVariant.get(li.variant_id) ?? 0),
         charges: chargesByLine?.get(li.id) ?? [],
         mergedFromIds: [li.id],
         bundle: li.bundle
