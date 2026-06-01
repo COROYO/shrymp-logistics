@@ -88,6 +88,28 @@ export async function runAllocationInFirestore(
     }
 
     // ----- 2. Load referenced variants → available-to-reserve -----
+    // Locked stock = demand of orders currently in PICKING (being packed right
+    // now). Those are the only reservations the run must NOT touch. Orders in
+    // NEW/SHIP/STOP all re-compete from the remaining pool, so we don't
+    // subtract them. We compute this LIVE from order state rather than trusting
+    // `variant.reserved_total` — that cache is maintained by the hot-path delta
+    // and can drift, which would understate `available` and STOP orders that
+    // actually have stock (the bug this replaces).
+    const pickingSnap = await db
+      .collection(Collections.Orders)
+      .where("internal_status", "==", "PICKING")
+      .get();
+    const lockedByVariant = new Map<string, number>();
+    for (const d of pickingSnap.docs) {
+      const o = d.data() as Order;
+      for (const li of o.line_items ?? []) {
+        lockedByVariant.set(
+          li.variant_id,
+          (lockedByVariant.get(li.variant_id) ?? 0) + li.qty,
+        );
+      }
+    }
+
     const variantIds = Array.from(
       new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
     );
@@ -101,10 +123,8 @@ export async function runAllocationInFirestore(
         if (!snap.exists) continue; // missing → allocate() reports UNKNOWN_VARIANT
         const d = snap.data() ?? {};
         const onHand = (d["on_hand_total"] as number | undefined) ?? 0;
-        const reserved = (d["reserved_total"] as number | undefined) ?? 0;
-        // available for this run = free stock + what this set already holds.
-        const available =
-          onHand - reserved + (oldSetReserved.get(snap.id) ?? 0);
+        // Free-to-allocate = physical stock minus what PICKING orders hold.
+        const available = onHand - (lockedByVariant.get(snap.id) ?? 0);
         variants.push({ variantId: snap.id, available });
       }
     }

@@ -47,6 +47,12 @@ async function loadProductRows(): Promise<ProductRow[]> {
     userNameByUid[u.id] = data.display_name || data.email || u.id;
   }
 
+  // Reserved per variant — computed LIVE from SHIP/PICKING order demand (the
+  // authoritative source), not from the drift-prone variant.reserved_total
+  // cache. Keeps this page consistent with the orders view.
+  const { loadReservedByVariant } = await import("@/server/inventory/reserved");
+  const reservedByVariant = await loadReservedByVariant();
+
   // Map batch_id → total sold qty (consumed, not released).
   const soldByBatch: Record<string, number> = {};
   for (const a of allocationsSnap.docs) {
@@ -104,7 +110,7 @@ async function loadProductRows(): Promise<ProductRow[]> {
           const onHand =
             (v.on_hand_total as number | undefined) ??
             batches.reduce((s, b) => s + b.remainingQty, 0);
-          const reserved = (v.reserved_total as number | undefined) ?? 0;
+          const reserved = reservedByVariant.get(v.id) ?? 0;
           return {
             id: v.id,
             title: v.title,

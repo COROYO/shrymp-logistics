@@ -442,6 +442,7 @@
       "showArchived": "Show {count} empty/old batches",
       "hideArchived": "Hide empty/old batches",
       "movement": {
+        "SALE": "Sale",
         "INBOUND": "Goods receipt",
         "RESERVE": "Reserved",
         "RELEASE": "Released",

@@ -221,6 +221,14 @@ export const OrderSchema = z.object({
    */
   lieferschein_no: z.string().optional(),
   lieferschein_date: FirestoreTimestamp.optional(),
+  /** Picking/packing audit — set as the order moves through the workflow. */
+  picking_started_at: FirestoreTimestamp.optional(),
+  picking_started_by_uid: z.string().optional(),
+  packed_at: FirestoreTimestamp.optional(),
+  /** Firebase uid of the packer, or `"shopify"` for externally-fulfilled orders. */
+  packed_by_uid: z.string().optional(),
+  /** True when the order was fulfilled on Shopify's side, not via our packing UI. */
+  externally_fulfilled: z.boolean().optional(),
   created_at_shopify: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });

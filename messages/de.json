@@ -442,6 +442,7 @@
       "showArchived": "{count} leere/alte Chargen anzeigen",
       "hideArchived": "Leere/alte Chargen ausblenden",
       "movement": {
+        "SALE": "Verkauf",
         "INBOUND": "Wareneingang",
         "RESERVE": "Reserviert",
         "RELEASE": "Freigegeben",
