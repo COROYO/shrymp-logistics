@@ -18,6 +18,64 @@ type AllocLine = {
   qty: number;
 };
 
+type MergedLine = {
+  key: string;
+  title: string;
+  sku: string | null;
+  qty: number;
+  allocs: { chargeNumber: string; expiryDateIso: string | null; qty: number }[];
+};
+
+/**
+ * Collapse line items sharing the same title + sku into one picklist row
+ * (Shopify can split a product across several line items). Quantities are
+ * summed and Charge allocations merged by charge number.
+ */
+function mergeLines(
+  lineItems: Order["line_items"],
+  allocsByLi: Map<string, AllocLine[]>,
+): MergedLine[] {
+  const groups = new Map<string, MergedLine>();
+  const order: string[] = [];
+  for (const li of lineItems) {
+    const key = `${li.title} ${li.sku ?? ""}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = { key, title: li.title, sku: li.sku ?? null, qty: 0, allocs: [] };
+      groups.set(key, g);
+      order.push(key);
+    }
+    g.qty += li.qty;
+    for (const a of allocsByLi.get(li.id) ?? []) {
+      g.allocs.push({
+        chargeNumber: a.chargeNumber,
+        expiryDateIso: a.expiryDateIso,
+        qty: a.qty,
+      });
+    }
+  }
+  for (const g of groups.values()) {
+    const byCharge = new Map<
+      string,
+      { chargeNumber: string; expiryDateIso: string | null; qty: number }
+    >();
+    for (const a of g.allocs) {
+      const cur = byCharge.get(a.chargeNumber);
+      if (cur) cur.qty += a.qty;
+      else byCharge.set(a.chargeNumber, { ...a });
+    }
+    g.allocs = [...byCharge.values()].sort((a, b) => {
+      if (a.expiryDateIso === b.expiryDateIso) {
+        return a.chargeNumber.localeCompare(b.chargeNumber);
+      }
+      if (!a.expiryDateIso) return 1;
+      if (!b.expiryDateIso) return -1;
+      return a.expiryDateIso.localeCompare(b.expiryDateIso);
+    });
+  }
+  return order.map((k) => groups.get(k)!);
+}
+
 async function load(orderId: string) {
   const db = adminDb();
   const orderSnap = await db.collection(Collections.Orders).doc(orderId).get();
@@ -78,7 +136,7 @@ async function load(orderId: string) {
     });
   }
 
-  return { order, allocsByLi };
+  return { order, mergedLines: mergeLines(order.line_items, allocsByLi) };
 }
 
 export default async function PrintPicklist({
@@ -89,7 +147,7 @@ export default async function PrintPicklist({
   const { orderId } = await params;
   const data = await load(orderId);
   if (!data) notFound();
-  const { order, allocsByLi } = data;
+  const { order, mergedLines } = data;
   const isExpress = order.tags.includes("EXPRESS_DHL");
   // Picklist always in German — internal warehouse document, locale-pinned
   // so a Russian/English warehouse user still gets the standard form.
@@ -98,8 +156,6 @@ export default async function PrintPicklist({
     dateStyle: "short",
     timeStyle: "short",
   });
-
-  console.log("translations", t("header"));
 
   return (
     <div lang="de" className="bg-white p-8 text-brand-ink print:p-4">
@@ -196,10 +252,10 @@ export default async function PrintPicklist({
           </tr>
         </thead>
         <tbody>
-          {order.line_items.map((li) => {
-            const allocs = allocsByLi.get(li.id) ?? [];
+          {mergedLines.map((li) => {
+            const allocs = li.allocs;
             return (
-              <tr key={li.id} className="border-b border-zinc-300 align-top">
+              <tr key={li.key} className="border-b border-zinc-300 align-top">
                 <td className="px-3 py-3 pr-4">
                   <div className="font-semibold text-brand-navy">
                     {li.title}

@@ -336,6 +336,11 @@
     "metaOrderId": "Order-ID",
     "metaShopifyGid": "Shopify-GID",
     "metaCreated": "Erstellt",
+    "comments": {
+      "title": "Kommentare",
+      "customerNote": "Kundenkommentar",
+      "orderAttributes": "Order-Kommentare"
+    },
     "address": "Lieferadresse",
     "shopifyStatus": "Shopify-Status",
     "financial": "Financial",

@@ -30,6 +30,8 @@ export type ShopifyOrderPayload = {
   shipping_lines?: ShopifyShippingLinePayload[];
   /** Free-text customer note from checkout. */
   note?: string | null;
+  /** Order "additional details" — checkout custom attributes (REST: array of {name, value}). */
+  note_attributes?: { name?: string | null; value?: string | null }[] | null;
   email?: string | null;
   customer?: {
     id?: number | null;
@@ -164,10 +166,24 @@ export function mapShopifyOrderToFirestore(
       moneyDecimalToCents(payload.current_total_price),
     currency: payload.currency ?? null,
     customer_note: payload.note?.trim() ? payload.note.trim() : null,
+    note_attributes: mapNoteAttributes(payload.note_attributes),
     customer: mapCustomerRef(payload),
     total_price_cents: moneyDecimalToCents(payload.current_total_price),
     created_at_shopify: new Date(payload.created_at),
   };
+}
+
+function mapNoteAttributes(
+  attrs: { name?: string | null; value?: string | null }[] | null | undefined,
+): { name: string; value: string }[] | undefined {
+  if (!Array.isArray(attrs)) return undefined;
+  const out = attrs
+    .map((a) => ({
+      name: (a?.name ?? "").trim(),
+      value: (a?.value ?? "").trim(),
+    }))
+    .filter((a) => a.name || a.value);
+  return out.length > 0 ? out : undefined;
 }
 
 function mapCustomerRef(

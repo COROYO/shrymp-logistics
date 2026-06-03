@@ -194,6 +194,15 @@ export const OrderSchema = z.object({
    */
   customer_note: z.string().nullable().default(null),
   /**
+   * Shopify order "additional details" (`note_attributes` / custom
+   * attributes): key/value pairs from checkout — gift messages, delivery
+   * instructions, custom fields. Shown on the order detail page, NOT on the
+   * packing slip.
+   */
+  note_attributes: z
+    .array(z.object({ name: z.string(), value: z.string() }))
+    .optional(),
+  /**
    * Customer reference from Shopify. `shopify_id` is the stable identity
    * (used for grouping in `/admin/customers`); when it's null, the UI
    * groups by email instead. We don't run a separate `customers/`

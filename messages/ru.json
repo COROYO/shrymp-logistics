@@ -339,6 +339,11 @@
     "metaOrderId": "ID заказа",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Создан",
+    "comments": {
+      "title": "Комментарии",
+      "customerNote": "Комментарий клиента",
+      "orderAttributes": "Детали заказа"
+    },
     "address": "Адрес доставки",
     "shopifyStatus": "Статус Shopify",
     "financial": "Оплата",

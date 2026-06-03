@@ -141,6 +141,39 @@ export default async function AdminOrderDetailPage({
         </div>
       ) : null}
 
+      {order.customer_note || (order.note_attributes?.length ?? 0) > 0 ? (
+        <section className="card p-5">
+          <h2 className="eyebrow">{t("comments.title")}</h2>
+          {order.customer_note ? (
+            <div className="mt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+                {t("comments.customerNote")}
+              </div>
+              <p className="mt-1 whitespace-pre-line text-sm text-brand-ink">
+                {order.customer_note}
+              </p>
+            </div>
+          ) : null}
+          {(order.note_attributes?.length ?? 0) > 0 ? (
+            <div className="mt-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+                {t("comments.orderAttributes")}
+              </div>
+              <dl className="mt-1 space-y-1 text-sm">
+                {order.note_attributes!.map((a, i) => (
+                  <div key={i} className="flex flex-wrap gap-2">
+                    <dt className="font-semibold text-brand-navy">{a.name}:</dt>
+                    <dd className="whitespace-pre-line text-brand-ink">
+                      {a.value || "—"}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-5">
           <h2 className="eyebrow">{t("address")}</h2>

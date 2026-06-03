@@ -5,6 +5,7 @@ import {
   type Allocation,
   type Batch,
   type Order,
+  type Variant,
 } from "@/server/firestore/schema";
 import {
   getOrAssignLieferscheinNo,
@@ -23,8 +24,17 @@ export type SlipAllocLine = {
 export type SlipData = {
   order: Order;
   allocsByLi: Map<string, SlipAllocLine[]>;
+  /**
+   * Variant title per line item id (e.g. "300g"). Omitted / "Default Title"
+   * variants resolve to null — those products have no real variant, so the
+   * slip shouldn't show a redundant line.
+   */
+  variantTitleByLi: Map<string, string | null>;
   lieferschein: LieferscheinRef;
 };
+
+/** Shopify's placeholder title for products without real variants. */
+const DEFAULT_VARIANT_TITLE = "Default Title";
 
 /**
  * Load the data needed to render a packing slip (order + allocations + batch
@@ -100,6 +110,30 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     else allocsByLi.set(a.line_item_id, [entry]);
   }
 
+  // Variant titles per line item (for the slip's "Variante" column). Skip
+  // Shopify's "Default Title" placeholder — those products have no variant.
+  const variantIds = Array.from(
+    new Set(order.line_items.map((li) => li.variant_id).filter(Boolean)),
+  );
+  const variantTitleById = new Map<string, string | null>();
+  if (variantIds.length > 0) {
+    const variantSnaps = await db.getAll(
+      ...variantIds.map((id) => db.collection(Collections.Variants).doc(id)),
+    );
+    for (const v of variantSnaps) {
+      if (!v.exists) continue;
+      const title = (v.data() as Variant).title?.trim() || null;
+      variantTitleById.set(
+        v.id,
+        title && title !== DEFAULT_VARIANT_TITLE ? title : null,
+      );
+    }
+  }
+  const variantTitleByLi = new Map<string, string | null>();
+  for (const li of order.line_items) {
+    variantTitleByLi.set(li.id, variantTitleById.get(li.variant_id) ?? null);
+  }
+
   // Assign (or reuse) Lieferschein-Nr. AFTER reading the order so we have
   // the freshest doc. The helper is itself transactional — if the order
   // already has a number the existing one comes back, otherwise a new one
@@ -109,7 +143,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   // on the FIRST print without an extra read round-trip.
   order.lieferschein_no = lieferschein.number;
 
-  return { order, allocsByLi, lieferschein };
+  return { order, allocsByLi, variantTitleByLi, lieferschein };
 }
 
 export function tsToDate(t: unknown): Date | null {
