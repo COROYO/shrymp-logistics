@@ -22,21 +22,21 @@ export default async function AdminLayout({
   const t = await getTranslations("nav");
   const SECTIONS: SidebarSection[] = [
     {
-      label: t("operations"),
+      label: t("stock"),
       items: [
-        { href: "/admin/orders", label: t("orders"), icon: "orders" },
-        { href: "/admin/customers", label: t("customers"), icon: "customers" },
         {
           href: "/admin/allocations",
           label: t("allocations"),
           icon: "allocations",
         },
+        { href: "/admin/batches", label: t("batches"), icon: "batches" },
       ],
     },
     {
-      label: t("stock"),
+      label: t("operations"),
       items: [
-        { href: "/admin/batches", label: t("batches"), icon: "batches" },
+        { href: "/admin/orders", label: t("orders"), icon: "orders" },
+        { href: "/admin/customers", label: t("customers"), icon: "customers" },
         { href: "/admin/products", label: t("products"), icon: "products" },
       ],
     },
