@@ -394,7 +394,7 @@
   "lagerbestand": {
     "eyebrow": "Bestand",
     "title": "Lagerbestand",
-    "intro": "Alle Produktvarianten mit physischem Lagerbestand, Order-Reservierung (SHIP/PICKING) und der verbleibenden Differenz.",
+    "intro": "Alle Produktvarianten mit physischem Lagerbestand, offener Order-Nachfrage (SHIP/PICKING/STOP) und der verbleibenden Differenz.",
     "stats": {
       "variants": "Varianten",
       "onHand": "Lager (Stk)",

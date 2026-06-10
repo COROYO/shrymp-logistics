@@ -5,7 +5,7 @@ import {
   type Product,
   type Variant,
 } from "@/server/firestore/schema";
-import { loadReservedByVariant } from "@/server/inventory/reserved";
+import { loadOrderDemandByVariant } from "@/server/inventory/reserved";
 import {
   LagerbestandTable,
   type LagerbestandRow,
@@ -18,7 +18,7 @@ async function loadRows(): Promise<LagerbestandRow[]> {
   const [productsSnap, variantsSnap, reservedByVariant] = await Promise.all([
     db.collection(Collections.Products).get(),
     db.collection(Collections.Variants).get(),
-    loadReservedByVariant(),
+    loadOrderDemandByVariant(),
   ]);
 
   const products = new Map<string, Product>();

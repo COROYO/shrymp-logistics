@@ -394,7 +394,7 @@
   "lagerbestand": {
     "eyebrow": "Stock",
     "title": "Stock levels",
-    "intro": "All product variants with on-hand quantity, order reservation (SHIP/PICKING), and the remaining difference.",
+    "intro": "All product variants with on-hand quantity, open order demand (SHIP/PICKING/STOP), and the remaining difference.",
     "stats": {
       "variants": "Variants",
       "onHand": "On hand (pcs)",

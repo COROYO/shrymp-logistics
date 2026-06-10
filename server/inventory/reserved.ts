@@ -2,6 +2,12 @@ import "server-only";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Order } from "@/server/firestore/schema";
 
+/** Statuses that actually reserve stock (allocation + picking). */
+export const RESERVED_ORDER_STATUSES = ["SHIP", "PICKING"] as const;
+
+/** Open order demand incl. STOP — for inventory overview / Lagerbestand. */
+export const ORDER_DEMAND_STATUSES = ["SHIP", "PICKING", "STOP"] as const;
+
 /**
  * Authoritative reserved-stock figure, computed live from order state.
  *
@@ -10,9 +16,8 @@ import { Collections, type Order } from "@/server/firestore/schema";
  * is only a denormalized cache maintained by the allocation hot-path delta and
  * can drift. Computing it from orders is drift-proof.
  *
- * Scales fine even at thousands of orders/month: the SHIP+PICKING set is
- * bounded by *un-packed* orders (packed/cancelled ones drop out), which is a
- * small working set at any instant regardless of total historical volume.
+ * STOP orders are excluded here — they do not reserve stock in allocation.
+ * For a demand view that includes STOP, use `loadOrderDemandByVariant`.
  *
  * Note: charge-level allocation docs (the ones shown on /admin/allocations)
  * only exist once a packing slip is printed, so they do NOT reflect reserved
@@ -20,19 +25,15 @@ import { Collections, type Order } from "@/server/firestore/schema";
  */
 export type ReservedDetail = { qty: number; orderIds: Set<string> };
 
-/**
- * Reserved quantity + the set of reserving orders, per variant. Computed from
- * SHIP/PICKING order demand (see file header).
- */
-export async function loadReservedDetailByVariant(): Promise<
-  Map<string, ReservedDetail>
-> {
+async function loadDemandDetailByVariant(
+  statuses: readonly string[],
+): Promise<Map<string, ReservedDetail>> {
   const db = adminDb();
   const reserved = new Map<string, ReservedDetail>();
 
-  // Two equality queries (SHIP, PICKING) rather than an `in` query so each
-  // hits the simplest possible index and the result sets stay small.
-  for (const status of ["SHIP", "PICKING"] as const) {
+  // One equality query per status rather than an `in` query so each hits the
+  // simplest possible index and the result sets stay small.
+  for (const status of statuses) {
     const snap = await db
       .collection(Collections.Orders)
       .where("internal_status", "==", status)
@@ -54,9 +55,27 @@ export async function loadReservedDetailByVariant(): Promise<
   return reserved;
 }
 
-/** Convenience: just the reserved quantity per variant. */
+/**
+ * Reserved quantity + the set of reserving orders, per variant. Computed from
+ * SHIP/PICKING order demand (see file header).
+ */
+export async function loadReservedDetailByVariant(): Promise<
+  Map<string, ReservedDetail>
+> {
+  return loadDemandDetailByVariant(RESERVED_ORDER_STATUSES);
+}
+
+/** Convenience: just the reserved quantity per variant (SHIP/PICKING). */
 export async function loadReservedByVariant(): Promise<Map<string, number>> {
   const detail = await loadReservedDetailByVariant();
+  const out = new Map<string, number>();
+  for (const [vid, d] of detail) out.set(vid, d.qty);
+  return out;
+}
+
+/** Order demand incl. STOP — for Lagerbestand "In Orders" column. */
+export async function loadOrderDemandByVariant(): Promise<Map<string, number>> {
+  const detail = await loadDemandDetailByVariant(ORDER_DEMAND_STATUSES);
   const out = new Map<string, number>();
   for (const [vid, d] of detail) out.set(vid, d.qty);
   return out;
