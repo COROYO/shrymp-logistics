@@ -44,6 +44,7 @@
     "customers": "Клиенты",
     "allocations": "Распределение",
     "batches": "Партии",
+    "lagerbestand": "Остатки",
     "products": "Товары",
     "users": "Пользователи",
     "settings": "Настройки",
@@ -391,6 +392,33 @@
       "button": "Синхронизировать из Shopify",
       "loading": "Синхронизация…",
       "success": "Обновлено {products} товаров, {variants} вариантов."
+    }
+  },
+  "lagerbestand": {
+    "eyebrow": "Запас",
+    "title": "Остатки",
+    "intro": "Все варианты товаров: физический остаток, резерв в заказах (SHIP/PICKING) и разница.",
+    "stats": {
+      "variants": "Варианты",
+      "onHand": "На складе (шт)",
+      "reserved": "Зарезервировано (шт)",
+      "difference": "Разница (шт)"
+    },
+    "emptyNoSync": "Товары ещё не синхронизированы. Сначала <link>синхронизируйте товары</link>.",
+    "table": {
+      "eyebrow": "Варианты",
+      "count": "{filtered} из {total} вариантов",
+      "reset": "Сбросить фильтры",
+      "filter": "Фильтр…",
+      "empty": "Нет вариантов по этому фильтру.",
+      "productId": "ID товара",
+      "variantId": "ID варианта",
+      "productTitle": "Товар",
+      "variantTitle": "Вариант",
+      "sku": "SKU",
+      "onHand": "На складе",
+      "reserved": "В заказах",
+      "difference": "Разница"
     }
   },
   "batches": {

@@ -44,6 +44,7 @@
     "customers": "Kunden",
     "allocations": "Zuordnungen",
     "batches": "Chargen",
+    "lagerbestand": "Lagerbestand",
     "products": "Produkte",
     "users": "Benutzer",
     "settings": "Einstellungen",
@@ -388,6 +389,33 @@
       "button": "Aus Shopify synchronisieren",
       "loading": "Synchronisiere…",
       "success": "{products} Produkte, {variants} Varianten aktualisiert."
+    }
+  },
+  "lagerbestand": {
+    "eyebrow": "Bestand",
+    "title": "Lagerbestand",
+    "intro": "Alle Produktvarianten mit physischem Lagerbestand, Order-Reservierung (SHIP/PICKING) und der verbleibenden Differenz.",
+    "stats": {
+      "variants": "Varianten",
+      "onHand": "Lager (Stk)",
+      "reserved": "Reserviert (Stk)",
+      "difference": "Differenz (Stk)"
+    },
+    "emptyNoSync": "Noch keine Produkte synchronisiert. Erst <link>Produkte syncen</link>.",
+    "table": {
+      "eyebrow": "Varianten",
+      "count": "{filtered} von {total} Varianten",
+      "reset": "Filter zurücksetzen",
+      "filter": "Filter…",
+      "empty": "Keine Varianten für diesen Filter.",
+      "productId": "Produkt-ID",
+      "variantId": "Varianten-ID",
+      "productTitle": "Produktname",
+      "variantTitle": "Variante",
+      "sku": "SKU",
+      "onHand": "Lager",
+      "reserved": "In Orders",
+      "difference": "Differenz"
     }
   },
   "batches": {

@@ -44,6 +44,7 @@
     "customers": "Customers",
     "allocations": "Allocations",
     "batches": "Batches",
+    "lagerbestand": "Stock levels",
     "products": "Products",
     "users": "Users",
     "settings": "Settings",
@@ -388,6 +389,33 @@
       "button": "Sync from Shopify",
       "loading": "Syncing…",
       "success": "{products} products, {variants} variants updated."
+    }
+  },
+  "lagerbestand": {
+    "eyebrow": "Stock",
+    "title": "Stock levels",
+    "intro": "All product variants with on-hand quantity, order reservation (SHIP/PICKING), and the remaining difference.",
+    "stats": {
+      "variants": "Variants",
+      "onHand": "On hand (pcs)",
+      "reserved": "Reserved (pcs)",
+      "difference": "Difference (pcs)"
+    },
+    "emptyNoSync": "No products synced yet. <link>Sync products</link> first.",
+    "table": {
+      "eyebrow": "Variants",
+      "count": "{filtered} of {total} variants",
+      "reset": "Reset filters",
+      "filter": "Filter…",
+      "empty": "No variants match this filter.",
+      "productId": "Product ID",
+      "variantId": "Variant ID",
+      "productTitle": "Product",
+      "variantTitle": "Variant",
+      "sku": "SKU",
+      "onHand": "On hand",
+      "reserved": "In orders",
+      "difference": "Difference"
     }
   },
   "batches": {

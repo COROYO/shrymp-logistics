@@ -30,6 +30,11 @@ export default async function AdminLayout({
           icon: "allocations",
         },
         { href: "/admin/batches", label: t("batches"), icon: "batches" },
+        {
+          href: "/admin/lagerbestand",
+          label: t("lagerbestand"),
+          icon: "batches",
+        },
       ],
     },
     {
