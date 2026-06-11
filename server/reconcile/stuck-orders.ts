@@ -34,6 +34,7 @@ export type ReconcileReport = {
   stuckNew: number;
   reAllocated: boolean;
   tagDriftFixed: number;
+  expiredBatchesMarked: number;
   durationMs: number;
 };
 
@@ -154,10 +155,25 @@ export async function reconcileStuckOrders(): Promise<ReconcileReport> {
     });
   }
 
+  let expiredBatchesMarked = 0;
+  try {
+    const { markExpiredBatches } = await import(
+      "@/server/inventory/mark-expired-batches"
+    );
+    const r = await markExpiredBatches();
+    expiredBatchesMarked = r.marked;
+    if (r.marked > 0) {
+      log.warn("reconcile_expired_batches_marked", { count: r.marked });
+    }
+  } catch (e) {
+    log.error("reconcile_mark_expired_failed", { error: String(e) });
+  }
+
   return {
     stuckNew: stuckSnap.size,
     reAllocated,
     tagDriftFixed,
+    expiredBatchesMarked,
     durationMs: Date.now() - t0,
   };
 }

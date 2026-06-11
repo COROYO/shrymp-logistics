@@ -15,7 +15,11 @@ import { TOGGLEABLE_COLUMNS, type ColumnVisibility } from "./columns";
 import type { BatchRow, VariantRow } from "./product-accordion";
 
 function isVisibleByDefault(b: BatchRow): boolean {
-  return b.status === "ACTIVE" && b.remainingQty > 0;
+  return b.remainingQty > 0;
+}
+
+function isArchivedBatch(b: BatchRow): boolean {
+  return b.remainingQty <= 0 || b.status === "DEPLETED";
 }
 
 /** Charge + actions are always shown; the rest are toggleable. */
@@ -39,9 +43,7 @@ export function VariantBatchPanel({
   const [historyId, setHistoryId] = useState<string | null>(null);
 
   const colSpan = colSpanFor(cols);
-  const archivedCount = variant.batches.filter(
-    (b) => !isVisibleByDefault(b),
-  ).length;
+  const archivedCount = variant.batches.filter(isArchivedBatch).length;
   const visibleBatches = showArchived
     ? variant.batches
     : variant.batches.filter(isVisibleByDefault);
@@ -229,7 +231,7 @@ function BatchDisplayRow({
   const t = useTranslations("batches.panel");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
-  const archived = !(batch.status === "ACTIVE" && batch.remainingQty > 0);
+  const archived = isArchivedBatch(batch);
 
   function handleArchive() {
     if (
@@ -251,14 +253,31 @@ function BatchDisplayRow({
   return (
     <tr
       className={`align-top transition hover:bg-brand-navy-50 ${
-        archived ? "bg-zinc-50/60 text-brand-navy/45" : ""
+        archived
+          ? "bg-zinc-50/60 text-brand-navy/45"
+          : batch.expired
+            ? "bg-amber-50/70"
+            : ""
       }`}
     >
       <td className="px-4 py-2.5 font-mono font-semibold">
-        {batch.chargeNumber}
+        <span className="inline-flex flex-wrap items-center gap-2">
+          {batch.chargeNumber}
+          {batch.expired && !archived ? (
+            <span className="rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+              {t("expiredBadge")}
+            </span>
+          ) : null}
+        </span>
       </td>
       {cols.expiry ? (
-        <td className="px-4 py-2.5 font-mono text-brand-navy/80">
+        <td
+          className={`px-4 py-2.5 font-mono ${
+            batch.expired && !archived
+              ? "font-semibold text-amber-900"
+              : "text-brand-navy/80"
+          }`}
+        >
           {batch.expiryDateIso || "—"}
         </td>
       ) : null}

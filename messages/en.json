@@ -473,6 +473,7 @@
       "columnsReset": "Reset",
       "systemActor": "System",
       "showArchived": "Show {count} empty/old batches",
+      "expiredBadge": "Expired",
       "hideArchived": "Hide empty/old batches",
       "movement": {
         "SALE": "Sale",

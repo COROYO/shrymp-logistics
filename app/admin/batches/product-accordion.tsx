@@ -29,6 +29,8 @@ export type BatchRow = {
    */
   soldQty: number;
   status: string;
+  /** MHD passed or status already EXPIRED — still on shelf until archived. */
+  expired: boolean;
   notes: string | null;
 };
 

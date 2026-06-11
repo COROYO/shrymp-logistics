@@ -474,6 +474,7 @@
       "systemActor": "System",
       "showArchived": "{count} leere/alte Chargen anzeigen",
       "hideArchived": "Leere/alte Chargen ausblenden",
+      "expiredBadge": "Abgelaufen",
       "movement": {
         "SALE": "Verkauf",
         "INBOUND": "Wareneingang",

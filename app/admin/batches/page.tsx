@@ -8,6 +8,7 @@ import {
   type User,
   type Variant,
 } from "@/server/firestore/schema";
+import { isBatchExpired } from "@/server/picking/batch-assignability";
 import { ProductAccordion, type ProductRow } from "./product-accordion";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,13 @@ function tsToIso(t: unknown): string | null {
 }
 
 async function loadProductRows(): Promise<ProductRow[]> {
+  const { markExpiredBatches } = await import(
+    "@/server/inventory/mark-expired-batches"
+  );
+  await markExpiredBatches();
+
   const db = adminDb();
+  const referenceDate = new Date();
   const [productsSnap, variantsSnap, batchesSnap, allocationsSnap, usersSnap] =
     await Promise.all([
       db.collection(Collections.Products).get(),
@@ -119,6 +126,9 @@ async function loadProductRows(): Promise<ProductRow[]> {
               initialQty: b.initial_qty,
               soldQty: soldByBatch[b.id] ?? 0,
               status: b.status,
+              expired:
+                b.status === "EXPIRED" ||
+                isBatchExpired(b.expiry_date, referenceDate),
               notes: b.notes ?? null,
             }))
             .sort((a, b) => {
@@ -163,9 +173,7 @@ async function loadProductRows(): Promise<ProductRow[]> {
         batchCount: variants.reduce(
           (s, v) =>
             s +
-            v.batches.filter(
-              (b) => b.status === "ACTIVE" && b.remainingQty > 0,
-            ).length,
+            v.batches.filter((b) => b.remainingQty > 0).length,
           0,
         ),
       };

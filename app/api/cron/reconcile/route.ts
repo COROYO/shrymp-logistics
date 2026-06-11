@@ -40,7 +40,11 @@ export async function GET(req: Request) {
 
   try {
     const report = await reconcileStuckOrders();
-    if (report.stuckNew > 0 || report.tagDriftFixed > 0) {
+    if (
+      report.stuckNew > 0 ||
+      report.tagDriftFixed > 0 ||
+      report.expiredBatchesMarked > 0
+    ) {
       log.warn("reconcile_repaired", report);
     } else {
       log.info("reconcile_clean", report);

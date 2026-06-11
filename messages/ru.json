@@ -476,6 +476,7 @@
       "columnsReset": "Сбросить",
       "systemActor": "Система",
       "showArchived": "Показать {count} пустых/старых партий",
+      "expiredBadge": "Просрочено",
       "hideArchived": "Скрыть пустые/старые партии",
       "movement": {
         "SALE": "Продажа",
