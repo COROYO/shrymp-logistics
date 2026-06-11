@@ -246,7 +246,7 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
 
 function coversAllLineItems(
   lineItems: Order["line_items"],
-  open: { data: Allocation }[],
+  open: { data: Pick<Allocation, "line_item_id" | "qty"> }[],
 ): boolean {
   const assignedByLi = new Map<string, number>();
   for (const a of open) {
