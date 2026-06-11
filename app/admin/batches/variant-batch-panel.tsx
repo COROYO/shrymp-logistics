@@ -14,12 +14,17 @@ import { ArchiveIcon, EditIcon, HistoryIcon } from "@/app/_components/icons";
 import { TOGGLEABLE_COLUMNS, type ColumnVisibility } from "./columns";
 import type { BatchRow, VariantRow } from "./product-accordion";
 
-function isVisibleByDefault(b: BatchRow): boolean {
-  return b.remainingQty > 0;
+function isArchivedBatch(b: BatchRow): boolean {
+  return (
+    b.remainingQty <= 0 ||
+    b.status === "DEPLETED" ||
+    b.expired ||
+    b.status === "EXPIRED"
+  );
 }
 
-function isArchivedBatch(b: BatchRow): boolean {
-  return b.remainingQty <= 0 || b.status === "DEPLETED";
+function isVisibleByDefault(b: BatchRow): boolean {
+  return !isArchivedBatch(b);
 }
 
 /** Charge + actions are always shown; the rest are toggleable. */

@@ -110,6 +110,13 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
         lagerCfg.batch_min_days_before_expiry,
       );
     }
+    if (msg.startsWith("assign_batches_insufficient")) {
+      throw new SlipAssignmentBlockedError(
+        orderId,
+        "incomplete",
+        lagerCfg.batch_min_days_before_expiry,
+      );
+    }
     log.warn("assign_batches_on_slip_failed", { orderId, error: msg });
   }
 
@@ -122,7 +129,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   if (!orderAssignmentCoversLineItems(order.line_items, allocs)) {
     throw new SlipAssignmentBlockedError(
       orderId,
-      "near_expiry",
+      "incomplete",
       lagerCfg.batch_min_days_before_expiry,
     );
   }

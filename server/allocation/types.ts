@@ -15,8 +15,7 @@
  */
 export type VariantAvail = {
   variantId: string;
-  /** Units free to reserve = versandfähiger Chargen-Bestand minus PICKING-Sperre.
-   *  Abgelaufene / gesperrte Chargen zählen nicht (see shippable-stock.ts). */
+  /** Unassigned assignable `remaining_qty` minus PICKING-Sperre (see shippable-stock.ts). */
   available: number;
 };
 
@@ -56,6 +55,8 @@ export type StopReason =
 export type AllocationInput = {
   variants: VariantAvail[];
   orders: OrderInput[];
+  /** Complete, shippable Charge assignment — SHIP without consuming remaining pool. */
+  preAssignedOrderIds?: ReadonlySet<string>;
 };
 
 export type AllocationStats = {

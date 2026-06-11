@@ -138,6 +138,21 @@ describe("allocate — edge cases", () => {
     expect(allocate(input).decisions[0]?.status).toBe("STOP");
   });
 
+  it("keeps pre-assigned orders on SHIP without consuming the remaining pool", () => {
+    const input: AllocationInput = {
+      variants: [variant("v1", 0)],
+      orders: [
+        order("printed", 1, [{ variantId: "v1", qty: 1 }]),
+        order("new", 2, [{ variantId: "v1", qty: 1 }]),
+      ],
+      preAssignedOrderIds: new Set(["printed"]),
+    };
+    const { decisions } = allocate(input);
+    const byId = new Map(decisions.map((d) => [d.orderId, d]));
+    expect(byId.get("printed")?.status).toBe("SHIP");
+    expect(byId.get("new")?.status).toBe("STOP");
+  });
+
   it("does not consume any stock from a failed (all-or-nothing) order", () => {
     const input: AllocationInput = {
       variants: [variant("v1", 5), variant("v2", 0)],

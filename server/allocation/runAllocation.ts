@@ -34,13 +34,16 @@ export function allocate(input: AllocationInput): AllocationResult {
   const express = input.orders
     .filter((o) => o.tags.includes(EXPRESS_TAG))
     .sort(byCreatedAtThenId);
-  for (const order of express) tryAllocate(order, avail, decisions, "EXPRESS");
+  const preAssigned = input.preAssignedOrderIds;
+  for (const order of express)
+    tryAllocate(order, avail, decisions, "EXPRESS", preAssigned);
 
   // Phase B: Standard orders, chronological (oldest createdAt first).
   const standard = input.orders
     .filter((o) => !o.tags.includes(EXPRESS_TAG))
     .sort(byCreatedAtThenId);
-  for (const order of standard) tryAllocate(order, avail, decisions, "STANDARD");
+  for (const order of standard)
+    tryAllocate(order, avail, decisions, "STANDARD", preAssigned);
 
   const ordered: Decision[] = input.orders.map(
     (o) =>
@@ -79,7 +82,13 @@ function tryAllocate(
   avail: Map<string, number>,
   decisions: Map<string, Decision>,
   mode: "EXPRESS" | "STANDARD",
+  preAssigned?: ReadonlySet<string>,
 ): void {
+  if (preAssigned?.has(order.id)) {
+    decisions.set(order.id, { orderId: order.id, status: "SHIP", mode });
+    return;
+  }
+
   if (order.lineItems.length === 0) {
     decisions.set(order.id, {
       orderId: order.id,

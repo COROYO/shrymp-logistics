@@ -15,7 +15,8 @@ import { processOutbox, processOutboxByIds } from "@/server/shopify/outbox";
 import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
 import { isBatchExpired } from "@/server/picking/batch-assignability";
-import { loadShippableQtyByVariant } from "@/server/inventory/shippable-stock";
+import { loadAssignableRemainingByVariant } from "@/server/inventory/shippable-stock";
+import { loadPreAssignedShippableOrderIds } from "@/server/picking/pre-assigned-orders";
 
 /**
  * Firestore-backed allocation run.
@@ -23,8 +24,9 @@ import { loadShippableQtyByVariant } from "@/server/inventory/shippable-stock";
  * High-level flow (queue concurrency guarantees no parallel writers):
  *   1. Read `orders` (status ∈ {NEW, SHIP, STOP}) and the `variants` they
  *      reference.
- *   2. Compute per-variant available-to-reserve from *shippable* Chargen stock
- *      (MHD-aware; see shippable-stock.ts) and run `allocate()` — this only
+ *   2. Compute per-variant available-to-reserve from unassigned assignable
+ *      `remaining_qty` (MHD-aware; see shippable-stock.ts) and run `allocate()`
+ *      — this only
  *      decides SHIP/STOP, it does NOT bind Chargen. The concrete batch is
  *      picked FEFO later, at packing-slip print time (see assign-batches.ts).
  *   3. Update orders' internal_status and adjust variant.reserved_total by the
@@ -118,19 +120,24 @@ export async function runAllocationInFirestore(
       new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
     );
     const variants: VariantAvail[] = [];
+    let preAssignedOrderIds = new Set<string>();
     if (variantIds.length > 0) {
       const variantRefs = variantIds.map((id) =>
         db.collection(Collections.Variants).doc(id),
       );
-      const [variantSnaps, shippableByVariant] = await Promise.all([
-        db.getAll(...variantRefs),
-        loadShippableQtyByVariant(variantIds),
-      ]);
+      const [variantSnaps, remainingByVariant, preAssigned] = await Promise.all(
+        [
+          db.getAll(...variantRefs),
+          loadAssignableRemainingByVariant(variantIds),
+          loadPreAssignedShippableOrderIds(ordersRaw),
+        ],
+      );
+      preAssignedOrderIds = preAssigned;
       for (const snap of variantSnaps) {
         if (!snap.exists) continue; // missing → allocate() reports UNKNOWN_VARIANT
-        const shippable = shippableByVariant.get(snap.id) ?? 0;
-        // Free-to-allocate = versandfähiger Chargen-Bestand minus PICKING-Sperre.
-        const available = shippable - (lockedByVariant.get(snap.id) ?? 0);
+        const remaining = remainingByVariant.get(snap.id) ?? 0;
+        // Unassigned assignable Chargen minus PICKING lock (already on a slip).
+        const available = remaining - (lockedByVariant.get(snap.id) ?? 0);
         variants.push({ variantId: snap.id, available });
       }
     }
@@ -147,7 +154,11 @@ export async function runAllocationInFirestore(
     }));
 
     // ----- 3. Allocate (pure) -----
-    const input: AllocationInput = { variants, orders };
+    const input: AllocationInput = {
+      variants,
+      orders,
+      preAssignedOrderIds,
+    };
     const result = allocate(input);
 
     // ----- 4. Commit -----

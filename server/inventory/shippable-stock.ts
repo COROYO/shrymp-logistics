@@ -38,16 +38,24 @@ export function computeShippableQtyByVariant(
   return byVariant;
 }
 
-export async function loadShippableQtyByVariant(
+/** Unassigned assignable units only — pool for the allocation run. */
+export function computeAssignableRemainingByVariant(
+  batches: Batch[],
+  minDaysBeforeExpiry: number,
+  referenceDate: Date = new Date(),
+): Map<string, number> {
+  return computeShippableQtyByVariant(
+    batches,
+    new Map(),
+    minDaysBeforeExpiry,
+    referenceDate,
+  );
+}
+
+async function loadBatchesForVariants(
   variantIds: string[],
-): Promise<Map<string, number>> {
-  if (variantIds.length === 0) return new Map();
-
+): Promise<Batch[]> {
   const db = adminDb();
-  const lagerCfg = await loadLagerConfig();
-  const minDays = lagerCfg.batch_min_days_before_expiry;
-  const referenceDate = new Date();
-
   const batches: Batch[] = [];
   for (const c of chunk(variantIds, 30)) {
     const snap = await db
@@ -58,8 +66,37 @@ export async function loadShippableQtyByVariant(
       batches.push({ ...(d.data() as Batch), id: d.id });
     }
   }
+  return batches;
+}
+
+export async function loadAssignableRemainingByVariant(
+  variantIds: string[],
+): Promise<Map<string, number>> {
+  if (variantIds.length === 0) return new Map();
+
+  const lagerCfg = await loadLagerConfig();
+  const minDays = lagerCfg.batch_min_days_before_expiry;
+  const referenceDate = new Date();
+  const batches = await loadBatchesForVariants(variantIds);
+  return computeAssignableRemainingByVariant(
+    batches,
+    minDays,
+    referenceDate,
+  );
+}
+
+export async function loadShippableQtyByVariant(
+  variantIds: string[],
+): Promise<Map<string, number>> {
+  if (variantIds.length === 0) return new Map();
+
+  const lagerCfg = await loadLagerConfig();
+  const minDays = lagerCfg.batch_min_days_before_expiry;
+  const referenceDate = new Date();
+  const batches = await loadBatchesForVariants(variantIds);
 
   const openAllocQtyByBatch = new Map<string, number>();
+  const db = adminDb();
   for (const c of chunk(variantIds, 30)) {
     const allocSnap = await db
       .collection(Collections.Allocations)

@@ -173,7 +173,9 @@ async function loadProductRows(): Promise<ProductRow[]> {
         batchCount: variants.reduce(
           (s, v) =>
             s +
-            v.batches.filter((b) => b.remainingQty > 0).length,
+            v.batches.filter(
+              (b) => b.status === "ACTIVE" && b.remainingQty > 0 && !b.expired,
+            ).length,
           0,
         ),
       };
