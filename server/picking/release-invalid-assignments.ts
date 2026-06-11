@@ -69,15 +69,18 @@ export async function releaseUnshippableBatchAssignments(
     });
     if (!hasUnshippable) return 0;
 
+    const releasedByBatch = new Map<string, number>();
     for (const a of open) {
       const batchRef = db.collection(Collections.Batches).doc(a.data.batch_id);
-      const batchSnap = await tx.get(batchRef);
       const patch: Record<string, unknown> = {
         remaining_qty: FieldValue.increment(a.data.qty),
       };
-      if (batchSnap.exists) {
-        const b = batchSnap.data() as Batch;
-        const nextRemaining = (b.remaining_qty ?? 0) + a.data.qty;
+      const b = batchById.get(a.data.batch_id);
+      if (b) {
+        const priorReleased = releasedByBatch.get(a.data.batch_id) ?? 0;
+        const nextRemaining =
+          (b.remaining_qty ?? 0) + priorReleased + a.data.qty;
+        releasedByBatch.set(a.data.batch_id, priorReleased + a.data.qty);
         if (nextRemaining > 0) {
           patch.status = isBatchExpired(b.expiry_date, referenceDate)
             ? "EXPIRED"
