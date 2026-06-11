@@ -15,6 +15,7 @@ import { processOutbox, processOutboxByIds } from "@/server/shopify/outbox";
 import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
 import { isBatchExpired } from "@/server/picking/batch-assignability";
+import { loadShippableQtyByVariant } from "@/server/inventory/shippable-stock";
 
 /**
  * Firestore-backed allocation run.
@@ -22,8 +23,9 @@ import { isBatchExpired } from "@/server/picking/batch-assignability";
  * High-level flow (queue concurrency guarantees no parallel writers):
  *   1. Read `orders` (status ∈ {NEW, SHIP, STOP}) and the `variants` they
  *      reference.
- *   2. Compute per-variant available-to-reserve and run `allocate()` — this
- *      only decides SHIP/STOP, it does NOT bind Chargen. The concrete batch is
+ *   2. Compute per-variant available-to-reserve from *shippable* Chargen stock
+ *      (MHD-aware; see shippable-stock.ts) and run `allocate()` — this only
+ *      decides SHIP/STOP, it does NOT bind Chargen. The concrete batch is
  *      picked FEFO later, at packing-slip print time (see assign-batches.ts).
  *   3. Update orders' internal_status and adjust variant.reserved_total by the
  *      in-memory delta (RECONCILE/MANUAL recompute from scratch instead).
@@ -120,13 +122,15 @@ export async function runAllocationInFirestore(
       const variantRefs = variantIds.map((id) =>
         db.collection(Collections.Variants).doc(id),
       );
-      const variantSnaps = await db.getAll(...variantRefs);
+      const [variantSnaps, shippableByVariant] = await Promise.all([
+        db.getAll(...variantRefs),
+        loadShippableQtyByVariant(variantIds),
+      ]);
       for (const snap of variantSnaps) {
         if (!snap.exists) continue; // missing → allocate() reports UNKNOWN_VARIANT
-        const d = snap.data() ?? {};
-        const onHand = (d["on_hand_total"] as number | undefined) ?? 0;
-        // Free-to-allocate = physical stock minus what PICKING orders hold.
-        const available = onHand - (lockedByVariant.get(snap.id) ?? 0);
+        const shippable = shippableByVariant.get(snap.id) ?? 0;
+        // Free-to-allocate = versandfähiger Chargen-Bestand minus PICKING-Sperre.
+        const available = shippable - (lockedByVariant.get(snap.id) ?? 0);
         variants.push({ variantId: snap.id, available });
       }
     }

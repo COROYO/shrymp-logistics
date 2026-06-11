@@ -56,18 +56,6 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
   const orders = snap.docs.map((d) => d.data() as Order);
   if (orders.length === 0) return [];
 
-  const { releaseUnshippableBatchAssignments } = await import(
-    "@/server/picking/release-invalid-assignments"
-  );
-  await Promise.all(
-    orders
-      .filter(
-        (o) =>
-          o.internal_status === "SHIP" || o.internal_status === "PICKING",
-      )
-      .map((o) => releaseUnshippableBatchAssignments(o.id)),
-  );
-
   // Live reserved per variant, computed from SHIP/PICKING order demand (the
   // authoritative source) rather than the drift-prone variant.reserved_total
   // cache. See server/inventory/reserved.ts.

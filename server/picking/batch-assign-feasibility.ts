@@ -118,10 +118,9 @@ export async function loadBatchAssignFeasibility(
     const snap = await db
       .collection(Collections.Batches)
       .where("variant_id", "in", c)
-      .where("status", "==", "ACTIVE")
       .get();
     for (const d of snap.docs) {
-      batches.push(d.data() as Batch);
+      batches.push({ ...(d.data() as Batch), id: d.id });
     }
   }
   return evaluateBatchAssignFeasibility(

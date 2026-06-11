@@ -15,8 +15,8 @@
  */
 export type VariantAvail = {
   variantId: string;
-  /** Units free to reserve = on_hand_total - reserved_total (by orders
-   *  outside the set currently being (re)allocated). */
+  /** Units free to reserve = versandfähiger Chargen-Bestand minus PICKING-Sperre.
+   *  Abgelaufene / gesperrte Chargen zählen nicht (see shippable-stock.ts). */
   available: number;
 };
 
