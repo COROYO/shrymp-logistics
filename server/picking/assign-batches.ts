@@ -9,7 +9,10 @@ import {
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { loadLagerConfig } from "@/server/lager/config";
-import { isBatchAssignableForShipping } from "./batch-assignability";
+import {
+  isBatchAssignableForShipping,
+  isBatchExpired,
+} from "./batch-assignability";
 
 /**
  * Assign concrete Chargen (batches) to an order's line items — FEFO, oldest
@@ -62,9 +65,32 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
       .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
       .filter((a) => !a.data.consumed_at);
 
-    // Already fully assigned → idempotent reprint, change nothing.
+    // Already fully assigned → idempotent reprint only if every pinned Charge
+    // is still shippable (not expired / within the MHD cutoff).
     if (myOpen.length > 0 && coversAllLineItems(order.line_items, myOpen)) {
-      return true;
+      const assignedBatchIds = Array.from(
+        new Set(myOpen.map((a) => a.data.batch_id)),
+      );
+      const assignedSnaps = await Promise.all(
+        assignedBatchIds.map((id) =>
+          tx.get(db.collection(Collections.Batches).doc(id)),
+        ),
+      );
+      const stillShippable = assignedSnaps.every((snap) => {
+        if (!snap.exists) return false;
+        const b = snap.data() as Batch;
+        return isBatchAssignableForShipping(
+          b.expiry_date,
+          minDays,
+          referenceDate,
+        );
+      });
+      if (stillShippable) return true;
+    }
+
+    // Drop stale / partial assignments so the pool sees restored remaining_qty.
+    if (myOpen.length > 0) {
+      await releaseOpenAssignments(tx, db, myOpen, referenceDate);
     }
 
     // ACTIVE batches with assignable stock for the order's variants.
@@ -94,13 +120,15 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
     for (const d of batchDocs) {
       const b = d.data() as Batch;
       if ((b.remaining_qty ?? 0) <= 0) continue;
-      if (
-        !isBatchAssignableForShipping(
-          b.expiry_date,
-          minDays,
-          referenceDate,
-        )
-      ) {
+      const expired = !isBatchAssignableForShipping(
+        b.expiry_date,
+        minDays,
+        referenceDate,
+      );
+      if (expired) {
+        if (isBatchExpired(b.expiry_date, referenceDate)) {
+          tx.update(d.ref, { status: "EXPIRED" });
+        }
         continue;
       }
       const entry: PoolEntry = {
@@ -143,16 +171,28 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
         batchTake.set(e.id, (batchTake.get(e.id) ?? 0) + take);
       }
       if (need > 0) {
-        const hasBlockedNearExpiry = batchDocs.some((d) => {
+        const variantBatches = batchDocs.filter((d) => {
           const b = d.data() as Batch;
-          if (b.variant_id !== li.variant_id) return false;
-          if ((b.remaining_qty ?? 0) <= 0) return false;
-          return !isBatchAssignableForShipping(
-            b.expiry_date,
-            minDays,
-            referenceDate,
+          return (
+            b.variant_id === li.variant_id && (b.remaining_qty ?? 0) > 0
           );
         });
+        const hasExpiredStock = variantBatches.some((d) =>
+          isBatchExpired((d.data() as Batch).expiry_date, referenceDate),
+        );
+        if (hasExpiredStock) {
+          throw new Error(
+            `assign_batches_expired_blocked: order=${orderId} variant=${li.variant_id} missing=${need}`,
+          );
+        }
+        const hasBlockedNearExpiry = variantBatches.some(
+          (d) =>
+            !isBatchAssignableForShipping(
+              (d.data() as Batch).expiry_date,
+              minDays,
+              referenceDate,
+            ),
+        );
         if (hasBlockedNearExpiry) {
           throw new Error(
             `assign_batches_near_expiry_blocked: order=${orderId} variant=${li.variant_id} missing=${need} minDays=${minDays}`,
@@ -167,9 +207,6 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
     }
 
     // ---- Writes ----
-    // Replace any partial existing assignment.
-    for (const a of myOpen) tx.delete(a.ref);
-
     const batchById = new Map(batchDocs.map((d) => [d.id, d]));
     for (const [batchId, take] of batchTake) {
       const d = batchById.get(batchId);
@@ -220,6 +257,32 @@ function coversAllLineItems(
   }
   // No stray assignments for line items that no longer exist.
   return assignedByLi.size === new Set(lineItems.map((li) => li.id)).size;
+}
+
+async function releaseOpenAssignments(
+  tx: FirebaseFirestore.Transaction,
+  db: FirebaseFirestore.Firestore,
+  open: { ref: FirebaseFirestore.DocumentReference; data: Allocation }[],
+  referenceDate: Date,
+): Promise<void> {
+  for (const a of open) {
+    const batchRef = db.collection(Collections.Batches).doc(a.data.batch_id);
+    const batchSnap = await tx.get(batchRef);
+    const patch: Record<string, unknown> = {
+      remaining_qty: FieldValue.increment(a.data.qty),
+    };
+    if (batchSnap.exists) {
+      const b = batchSnap.data() as Batch;
+      const nextRemaining = (b.remaining_qty ?? 0) + a.data.qty;
+      if (nextRemaining > 0) {
+        patch.status = isBatchExpired(b.expiry_date, referenceDate)
+          ? "EXPIRED"
+          : "ACTIVE";
+      }
+    }
+    tx.update(batchRef, patch);
+    tx.delete(a.ref);
+  }
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {

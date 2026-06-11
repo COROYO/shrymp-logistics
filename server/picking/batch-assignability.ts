@@ -45,11 +45,21 @@ export function calendarDaysUntilExpiry(
   return expOrd - refOrd;
 }
 
-/** True when MHD is more than `minDaysBeforeExpiry` calendar days away. */
+/** True on calendar days strictly after the MHD (Berlin). MHD day itself is still valid. */
+export function isBatchExpired(
+  expiry: unknown,
+  referenceDate: Date = new Date(),
+): boolean {
+  return calendarDaysUntilExpiry(expiry, referenceDate) < 0;
+}
+
+/** True when MHD is today or in the future and more than `minDaysBeforeExpiry` days away. */
 export function isBatchAssignableForShipping(
   expiry: unknown,
   minDaysBeforeExpiry: number,
   referenceDate: Date = new Date(),
 ): boolean {
-  return calendarDaysUntilExpiry(expiry, referenceDate) > minDaysBeforeExpiry;
+  const days = calendarDaysUntilExpiry(expiry, referenceDate);
+  if (days < 0) return false;
+  return days > minDaysBeforeExpiry;
 }

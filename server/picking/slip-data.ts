@@ -16,9 +16,16 @@ import {
   orderAssignmentCoversLineItems,
 } from "./assign-batches";
 import { loadLagerConfig } from "@/server/lager/config";
+import {
+  isBatchAssignableForShipping,
+  isBatchExpired,
+} from "./batch-assignability";
 import { log } from "@/lib/logger";
 
-export type SlipAssignmentBlockReason = "near_expiry" | "incomplete";
+export type SlipAssignmentBlockReason =
+  | "near_expiry"
+  | "expired"
+  | "incomplete";
 
 export class SlipAssignmentBlockedError extends Error {
   readonly orderId: string;
@@ -86,6 +93,13 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     await assignBatchesForOrder(orderId);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith("assign_batches_expired_blocked")) {
+      throw new SlipAssignmentBlockedError(
+        orderId,
+        "expired",
+        lagerCfg.batch_min_days_before_expiry,
+      );
+    }
     if (msg.startsWith("assign_batches_near_expiry_blocked")) {
       throw new SlipAssignmentBlockedError(
         orderId,
@@ -116,6 +130,23 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   const batchById = new Map<string, Batch>();
   for (const b of batchSnaps) {
     if (b.exists) batchById.set(b.id, b.data() as Batch);
+  }
+
+  const referenceDate = new Date();
+  const minDays = lagerCfg.batch_min_days_before_expiry;
+  const openAllocs = allocs.filter((a) => !a.consumed_at);
+  for (const a of openAllocs) {
+    const b = batchById.get(a.batch_id);
+    if (
+      !b ||
+      !isBatchAssignableForShipping(b.expiry_date, minDays, referenceDate)
+    ) {
+      const reason =
+        b && isBatchExpired(b.expiry_date, referenceDate)
+          ? "expired"
+          : "near_expiry";
+      throw new SlipAssignmentBlockedError(orderId, reason, minDays);
+    }
   }
 
   const allocsByLi = new Map<string, SlipAllocLine[]>();

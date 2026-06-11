@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calendarDaysUntilExpiry,
   isBatchAssignableForShipping,
+  isBatchExpired,
 } from "./batch-assignability";
 
 describe("batch assignability (Europe/Berlin calendar days)", () => {
@@ -22,8 +23,11 @@ describe("batch assignability (Europe/Berlin calendar days)", () => {
     expect(isBatchAssignableForShipping("2026-06-16", 14, ref)).toBe(true);
   });
 
-  it("blocks expired or same-day MHD", () => {
-    expect(isBatchAssignableForShipping("2026-06-01", 10, ref)).toBe(false);
-    expect(isBatchAssignableForShipping("2026-05-31", 10, ref)).toBe(false);
+  it("blocks expired MHD; same-day MHD needs minDays 0 and is still blocked", () => {
+    expect(isBatchExpired("2026-05-31", ref)).toBe(true);
+    expect(isBatchExpired("2026-06-01", ref)).toBe(false);
+    expect(isBatchAssignableForShipping("2026-05-31", 0, ref)).toBe(false);
+    expect(isBatchAssignableForShipping("2026-06-01", 0, ref)).toBe(false);
+    expect(isBatchAssignableForShipping("2026-06-02", 0, ref)).toBe(true);
   });
 });

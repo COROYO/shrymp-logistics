@@ -2,6 +2,7 @@ import "server-only";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Batch } from "@/server/firestore/schema";
+import { isBatchExpired } from "@/server/picking/batch-assignability";
 import { log } from "@/lib/logger";
 import { queueInventoryPush } from "./sync-to-shopify";
 import { processOutbox } from "@/server/shopify/outbox";
@@ -112,7 +113,14 @@ export async function editBatch(
       update.remaining_qty = patch.remaining_qty;
       // Auto-DEPLETED if zero, else ACTIVE (unless caller explicitly set status).
       if (patch.status === undefined) {
-        update.status = patch.remaining_qty === 0 ? "DEPLETED" : "ACTIVE";
+        if (patch.remaining_qty === 0) {
+          update.status = "DEPLETED";
+        } else {
+          const expiry = (patch.expiry_date
+            ? patch.expiry_date
+            : before.expiry_date) as unknown;
+          update.status = isBatchExpired(expiry) ? "EXPIRED" : "ACTIVE";
+        }
       }
     }
     if (patch.status !== undefined) update.status = patch.status;

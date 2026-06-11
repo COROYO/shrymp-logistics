@@ -6,6 +6,7 @@ import {
   type Allocation,
   type AllocationRunStatus,
   type AllocationTrigger,
+  type Batch,
   type Order,
 } from "@/server/firestore/schema";
 import { allocate } from "./runAllocation";
@@ -13,6 +14,7 @@ import type { AllocationInput, OrderInput, VariantAvail, Decision } from "./type
 import { processOutbox, processOutboxByIds } from "@/server/shopify/outbox";
 import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
+import { isBatchExpired } from "@/server/picking/batch-assignability";
 
 /**
  * Firestore-backed allocation run.
@@ -359,6 +361,7 @@ async function releaseAssignmentsForStoppedOrders(
   orderIds: string[],
 ): Promise<void> {
   const db = adminDb();
+  const referenceDate = new Date();
   const snaps = await Promise.all(
     chunk(orderIds, 30).map((c) =>
       db.collection(Collections.Allocations).where("order_id", "in", c).get(),
@@ -373,12 +376,25 @@ async function releaseAssignmentsForStoppedOrders(
       restoreByBatch.set(a.batch_id, (restoreByBatch.get(a.batch_id) ?? 0) + a.qty);
     }
   }
+  const batchSnaps = await Promise.all(
+    [...restoreByBatch.keys()].map((id) =>
+      db.collection(Collections.Batches).doc(id).get(),
+    ),
+  );
+  const batchExpiryById = new Map<string, unknown>();
+  for (const snap of batchSnaps) {
+    if (snap.exists) {
+      batchExpiryById.set(snap.id, (snap.data() as Batch).expiry_date);
+    }
+  }
   for (const [batchId, qty] of restoreByBatch) {
     if (qty === 0) continue;
     const ref = db.collection(Collections.Batches).doc(batchId);
+    const expiry = batchExpiryById.get(batchId);
     void bulk.update(ref, {
       remaining_qty: FieldValue.increment(qty),
-      status: "ACTIVE",
+      status:
+        expiry && isBatchExpired(expiry, referenceDate) ? "EXPIRED" : "ACTIVE",
     });
   }
 }
