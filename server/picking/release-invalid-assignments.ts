@@ -13,6 +13,7 @@ import {
   isBatchAssignableForShipping,
   isBatchExpired,
 } from "./batch-assignability";
+import { maybeStopOrderForUnassignableBatches } from "./stop-for-unshippable-batches";
 
 /**
  * Drop open Charge assignments that are no longer shippable (expired MHD or
@@ -27,7 +28,7 @@ export async function releaseUnshippableBatchAssignments(
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
 
-  return db.runTransaction(async (tx) => {
+  const released = await db.runTransaction(async (tx) => {
     const orderSnap = await tx.get(
       db.collection(Collections.Orders).doc(orderId),
     );
@@ -98,4 +99,7 @@ export async function releaseUnshippableBatchAssignments(
     });
     return open.length;
   });
+
+  await maybeStopOrderForUnassignableBatches(orderId);
+  return released;
 }

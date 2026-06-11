@@ -49,7 +49,9 @@ export type Decision =
 export type StopReason =
   | "INSUFFICIENT_STOCK"
   | "UNKNOWN_VARIANT"
-  | "EMPTY_ORDER";
+  | "EMPTY_ORDER"
+  | "BATCH_EXPIRED"
+  | "BATCH_NEAR_EXPIRY";
 
 export type AllocationInput = {
   variants: VariantAvail[];

@@ -14,6 +14,9 @@ import {
   isBatchExpired,
 } from "./batch-assignability";
 import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
+import { orderAssignmentCoversLineItems } from "./assignment-coverage";
+
+export { orderAssignmentCoversLineItems } from "./assignment-coverage";
 
 /**
  * Assign concrete Chargen (batches) to an order's line items — FEFO, oldest
@@ -70,7 +73,10 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
 
     // Already fully assigned → idempotent reprint only if every pinned Charge
     // is still shippable (not expired / within the MHD cutoff).
-    if (myOpen.length > 0 && coversAllLineItems(order.line_items, myOpen)) {
+    if (
+      myOpen.length > 0 &&
+      orderAssignmentCoversLineItems(order.line_items, myOpen.map((a) => a.data))
+    ) {
       const assignedBatchIds = Array.from(
         new Set(myOpen.map((a) => a.data.batch_id)),
       );
@@ -244,39 +250,32 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
   });
 }
 
-function coversAllLineItems(
-  lineItems: Order["line_items"],
-  open: { data: Pick<Allocation, "line_item_id" | "qty"> }[],
-): boolean {
-  const assignedByLi = new Map<string, number>();
-  for (const a of open) {
-    assignedByLi.set(
-      a.data.line_item_id,
-      (assignedByLi.get(a.data.line_item_id) ?? 0) + a.data.qty,
-    );
-  }
-  for (const li of lineItems) {
-    if ((assignedByLi.get(li.id) ?? 0) !== li.qty) return false;
-  }
-  // No stray assignments for line items that no longer exist.
-  return assignedByLi.size === new Set(lineItems.map((li) => li.id)).size;
-}
-
 async function releaseOpenAssignments(
   tx: FirebaseFirestore.Transaction,
   db: FirebaseFirestore.Firestore,
   open: { ref: FirebaseFirestore.DocumentReference; data: Allocation }[],
   referenceDate: Date,
 ): Promise<void> {
+  const batchIds = Array.from(new Set(open.map((a) => a.data.batch_id)));
+  const batchSnaps = await Promise.all(
+    batchIds.map((id) => tx.get(db.collection(Collections.Batches).doc(id))),
+  );
+  const batchById = new Map(
+    batchSnaps.filter((s) => s.exists).map((s) => [s.id, s.data() as Batch]),
+  );
+
+  const releasedByBatch = new Map<string, number>();
   for (const a of open) {
     const batchRef = db.collection(Collections.Batches).doc(a.data.batch_id);
-    const batchSnap = await tx.get(batchRef);
     const patch: Record<string, unknown> = {
       remaining_qty: FieldValue.increment(a.data.qty),
     };
-    if (batchSnap.exists) {
-      const b = batchSnap.data() as Batch;
-      const nextRemaining = (b.remaining_qty ?? 0) + a.data.qty;
+    const b = batchById.get(a.data.batch_id);
+    if (b) {
+      const priorReleased = releasedByBatch.get(a.data.batch_id) ?? 0;
+      const nextRemaining =
+        (b.remaining_qty ?? 0) + priorReleased + a.data.qty;
+      releasedByBatch.set(a.data.batch_id, priorReleased + a.data.qty);
       if (nextRemaining > 0) {
         patch.status = isBatchExpired(b.expiry_date, referenceDate)
           ? "EXPIRED"
@@ -313,11 +312,3 @@ function toMs(ts: unknown): number {
   return 0;
 }
 
-/** Exported for slip completeness checks. */
-export function orderAssignmentCoversLineItems(
-  lineItems: Order["line_items"],
-  allocs: Pick<Allocation, "line_item_id" | "qty" | "consumed_at">[],
-): boolean {
-  const open = allocs.filter((a) => !a.consumed_at);
-  return coversAllLineItems(lineItems, open.map((data) => ({ data })));
-}

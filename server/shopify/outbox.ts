@@ -46,6 +46,27 @@ export async function processOutbox(limit = 50): Promise<OutboxDrainResult> {
  * can starve fresh rows when a backlog of older due entries fills its limit,
  * which previously left manually-triggered tag pushes unsent.
  */
+/** Deterministic outbox row per order — overwrites any still-pending tag push. */
+export async function enqueueLagerTagSet(
+  orderId: string,
+  status: "SHIP" | "STOP",
+): Promise<string> {
+  const db = adminDb();
+  const ref = db
+    .collection(Collections.ShopifyOutbox)
+    .doc(`lagertags_${orderId}`);
+  const now = FieldValue.serverTimestamp();
+  await ref.set({
+    id: ref.id,
+    op: "LAGER_TAGS_SET",
+    payload: { orderId, status },
+    attempts: 0,
+    next_retry_at: now,
+    created_at: now,
+  });
+  return ref.id;
+}
+
 export async function processOutboxByIds(
   ids: string[],
 ): Promise<OutboxDrainResult> {
