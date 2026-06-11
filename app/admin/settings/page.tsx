@@ -3,13 +3,17 @@ import {
   Collections,
   ConfigDocs,
   DhlConfigSchema,
+  LagerConfigSchema,
   type DhlConfig,
+  type LagerConfig,
 } from "@/server/firestore/schema";
+import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY } from "@/lib/lager/defaults";
 import { RegisterWebhooksButton } from "./register-webhooks-button";
 import { RunAllocationButton } from "./run-allocation-button";
 import { BackfillOrdersButton } from "./backfill-orders-button";
 import { PushInventoryButton } from "./push-inventory-button";
 import { DhlConfigForm, type DhlConfigFormValue } from "./dhl-config-form";
+import { LagerConfigForm } from "./lager-config-form";
 import { HealthPanel, type HealthSnapshot } from "./health-panel";
 import { readLastHealth } from "@/server/shopify/health";
 
@@ -29,6 +33,20 @@ async function getStatus() {
     token_scope: (token?.["scope"] as string | undefined) ?? null,
     location_gid: (meta?.["location_gid"] as string | undefined) ?? null,
     api_version: (meta?.["api_version"] as string | undefined) ?? null,
+  };
+}
+
+async function getLagerConfig(): Promise<LagerConfig> {
+  const snap = await adminDb()
+    .collection(Collections.Config)
+    .doc(ConfigDocs.LagerConfig)
+    .get();
+  const parsed = LagerConfigSchema.safeParse(snap.data());
+  if (parsed.success) return parsed.data;
+  return {
+    batch_min_days_before_expiry: DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY,
+    updated_at: new Date(),
+    updated_by_uid: null,
   };
 }
 
@@ -86,8 +104,9 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ installed?: string }>;
 }) {
-  const [status, dhlCfg, env, sp, lastHealth] = await Promise.all([
+  const [status, lagerCfg, dhlCfg, env, sp, lastHealth] = await Promise.all([
     getStatus(),
+    getLagerConfig(),
     getDhlConfig(),
     Promise.resolve(getEnvHealth()),
     searchParams,
@@ -309,6 +328,28 @@ export default async function SettingsPage({
         </dl>
         <div className="mt-6">
           <DhlConfigForm current={toClientDhlConfig(dhlCfg)} />
+        </div>
+      </section>
+
+      <section className="card p-6">
+        <p className="eyebrow">Lager</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Chargen-Zuordnung (MHD-Sperre)
+        </h2>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
+          <DefItem label="Mindest-Restlaufzeit">
+            <span className="font-mono text-xs">
+              {lagerCfg.batch_min_days_before_expiry} Tage
+            </span>
+          </DefItem>
+        </dl>
+        <div className="mt-6">
+          <LagerConfigForm
+            current={{
+              batch_min_days_before_expiry:
+                lagerCfg.batch_min_days_before_expiry,
+            }}
+          />
         </div>
       </section>
 

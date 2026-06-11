@@ -11,8 +11,32 @@ import {
   getOrAssignLieferscheinNo,
   type LieferscheinRef,
 } from "./lieferschein";
-import { assignBatchesForOrder } from "./assign-batches";
+import {
+  assignBatchesForOrder,
+  orderAssignmentCoversLineItems,
+} from "./assign-batches";
+import { loadLagerConfig } from "@/server/lager/config";
 import { log } from "@/lib/logger";
+
+export type SlipAssignmentBlockReason = "near_expiry" | "incomplete";
+
+export class SlipAssignmentBlockedError extends Error {
+  readonly orderId: string;
+  readonly reason: SlipAssignmentBlockReason;
+  readonly minDaysBeforeExpiry: number;
+
+  constructor(
+    orderId: string,
+    reason: SlipAssignmentBlockReason,
+    minDaysBeforeExpiry: number,
+  ) {
+    super(`slip_assignment_blocked:${reason}`);
+    this.name = "SlipAssignmentBlockedError";
+    this.orderId = orderId;
+    this.reason = reason;
+    this.minDaysBeforeExpiry = minDaysBeforeExpiry;
+  }
+}
 
 export type SlipAllocLine = {
   lineItemId: string;
@@ -44,21 +68,7 @@ const DEFAULT_VARIANT_TITLE = "Default Title";
  */
 export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   const db = adminDb();
-
-  // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
-  // the moment batches get pinned: pickers may work orders in arbitrary
-  // sequence, but each slip always takes the oldest batch still on the shelf,
-  // transactionally (no two slips can grab the same units). Idempotent on
-  // reprint. Best-effort: a failure here doesn't block rendering — we print
-  // whatever assignment exists (possibly none, for an order with no stock).
-  try {
-    await assignBatchesForOrder(orderId);
-  } catch (e) {
-    log.warn("assign_batches_on_slip_failed", {
-      orderId,
-      error: e instanceof Error ? e.message : String(e),
-    });
-  }
+  const lagerCfg = await loadLagerConfig();
 
   const orderSnap = await db
     .collection(Collections.Orders)
@@ -67,11 +77,38 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
 
+  // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
+  // the moment batches get pinned: pickers may work orders in arbitrary
+  // sequence, but each slip always takes the oldest batch still on the shelf,
+  // transactionally (no two slips can grab the same units). Idempotent on
+  // reprint. Without a complete assignment we must not issue a Lieferschein.
+  try {
+    await assignBatchesForOrder(orderId);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith("assign_batches_near_expiry_blocked")) {
+      throw new SlipAssignmentBlockedError(
+        orderId,
+        "near_expiry",
+        lagerCfg.batch_min_days_before_expiry,
+      );
+    }
+    log.warn("assign_batches_on_slip_failed", { orderId, error: msg });
+  }
+
   const allocSnap = await db
     .collection(Collections.Allocations)
     .where("order_id", "==", orderId)
     .get();
   const allocs = allocSnap.docs.map((d) => d.data() as Allocation);
+
+  if (!orderAssignmentCoversLineItems(order.line_items, allocs)) {
+    throw new SlipAssignmentBlockedError(
+      orderId,
+      "near_expiry",
+      lagerCfg.batch_min_days_before_expiry,
+    );
+  }
   const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
   const batchSnaps = await Promise.all(
     batchIds.map((b) => db.collection(Collections.Batches).doc(b).get()),

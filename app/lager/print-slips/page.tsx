@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
-import { loadSlipData } from "@/server/picking/slip-data";
+import {
+  loadSlipData,
+  SlipAssignmentBlockedError,
+} from "@/server/picking/slip-data";
+import { SlipBlockedMessage } from "@/app/lager/_slip/slip-blocked";
 import { SlipBody } from "@/app/lager/_slip/slip-body";
 import { PrintTrigger } from "../picking/[orderId]/print/print-trigger";
 
@@ -25,22 +29,52 @@ export default async function BulkPrintSlipsPage({
 
   if (orderIds.length === 0) notFound();
 
-  const loaded = await Promise.all(orderIds.map((id) => loadSlipData(id)));
-  const slips = loaded.filter(
-    (s): s is NonNullable<typeof s> => s !== null,
+  const loaded = await Promise.all(
+    orderIds.map(async (id) => {
+      try {
+        return { id, slip: await loadSlipData(id) };
+      } catch (e) {
+        if (e instanceof SlipAssignmentBlockedError) {
+          return { id, blocked: e };
+        }
+        throw e;
+      }
+    }),
   );
 
-  if (slips.length === 0) notFound();
+  const blocked = loaded.filter(
+    (r): r is { id: string; blocked: SlipAssignmentBlockedError } =>
+      "blocked" in r && r.blocked != null,
+  );
+  const slips = loaded
+    .filter((r): r is { id: string; slip: NonNullable<Awaited<ReturnType<typeof loadSlipData>>> } =>
+      "slip" in r && r.slip != null,
+    )
+    .map((r) => r.slip);
+
+  if (slips.length === 0 && blocked.length === 0) notFound();
 
   return (
     <>
-      <PrintTrigger />
+      {slips.length > 0 ? <PrintTrigger /> : null}
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 18mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
+      {blocked.length > 0 ? (
+        <div className="mx-auto max-w-[210mm] space-y-6 p-6 print:hidden">
+          {blocked.map(({ id, blocked: err }) => (
+            <SlipBlockedMessage
+              key={id}
+              orderId={id}
+              reason={err.reason}
+              minDays={err.minDaysBeforeExpiry}
+            />
+          ))}
+        </div>
+      ) : null}
       {slips.map((slip, idx) => (
         <SlipBody
           key={slip.order.id}

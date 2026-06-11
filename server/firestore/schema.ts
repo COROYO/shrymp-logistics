@@ -398,6 +398,20 @@ export const ShopifyTokenSchema = z.object({
   installed_at: FirestoreTimestamp,
 });
 
+// ---------- warehouse / picking configuration ----------
+// `config/lager_config` — batch-assignment rules editable from Admin UI.
+
+export const LagerConfigSchema = z.object({
+  /**
+   * Chargen mit MHD in ≤ N Kalendertagen (Europe/Berlin) werden bei der
+   * Lieferschein-Zuordnung übersprungen. Bereits zugeordnete Chargen auf
+   * Reprints bleiben unverändert.
+   */
+  batch_min_days_before_expiry: z.number().int().nonnegative().default(10),
+  updated_at: FirestoreTimestamp,
+  updated_by_uid: z.string().nullable().default(null),
+});
+
 // ---------- DHL Parcel DE Shipping configuration ----------
 // `config/dhl_config` — billing number, shipper address, defaults, business
 // customer portal credentials. All values are managed via the Admin UI.
@@ -469,6 +483,7 @@ export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 export type ShopifyOutbox = z.infer<typeof ShopifyOutboxSchema>;
 export type ShopifyConfig = z.infer<typeof ShopifyConfigSchema>;
 export type ShopifyToken = z.infer<typeof ShopifyTokenSchema>;
+export type LagerConfig = z.infer<typeof LagerConfigSchema>;
 export type DhlAddress = z.infer<typeof DhlAddressSchema>;
 export type DhlConfig = z.infer<typeof DhlConfigSchema>;
 export type OrderDhlShipment = z.infer<typeof OrderDhlShipmentSchema>;
@@ -492,5 +507,6 @@ export const Collections = {
 export const ConfigDocs = {
   ShopifyMeta: "shopify_meta",
   ShopifyToken: "shopify_token",
+  LagerConfig: "lager_config",
   DhlConfig: "dhl_config",
 } as const;

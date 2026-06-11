@@ -8,6 +8,8 @@ import {
   type Order,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { loadLagerConfig } from "@/server/lager/config";
+import { isBatchAssignableForShipping } from "./batch-assignability";
 
 /**
  * Assign concrete Chargen (batches) to an order's line items — FEFO, oldest
@@ -34,6 +36,9 @@ import { log } from "@/lib/logger";
  */
 export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
   const db = adminDb();
+  const lagerCfg = await loadLagerConfig();
+  const minDays = lagerCfg.batch_min_days_before_expiry;
+  const referenceDate = new Date();
 
   return db.runTransaction(async (tx) => {
     const orderRef = db.collection(Collections.Orders).doc(orderId);
@@ -89,6 +94,15 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
     for (const d of batchDocs) {
       const b = d.data() as Batch;
       if ((b.remaining_qty ?? 0) <= 0) continue;
+      if (
+        !isBatchAssignableForShipping(
+          b.expiry_date,
+          minDays,
+          referenceDate,
+        )
+      ) {
+        continue;
+      }
       const entry: PoolEntry = {
         ref: d.ref,
         id: b.id,
@@ -129,6 +143,21 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
         batchTake.set(e.id, (batchTake.get(e.id) ?? 0) + take);
       }
       if (need > 0) {
+        const hasBlockedNearExpiry = batchDocs.some((d) => {
+          const b = d.data() as Batch;
+          if (b.variant_id !== li.variant_id) return false;
+          if ((b.remaining_qty ?? 0) <= 0) return false;
+          return !isBatchAssignableForShipping(
+            b.expiry_date,
+            minDays,
+            referenceDate,
+          );
+        });
+        if (hasBlockedNearExpiry) {
+          throw new Error(
+            `assign_batches_near_expiry_blocked: order=${orderId} variant=${li.variant_id} missing=${need} minDays=${minDays}`,
+          );
+        }
         // Should not happen: the order is SHIP, so reserved stock exists. This
         // means external inventory drift — surface it loudly.
         throw new Error(
@@ -205,11 +234,24 @@ function toMs(ts: unknown): number {
   if (ts instanceof Date) return ts.getTime();
   if (typeof ts === "string") return new Date(ts).getTime();
   if (typeof ts === "object") {
-    const o = ts as { toMillis?: () => number; seconds?: number; nanoseconds?: number };
+    const o = ts as {
+      toMillis?: () => number;
+      seconds?: number;
+      nanoseconds?: number;
+    };
     if (typeof o.toMillis === "function") return o.toMillis();
     if (typeof o.seconds === "number") {
       return o.seconds * 1000 + (o.nanoseconds ?? 0) / 1e6;
     }
   }
   return 0;
+}
+
+/** Exported for slip completeness checks. */
+export function orderAssignmentCoversLineItems(
+  lineItems: Order["line_items"],
+  allocs: Pick<Allocation, "line_item_id" | "qty" | "consumed_at">[],
+): boolean {
+  const open = allocs.filter((a) => !a.consumed_at);
+  return coversAllLineItems(lineItems, open.map((data) => ({ data })));
 }

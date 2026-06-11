@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
-import { loadSlipData } from "@/server/picking/slip-data";
+import {
+  loadSlipData,
+  SlipAssignmentBlockedError,
+} from "@/server/picking/slip-data";
 import { SlipBody } from "@/app/lager/_slip/slip-body";
+import { SlipBlockedMessage } from "@/app/lager/_slip/slip-blocked";
 import { PrintTrigger } from "../print/print-trigger";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +15,21 @@ export default async function PackingSlipPage({
   params: Promise<{ orderId: string }>;
 }) {
   const { orderId } = await params;
-  const data = await loadSlipData(orderId);
+  let data;
+  try {
+    data = await loadSlipData(orderId);
+  } catch (e) {
+    if (e instanceof SlipAssignmentBlockedError) {
+      return (
+        <SlipBlockedMessage
+          orderId={orderId}
+          reason={e.reason}
+          minDays={e.minDaysBeforeExpiry}
+        />
+      );
+    }
+    throw e;
+  }
   if (!data) notFound();
 
   return (
