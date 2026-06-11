@@ -13,6 +13,7 @@ import {
   isBatchAssignableForShipping,
   isBatchExpired,
 } from "./batch-assignability";
+import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
 
 /**
  * Assign concrete Chargen (batches) to an order's line items — FEFO, oldest
@@ -38,6 +39,8 @@ import {
  * Throws on genuine stock inconsistency (assignable stock < reserved need).
  */
 export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
+  await releaseUnshippableBatchAssignments(orderId);
+
   const db = adminDb();
   const lagerCfg = await loadLagerConfig();
   const minDays = lagerCfg.batch_min_days_before_expiry;

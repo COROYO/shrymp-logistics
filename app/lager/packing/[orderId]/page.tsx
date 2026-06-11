@@ -17,6 +17,7 @@ import { getTranslations } from "next-intl/server";
 import { DhlLabelButtons } from "./dhl-label-buttons";
 import { DhlServicesBadges } from "./dhl-services-badges";
 import { summarizeDhlServices } from "@/server/dhl/request-builder";
+import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ type AllocLine = {
 };
 
 async function loadOrderForPacking(orderId: string) {
+  await releaseUnshippableBatchAssignments(orderId);
   const db = adminDb();
   const [orderSnap, metaSnap, dhlSnap] = await Promise.all([
     db.collection(Collections.Orders).doc(orderId).get(),

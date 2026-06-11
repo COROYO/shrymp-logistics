@@ -10,6 +10,7 @@ import {
   type InventoryMovement,
   type Order,
 } from "@/server/firestore/schema";
+import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ function tsToIso(t: unknown): string | null {
 }
 
 async function load(orderId: string) {
+  await releaseUnshippableBatchAssignments(orderId);
   const db = adminDb();
   const orderSnap = await db
     .collection(Collections.Orders)

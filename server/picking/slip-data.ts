@@ -15,6 +15,7 @@ import {
   assignBatchesForOrder,
   orderAssignmentCoversLineItems,
 } from "./assign-batches";
+import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
 import { loadLagerConfig } from "@/server/lager/config";
 import {
   isBatchAssignableForShipping,
@@ -83,6 +84,8 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     .get();
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
+
+  await releaseUnshippableBatchAssignments(orderId);
 
   // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
   // the moment batches get pinned: pickers may work orders in arbitrary
