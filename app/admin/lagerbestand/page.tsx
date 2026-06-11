@@ -6,6 +6,7 @@ import {
   type Variant,
 } from "@/server/firestore/schema";
 import { loadOrderDemandByVariant } from "@/server/inventory/reserved";
+import { loadShippableQtyByVariant } from "@/server/inventory/shippable-stock";
 import {
   LagerbestandTable,
   type LagerbestandRow,
@@ -20,6 +21,8 @@ async function loadRows(): Promise<LagerbestandRow[]> {
     db.collection(Collections.Variants).get(),
     loadOrderDemandByVariant(),
   ]);
+  const variantIds = variantsSnap.docs.map((d) => d.id);
+  const shippableByVariant = await loadShippableQtyByVariant(variantIds);
 
   const products = new Map<string, Product>();
   for (const p of productsSnap.docs) {
@@ -33,7 +36,7 @@ async function loadRows(): Promise<LagerbestandRow[]> {
     if (!product) continue;
     if (product.status === "ARCHIVED" || product.is_bundle === true) continue;
 
-    const onHand = variant.on_hand_total ?? 0;
+    const onHand = shippableByVariant.get(variant.id) ?? 0;
     const reserved = reservedByVariant.get(variant.id) ?? 0;
 
     rows.push({

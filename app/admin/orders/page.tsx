@@ -72,6 +72,9 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
   // authoritative source) rather than the drift-prone variant.reserved_total
   // cache. See server/inventory/reserved.ts.
   const { loadReservedByVariant } = await import("@/server/inventory/reserved");
+  const { loadShippableQtyByVariant } = await import(
+    "@/server/inventory/shippable-stock"
+  );
   const reservedByVariant = await loadReservedByVariant();
 
   const variantIds = Array.from(
@@ -80,16 +83,23 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
     ),
   ).filter(Boolean);
 
-  const variantById = new Map<string, Variant>();
-  if (variantIds.length > 0) {
+  const [variantById, shippableByVariant] = await (async () => {
+    const byId = new Map<string, Variant>();
+    if (variantIds.length === 0) {
+      return [byId, new Map<string, number>()] as const;
+    }
     const variantRefs = variantIds.map((id) =>
       db.collection(Collections.Variants).doc(id),
     );
-    const variantSnaps = await db.getAll(...variantRefs);
+    const [variantSnaps, shippable] = await Promise.all([
+      db.getAll(...variantRefs),
+      loadShippableQtyByVariant(variantIds),
+    ]);
     for (const v of variantSnaps) {
-      if (v.exists) variantById.set(v.id, v.data() as Variant);
+      if (v.exists) byId.set(v.id, v.data() as Variant);
     }
-  }
+    return [byId, shippable] as const;
+  })();
 
   const productIds = Array.from(
     new Set(
@@ -176,10 +186,10 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
         imageUrl,
         imageMissingReason,
         variantId: li.variant_id,
-        onHand: variant?.on_hand_total ?? 0,
+        onHand: shippableByVariant.get(li.variant_id) ?? 0,
         reserved: reservedByVariant.get(li.variant_id) ?? 0,
         available:
-          (variant?.on_hand_total ?? 0) -
+          (shippableByVariant.get(li.variant_id) ?? 0) -
           (reservedByVariant.get(li.variant_id) ?? 0),
         charges: chargesByLine?.get(li.id) ?? [],
         mergedFromIds: [li.id],

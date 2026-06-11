@@ -55,12 +55,34 @@ async function loadProductRows(): Promise<ProductRow[]> {
 
   // Map batch_id → total sold qty (consumed, not released).
   const soldByBatch: Record<string, number> = {};
+  const openAllocQtyByBatch = new Map<string, number>();
   for (const a of allocationsSnap.docs) {
     const data = a.data() as Allocation;
-    if (!data.consumed_at) continue;
     if (data.released) continue;
-    soldByBatch[data.batch_id] = (soldByBatch[data.batch_id] ?? 0) + data.qty;
+    if (data.consumed_at) {
+      soldByBatch[data.batch_id] = (soldByBatch[data.batch_id] ?? 0) + data.qty;
+      continue;
+    }
+    openAllocQtyByBatch.set(
+      data.batch_id,
+      (openAllocQtyByBatch.get(data.batch_id) ?? 0) + data.qty,
+    );
   }
+
+  const { computeShippableQtyByVariant } = await import(
+    "@/server/inventory/shippable-stock"
+  );
+  const { loadLagerConfig } = await import("@/server/lager/config");
+  const lagerCfg = await loadLagerConfig();
+  const allBatches = batchesSnap.docs.map((d) => ({
+    ...(d.data() as Batch),
+    id: d.id,
+  }));
+  const shippableByVariant = computeShippableQtyByVariant(
+    allBatches,
+    openAllocQtyByBatch,
+    lagerCfg.batch_min_days_before_expiry,
+  );
 
   const products: Record<string, Product> = {};
   for (const p of productsSnap.docs) products[p.id] = p.data() as Product;
@@ -107,9 +129,7 @@ async function loadProductRows(): Promise<ProductRow[]> {
               if (!b.expiryDateIso) return -1;
               return a.expiryDateIso.localeCompare(b.expiryDateIso);
             });
-          const onHand =
-            (v.on_hand_total as number | undefined) ??
-            batches.reduce((s, b) => s + b.remainingQty, 0);
+          const onHand = shippableByVariant.get(v.id) ?? 0;
           const reserved = reservedByVariant.get(v.id) ?? 0;
           return {
             id: v.id,
