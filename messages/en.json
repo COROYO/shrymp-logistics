@@ -395,6 +395,23 @@
     "eyebrow": "Stock",
     "title": "Stock levels",
     "intro": "All product variants with on-hand quantity, open order demand (SHIP/PICKING/STOP), and the remaining difference.",
+    "io": {
+      "eyebrow": "CSV",
+      "title": "Export / import stock",
+      "hint": "Export: one product row per variant, with a batch row per charge below it. Import: only batch rows (with a charge number) change stock — the quantity is the new target count. Unknown charges are created (expiry date required).",
+      "export": "Export CSV",
+      "exportNoCharges": "CSV without batches",
+      "import": "Import CSV",
+      "importing": "Importing…",
+      "file": "File",
+      "created": "Created",
+      "updated": "Updated",
+      "skipped": "Skipped",
+      "errors": "Errors",
+      "row": "Row",
+      "charge": "Charge",
+      "detail": "Detail"
+    },
     "stats": {
       "variants": "Variants",
       "onHand": "On hand (pcs)",

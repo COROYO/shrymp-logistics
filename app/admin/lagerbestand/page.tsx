@@ -11,6 +11,7 @@ import {
   LagerbestandTable,
   type LagerbestandRow,
 } from "./lagerbestand-table";
+import { ImportExportBar } from "./import-export";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,8 @@ export default async function LagerbestandPage() {
         <Stat label={t("stats.reserved")} value={totals.reserved} />
         <Stat label={t("stats.difference")} value={totals.difference} />
       </dl>
+
+      <ImportExportBar />
 
       {rows.length === 0 ? (
         <div className="card px-6 py-10 text-center text-sm text-brand-navy/60">

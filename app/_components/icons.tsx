@@ -158,3 +158,23 @@ export function ArchiveIcon({ className }: IconProps) {
     </Svg>
   );
 }
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M10 3v9" />
+      <path d="M6.5 8.5 10 12l3.5-3.5" />
+      <path d="M4 15.5h12" />
+    </Svg>
+  );
+}
+
+export function UploadIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M10 12V3" />
+      <path d="M6.5 6.5 10 3l3.5 3.5" />
+      <path d="M4 15.5h12" />
+    </Svg>
+  );
+}

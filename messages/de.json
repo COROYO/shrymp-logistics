@@ -395,6 +395,23 @@
     "eyebrow": "Bestand",
     "title": "Lagerbestand",
     "intro": "Alle Produktvarianten mit physischem Lagerbestand, offener Order-Nachfrage (SHIP/PICKING/STOP) und der verbleibenden Differenz.",
+    "io": {
+      "eyebrow": "CSV",
+      "title": "Bestand exportieren / importieren",
+      "hint": "Export: pro Variante eine Produktzeile, darunter je Charge eine Chargenzeile. Import: nur Chargenzeilen (mit Chargennummer) verändern den Bestand — „Menge“ ist der neue Soll-Bestand. Unbekannte Chargen werden neu angelegt (MHD nötig).",
+      "export": "CSV exportieren",
+      "exportNoCharges": "CSV ohne Chargen",
+      "import": "CSV importieren",
+      "importing": "Importiere…",
+      "file": "Datei",
+      "created": "Neu angelegt",
+      "updated": "Aktualisiert",
+      "skipped": "Übersprungen",
+      "errors": "Fehler",
+      "row": "Zeile",
+      "charge": "Charge",
+      "detail": "Detail"
+    },
     "stats": {
       "variants": "Varianten",
       "onHand": "Lager (Stk)",
