@@ -18,3 +18,5 @@ env:
   # together with CRON_SECRET.
   - variable: ALLOCATION_ALLOW_UNAUTHENTICATED
     value: "1"
+  - variable: CRON_SECRET
+    secret: CRON_SECRET

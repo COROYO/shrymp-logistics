@@ -195,6 +195,83 @@ async function dispatch(row: ShopifyOutbox): Promise<void> {
   }
 }
 
+// --------------------------- cleanup ---------------------------
+
+export type OutboxCleanupResult = {
+  deletedDone: number;
+  deletedStale: number;
+};
+
+/**
+ * Räumt die `shopify_outbox` auf — sonst wächst sie unbegrenzt, weil
+ * `processRow` erledigte Zeilen nur mit `done_at` markiert, aber nie löscht.
+ *
+ * Gelöscht werden:
+ *   1. **Erledigte** Zeilen (`done_at`), deren Abschluss älter als
+ *      `doneRetentionDays` ist (kleine Karenz für Debugging/Idempotenz).
+ *   2. **Beliebige** Zeilen, die älter als `staleRetentionDays` sind —
+ *      fängt abgebrochene/fehlgeschlagene Zeilen ab, die nach tagelangem
+ *      Retry nie erfolgreich werden.
+ *
+ * Nutzt einfache Inequality-Filter (automatische Single-Field-Indizes, kein
+ * Composite-Index nötig) und batched Deletes (Firestore-Limit 500/Batch).
+ */
+export async function cleanupOutbox(opts?: {
+  doneRetentionDays?: number;
+  staleRetentionDays?: number;
+  maxDeletes?: number;
+}): Promise<OutboxCleanupResult> {
+  const doneRetentionDays = opts?.doneRetentionDays ?? 2;
+  const staleRetentionDays = opts?.staleRetentionDays ?? 14;
+  const maxDeletes = opts?.maxDeletes ?? 10_000;
+
+  const db = adminDb();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const doneCutoff = Timestamp.fromMillis(Date.now() - doneRetentionDays * dayMs);
+  const staleCutoff = Timestamp.fromMillis(
+    Date.now() - staleRetentionDays * dayMs,
+  );
+  const col = db.collection(Collections.ShopifyOutbox);
+
+  const deletedDone = await deleteByQuery(
+    db,
+    col.where("done_at", "<=", doneCutoff),
+    maxDeletes,
+  );
+  const deletedStale = await deleteByQuery(
+    db,
+    col.where("created_at", "<=", staleCutoff),
+    maxDeletes,
+  );
+
+  log.info("outbox_cleanup", {
+    deletedDone,
+    deletedStale,
+    doneRetentionDays,
+    staleRetentionDays,
+  });
+  return { deletedDone, deletedStale };
+}
+
+async function deleteByQuery(
+  db: FirebaseFirestore.Firestore,
+  query: FirebaseFirestore.Query,
+  max: number,
+): Promise<number> {
+  const PAGE = 400;
+  let total = 0;
+  while (total < max) {
+    const snap = await query.limit(Math.min(PAGE, max - total)).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    for (const d of snap.docs) batch.delete(d.ref);
+    await batch.commit();
+    total += snap.size;
+    if (snap.size < PAGE) break;
+  }
+  return total;
+}
+
 function backoffMs(attempts: number): number {
   const exp = 1000 * 2 ** Math.min(attempts, 10);
   const jitter = Math.random() * 500;
