@@ -667,6 +667,7 @@
     "fallbackName": "Kunde:in",
     "intro": "vielen Dank für deine Bestellung. Anbei findest du den Inhalt deiner Lieferung mit Chargennummern und Mindesthaltbarkeitsdatum zur Rückverfolgbarkeit.",
     "product": "Produkt",
+    "sku": "Art.-Nr.",
     "qty": "Menge",
     "charge": "Charge",
     "expiry": "MHD",
