@@ -5,6 +5,7 @@ import {
 } from "@/server/picking/slip-data";
 import { SlipBlockedMessage } from "@/app/lager/_slip/slip-blocked";
 import { SlipBody } from "@/app/lager/_slip/slip-body";
+import { SlipPaginator } from "@/app/lager/_slip/slip-paginator";
 import { PrintTrigger } from "../picking/[orderId]/print/print-trigger";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,7 @@ export default async function BulkPrintSlipsPage({
 
   return (
     <>
+      {slips.length > 0 ? <SlipPaginator /> : null}
       {slips.length > 0 ? <PrintTrigger /> : null}
       <style>{`
         @media print {

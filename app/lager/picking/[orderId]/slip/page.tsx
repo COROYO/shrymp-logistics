@@ -5,6 +5,7 @@ import {
 } from "@/server/picking/slip-data";
 import { SlipBody } from "@/app/lager/_slip/slip-body";
 import { SlipBlockedMessage } from "@/app/lager/_slip/slip-blocked";
+import { SlipPaginator } from "@/app/lager/_slip/slip-paginator";
 import { PrintTrigger } from "../print/print-trigger";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export default async function PackingSlipPage({
 
   return (
     <>
+      <SlipPaginator />
       <PrintTrigger />
       <style>{`
         @media print {
