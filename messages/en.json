@@ -49,6 +49,7 @@
     "users": "Users",
     "settings": "Settings",
     "picking": "Picking",
+    "packedOrders": "Completed",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "mainNav": "Main navigation"
@@ -164,6 +165,28 @@
         "successPartial": "{ok} succeeded, {fail} failed.",
         "showErrors": "Show errors"
       }
+    }
+  },
+  "packedOrders": {
+    "eyebrow": "Warehouse",
+    "title": "Completed orders",
+    "intro": "Orders that are already packed and shipped. Packing slips can be reprinted here.",
+    "stats": { "packed": "Completed" },
+    "empty": "No completed orders yet.",
+    "search": "Search (order, city, tag)…",
+    "selected": "{count} selected",
+    "clear": "Clear selection",
+    "printSlips": "Print {count} slips",
+    "selectAll": "Select all",
+    "selectRow": "Select order",
+    "reprint": "🧾 Reprint",
+    "table": {
+      "order": "Order",
+      "packed": "Completed",
+      "items": "Items",
+      "city": "City",
+      "tags": "Tags",
+      "positions": "pos."
     }
   },
   "packing": {
@@ -323,7 +346,8 @@
         "noneShort": "no image"
       }
     },
-    "empty": "No orders in this filter."
+    "empty": "No orders in this filter.",
+    "printSlip": "🧾 Packing slip"
   },
   "orderDetail": {
     "back": "← Orders",

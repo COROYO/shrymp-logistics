@@ -15,6 +15,7 @@ import {
   assignBatchesForOrder,
   orderAssignmentCoversLineItems,
 } from "./assign-batches";
+import { orderAssignmentCoversLineItemsAnyState } from "./assignment-coverage";
 import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
 import { loadLagerConfig } from "@/server/lager/config";
 import {
@@ -85,39 +86,46 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
 
-  await releaseUnshippableBatchAssignments(orderId);
+  // A finished (PACKED) order is a REPRINT: its Chargen are already pinned and
+  // consumed. We must not re-assign or re-validate expiry — just render the
+  // slip from the existing (consumed) allocations exactly as first printed.
+  const isReprint = order.internal_status === "PACKED";
 
-  // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
-  // the moment batches get pinned: pickers may work orders in arbitrary
-  // sequence, but each slip always takes the oldest batch still on the shelf,
-  // transactionally (no two slips can grab the same units). Idempotent on
-  // reprint. Without a complete assignment we must not issue a Lieferschein.
-  try {
-    await assignBatchesForOrder(orderId);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.startsWith("assign_batches_expired_blocked")) {
-      throw new SlipAssignmentBlockedError(
-        orderId,
-        "expired",
-        lagerCfg.batch_min_days_before_expiry,
-      );
+  if (!isReprint) {
+    await releaseUnshippableBatchAssignments(orderId);
+
+    // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
+    // the moment batches get pinned: pickers may work orders in arbitrary
+    // sequence, but each slip always takes the oldest batch still on the shelf,
+    // transactionally (no two slips can grab the same units). Idempotent on
+    // reprint. Without a complete assignment we must not issue a Lieferschein.
+    try {
+      await assignBatchesForOrder(orderId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.startsWith("assign_batches_expired_blocked")) {
+        throw new SlipAssignmentBlockedError(
+          orderId,
+          "expired",
+          lagerCfg.batch_min_days_before_expiry,
+        );
+      }
+      if (msg.startsWith("assign_batches_near_expiry_blocked")) {
+        throw new SlipAssignmentBlockedError(
+          orderId,
+          "near_expiry",
+          lagerCfg.batch_min_days_before_expiry,
+        );
+      }
+      if (msg.startsWith("assign_batches_insufficient")) {
+        throw new SlipAssignmentBlockedError(
+          orderId,
+          "incomplete",
+          lagerCfg.batch_min_days_before_expiry,
+        );
+      }
+      log.warn("assign_batches_on_slip_failed", { orderId, error: msg });
     }
-    if (msg.startsWith("assign_batches_near_expiry_blocked")) {
-      throw new SlipAssignmentBlockedError(
-        orderId,
-        "near_expiry",
-        lagerCfg.batch_min_days_before_expiry,
-      );
-    }
-    if (msg.startsWith("assign_batches_insufficient")) {
-      throw new SlipAssignmentBlockedError(
-        orderId,
-        "incomplete",
-        lagerCfg.batch_min_days_before_expiry,
-      );
-    }
-    log.warn("assign_batches_on_slip_failed", { orderId, error: msg });
   }
 
   const allocSnap = await db
@@ -126,7 +134,10 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     .get();
   const allocs = allocSnap.docs.map((d) => d.data() as Allocation);
 
-  if (!orderAssignmentCoversLineItems(order.line_items, allocs)) {
+  const covered = isReprint
+    ? orderAssignmentCoversLineItemsAnyState(order.line_items, allocs)
+    : orderAssignmentCoversLineItems(order.line_items, allocs);
+  if (!covered) {
     throw new SlipAssignmentBlockedError(
       orderId,
       "incomplete",
@@ -142,20 +153,22 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     if (b.exists) batchById.set(b.id, b.data() as Batch);
   }
 
-  const referenceDate = new Date();
-  const minDays = lagerCfg.batch_min_days_before_expiry;
-  const openAllocs = allocs.filter((a) => !a.consumed_at);
-  for (const a of openAllocs) {
-    const b = batchById.get(a.batch_id);
-    if (
-      !b ||
-      !isBatchAssignableForShipping(b.expiry_date, minDays, referenceDate)
-    ) {
-      const reason =
-        b && isBatchExpired(b.expiry_date, referenceDate)
-          ? "expired"
-          : "near_expiry";
-      throw new SlipAssignmentBlockedError(orderId, reason, minDays);
+  if (!isReprint) {
+    const referenceDate = new Date();
+    const minDays = lagerCfg.batch_min_days_before_expiry;
+    const openAllocs = allocs.filter((a) => !a.consumed_at);
+    for (const a of openAllocs) {
+      const b = batchById.get(a.batch_id);
+      if (
+        !b ||
+        !isBatchAssignableForShipping(b.expiry_date, minDays, referenceDate)
+      ) {
+        const reason =
+          b && isBatchExpired(b.expiry_date, referenceDate)
+            ? "expired"
+            : "near_expiry";
+        throw new SlipAssignmentBlockedError(orderId, reason, minDays);
+      }
     }
   }
 

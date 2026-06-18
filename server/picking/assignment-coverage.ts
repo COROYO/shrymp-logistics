@@ -25,3 +25,16 @@ export function orderAssignmentCoversLineItems(
   const open = allocs.filter((a) => !a.consumed_at);
   return coversAllLineItems(lineItems, open.map((data) => ({ data })));
 }
+
+/**
+ * Like {@link orderAssignmentCoversLineItems} but counts allocations in ANY
+ * state (incl. `consumed_at`). Used when reprinting a packing slip for an
+ * already-packed order, whose Chargen are pinned but consumed — the open-only
+ * check would (wrongly) report the slip as incomplete.
+ */
+export function orderAssignmentCoversLineItemsAnyState(
+  lineItems: Order["line_items"],
+  allocs: Pick<Allocation, "line_item_id" | "qty">[],
+): boolean {
+  return coversAllLineItems(lineItems, allocs.map((data) => ({ data })));
+}

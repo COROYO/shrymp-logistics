@@ -49,6 +49,7 @@
     "users": "Benutzer",
     "settings": "Einstellungen",
     "picking": "Picking",
+    "packedOrders": "Abgeschlossen",
     "openMenu": "Menü öffnen",
     "closeMenu": "Menü schließen",
     "mainNav": "Hauptnavigation"
@@ -164,6 +165,28 @@
         "successPartial": "{ok} erfolgreich, {fail} fehlgeschlagen.",
         "showErrors": "Fehler anzeigen"
       }
+    }
+  },
+  "packedOrders": {
+    "eyebrow": "Lager",
+    "title": "Abgeschlossene Bestellungen",
+    "intro": "Bereits verpackte und versendete Orders. Lieferscheine können hier erneut gedruckt werden.",
+    "stats": { "packed": "Abgeschlossen" },
+    "empty": "Noch keine abgeschlossenen Orders.",
+    "search": "Suche (Order, Stadt, Tag)…",
+    "selected": "{count} ausgewählt",
+    "clear": "Auswahl aufheben",
+    "printSlips": "{count} Slips drucken",
+    "selectAll": "Alle auswählen",
+    "selectRow": "Order auswählen",
+    "reprint": "🧾 Erneut drucken",
+    "table": {
+      "order": "Order",
+      "packed": "Abgeschlossen",
+      "items": "Items",
+      "city": "Stadt",
+      "tags": "Tags",
+      "positions": "Pos."
     }
   },
   "packing": {
@@ -323,7 +346,8 @@
         "noneShort": "kein Bild"
       }
     },
-    "empty": "Keine Orders im gewählten Filter."
+    "empty": "Keine Orders im gewählten Filter.",
+    "printSlip": "🧾 Lieferschein"
   },
   "orderDetail": {
     "back": "← Orders",

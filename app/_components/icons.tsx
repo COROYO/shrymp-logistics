@@ -159,6 +159,17 @@ export function ArchiveIcon({ className }: IconProps) {
   );
 }
 
+export function PackedIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 6.5 10 3l6 3.5v7L10 17l-6-3.5z" />
+      <path d="M4 6.5 10 10l6-3.5" />
+      <path d="M10 10v7" />
+      <path d="m7.5 11.5 1.5 1.5 3-3" />
+    </Svg>
+  );
+}
+
 export function DownloadIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

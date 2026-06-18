@@ -9,6 +9,7 @@ import {
   HomeIcon,
   LagerIcon,
   OrdersIcon,
+  PackedIcon,
   PickingIcon,
   ProductsIcon,
   SettingsIcon,
@@ -33,6 +34,7 @@ export type IconKey =
   | "users"
   | "settings"
   | "picking"
+  | "packed"
   | "lager"
   | "admin";
 
@@ -46,6 +48,7 @@ const ICON_MAP: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   users: UsersIcon,
   settings: SettingsIcon,
   picking: PickingIcon,
+  packed: PackedIcon,
   lager: LagerIcon,
   admin: AdminIcon,
 };

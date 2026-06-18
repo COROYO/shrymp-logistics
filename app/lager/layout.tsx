@@ -28,6 +28,11 @@ export default async function LagerLayout({
       label: t("lager"),
       items: [
         { href: "/lager/picking", label: t("picking"), icon: "picking" },
+        {
+          href: "/lager/packed-orders",
+          label: t("packedOrders"),
+          icon: "packed",
+        },
       ],
     },
   ];

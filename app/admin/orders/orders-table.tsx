@@ -168,6 +168,16 @@ function Row({
         </td>
         <td>
           <span className={STATUS_BADGE[order.status]}>{order.status}</span>
+          {order.status === "PACKED" ? (
+            <a
+              href={`/lager/picking/${order.id}/slip`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-brand-burgundy hover:text-brand-burgundy-dark"
+            >
+              {t("printSlip")}
+            </a>
+          ) : null}
         </td>
         <td className="text-sm">
           <span className="font-semibold text-brand-navy">
