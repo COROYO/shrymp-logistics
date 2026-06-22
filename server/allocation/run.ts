@@ -8,8 +8,13 @@ import {
   type AllocationTrigger,
   type Batch,
   type Order,
+  type OrderInternalStatus,
 } from "@/server/firestore/schema";
 import { allocate } from "./runAllocation";
+import {
+  REALLOCATABLE_STATUSES,
+  allocationRunMayWriteStatus,
+} from "./status-guard";
 import type { AllocationInput, OrderInput, VariantAvail, Decision } from "./types";
 import { processOutbox, processOutboxByIds } from "@/server/shopify/outbox";
 import { enqueueAllocationRun } from "./enqueue";
@@ -40,7 +45,9 @@ import { loadPreAssignedShippableOrderIds } from "@/server/picking/pre-assigned-
  * Orders in PICKING, PACKED or CANCELLED state are NEVER touched.
  */
 
-const ORDER_STATUSES_TO_REALLOCATE = ["NEW", "SHIP", "STOP"] as const;
+// The run loads + may write only its own states; single source of truth in
+// status-guard.ts (also used to guard against clobbering PACKED/CANCELLED).
+const ORDER_STATUSES_TO_REALLOCATE = REALLOCATABLE_STATUSES;
 
 export type RunAllocationInFirestoreOptions = {
   triggeredBy: AllocationTrigger;
@@ -278,6 +285,20 @@ async function commitDecisions(
   // no manual 450-op WriteBatch bookkeeping, and writes are parallelized.
   const bulk = db.bulkWriter();
 
+  // Re-read the CURRENT state of every snapshot order right before committing.
+  // `ordersRaw` is the pre-run snapshot and can be many seconds old (a long run,
+  // or a backlog on the serialized queue). In that window an order may have
+  // advanced — via its OWN transaction — to PICKING/PACKED/CANCELLED. We must
+  // never blind-write a stale SHIP/STOP decision over such a status: that
+  // resurrects a packed order to SHIP and lets a later fulfillment webhook
+  // consume its Chargen a SECOND time (the double-deduction bug).
+  const orderRefs = ordersRaw.map((o) =>
+    db.collection(Collections.Orders).doc(o.id),
+  );
+  const currentSnaps =
+    orderRefs.length > 0 ? await db.getAll(...orderRefs) : [];
+  const currentById = new Map(currentSnaps.map((s) => [s.id, s]));
+
   // Quantity this set reserves AFTER the run (orders now in SHIP), per variant.
   const newSetReserved = new Map<string, number>();
   // Orders flipped to STOP — if any of them were already printed (have open
@@ -293,15 +314,10 @@ async function commitDecisions(
       ({ orderId: o.id, status: "STOP", reason: "EMPTY_ORDER" } as const);
     const nextStatus = decision.status === "SHIP" ? "SHIP" : "STOP";
 
-    const orderRef = db.collection(Collections.Orders).doc(o.id);
-    void bulk.update(orderRef, {
-      internal_status: nextStatus,
-      stop_reason:
-        decision.status === "STOP" ? decision.reason : FieldValue.delete(),
-      allocation_run_id: runId,
-      updated_at: FieldValue.serverTimestamp(),
-    });
-
+    // Reserved-quantity + STOP-release accounting is computed over the FULL
+    // snapshot set (unchanged): it nets old vs. new reservations per variant and
+    // is self-healed by RECONCILE/MANUAL runs. Only the status/tag WRITES below
+    // are guarded.
     if (nextStatus === "SHIP") {
       for (const li of o.line_items) {
         newSetReserved.set(
@@ -312,6 +328,47 @@ async function commitDecisions(
     } else {
       stopOrderIds.push(o.id);
     }
+
+    // --- Guard: never (re)write an order that has moved on ---
+    // Skip the status write AND the LAGER tag push when the order is no longer
+    // in one of the run's own states (or has vanished). The `lastUpdateTime`
+    // precondition closes the tiny remaining gap between this re-read and the
+    // BulkWriter flush: if the order changes in that window the write is
+    // rejected (FAILED_PRECONDITION) instead of clobbering — which we swallow.
+    const snap = currentById.get(o.id);
+    const curStatus = snap?.exists
+      ? (snap.data()?.internal_status as OrderInternalStatus | undefined)
+      : undefined;
+    if (!snap?.exists || !allocationRunMayWriteStatus(curStatus)) {
+      continue;
+    }
+
+    const orderRef = db.collection(Collections.Orders).doc(o.id);
+    void bulk
+      .update(
+        orderRef,
+        {
+          internal_status: nextStatus,
+          stop_reason:
+            decision.status === "STOP"
+              ? decision.reason
+              : FieldValue.delete(),
+          allocation_run_id: runId,
+          updated_at: FieldValue.serverTimestamp(),
+        },
+        { lastUpdateTime: snap.updateTime },
+      )
+      .catch((err: { code?: number }) => {
+        // FAILED_PRECONDITION (9): the order advanced between re-read and flush
+        // → dropping this stale status write is the correct, intended outcome.
+        if (err?.code !== 9) {
+          log.warn("allocation_status_write_failed", {
+            runId,
+            orderId: o.id,
+            code: err?.code,
+          });
+        }
+      });
 
     // LAGER tags are owned by our system — never derived from Shopify's tag
     // mirror. Push (set the correct LAGER tag, drop the opposite) whenever the
