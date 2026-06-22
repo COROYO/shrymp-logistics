@@ -10,6 +10,9 @@
 //   REVIEW     2+ clusters but consumed≤order → unusual, eyeball it
 //   NO-ORDER   order doc missing             → can't compare demand
 //
+// For Chargen with a manual "Double #…" ADJUSTMENT: re-check whether any order
+// consumed from that Charge again AFTER the fix (must not — one deduction per order).
+//
 // "Wrong units" per Charge = units consumed in the duplicate (later) clusters —
 // i.e. how much to add back to that batch when correcting.
 //
@@ -163,44 +166,230 @@ for (const a of affected) {
   }
 }
 
+// ---- 4b. Manual "Double #…" corrections (per batch) ----
+// The merchant fixes a double-deduction by adding stock back per Charge with an
+// ADJUSTMENT movement noted "Double #<orders>". Note formats are inconsistent
+// (##, tabs, "(2)", missing #), but batch_id + qty are reliable, so we net out
+// per batch.
+const correctedByBatch = new Map();
+const doubleFixesByBatch = new Map(); // batch_id -> { totalQty, latestFixAt, fixes[] }
+let doubleMovements = 0;
+{
+  let last = null;
+  for (;;) {
+    let q = db.collection("inventory_movements").orderBy("created_at").limit(3000);
+    if (last) q = q.startAfter(last);
+    const s = await q.get();
+    if (s.empty) break;
+    for (const d of s.docs) {
+      const m = d.data();
+      if (m.batch_id && typeof m.note === "string" && /double/i.test(m.note)) {
+        correctedByBatch.set(m.batch_id, (correctedByBatch.get(m.batch_id) ?? 0) + (m.qty ?? 0));
+        if (!doubleFixesByBatch.has(m.batch_id)) {
+          doubleFixesByBatch.set(m.batch_id, { totalQty: 0, latestFixAt: null, fixes: [] });
+        }
+        const fix = doubleFixesByBatch.get(m.batch_id);
+        fix.totalQty += m.qty ?? 0;
+        fix.fixes.push({ created_at: m.created_at, note: m.note, qty: m.qty ?? 0 });
+        const ms = m.created_at?.toMillis?.() ?? 0;
+        if (!fix.latestFixAt || ms > fix.latestFixAt.toMillis()) fix.latestFixAt = m.created_at;
+        doubleMovements++;
+      }
+    }
+    last = s.docs[s.docs.length - 1];
+    if (s.size < 3000) break;
+  }
+}
+for (const batchId of [...perCharge.keys()]) {
+  if (correctedByBatch.has(batchId)) perCharge.delete(batchId);
+}
+
+// ---- 4c. After a Double# fix: same order must not deduct from that Charge again ----
+// One order → one consume cluster per batch. If a Charge was corrected and an order
+// still has 2+ clusters with any AFTER the fix, that's a regression.
+const postFixIssues = [];
+if (doubleFixesByBatch.size > 0) {
+  const fixBatchIds = [...doubleFixesByBatch.keys()];
+  const fixBatches = await chunkedGetAll("batches", fixBatchIds);
+  const fixVariants = await chunkedGetAll(
+    "variants",
+    [...fixBatches.values()].map((b) => b.variant_id),
+  );
+
+  for (const batchId of fixBatchIds) {
+    const fixInfo = doubleFixesByBatch.get(batchId);
+    if (!fixInfo.latestFixAt) continue;
+    const fixMs = fixInfo.latestFixAt.toMillis();
+
+    const allocSnap = await db.collection("allocations").where("batch_id", "==", batchId).get();
+    const consumed = allocSnap.docs
+      .map((d) => d.data())
+      .filter((a) => a.consumed_at && !a.released);
+
+    const byOrder = new Map();
+    for (const a of consumed) {
+      if (!byOrder.has(a.order_id)) byOrder.set(a.order_id, []);
+      byOrder.get(a.order_id).push(a);
+    }
+
+    const b = fixBatches.get(batchId);
+    const v = b ? fixVariants.get(b.variant_id) : null;
+    const product = productNameByVariant.get(b?.variant_id) ?? v?.title ?? "(Produkt unbekannt)";
+
+    for (const [orderId, allocs] of byOrder) {
+      const clusters = new Map();
+      for (const a of allocs) {
+        const k = clusterKey(a.consumed_at);
+        if (!clusters.has(k)) clusters.set(k, []);
+        clusters.get(k).push(a);
+      }
+      if (clusters.size < 2) continue;
+
+      const sortedKeys = [...clusters.keys()].sort((a, b) => a - b);
+      let preFixQty = 0;
+      let postFixQty = 0;
+      const clusterTimes = [];
+      for (const k of sortedKeys) {
+        const rows = clusters.get(k);
+        const ts = rows[0].consumed_at;
+        const qty = rows.reduce((s, a) => s + a.qty, 0);
+        clusterTimes.push(hm(ts));
+        if (ts.toMillis() > fixMs) postFixQty += qty;
+        else preFixQty += qty;
+      }
+      if (postFixQty <= 0) continue;
+
+      postFixIssues.push({
+        batchId,
+        orderId,
+        charge_number: b?.charge_number ?? "(Charge gelöscht)",
+        product,
+        variantTitle: v?.title ?? "",
+        sku: v?.sku ?? "—",
+        remaining: b?.remaining_qty ?? "?",
+        status: b?.status ?? "?",
+        variant_id: b?.variant_id ?? "?",
+        fixAt: iso(fixInfo.latestFixAt),
+        preFixQty,
+        postFixQty,
+        clusterTimes,
+        fixNotes: fixInfo.fixes.map((f) => f.note).join(" | "),
+      });
+    }
+  }
+
+  const postFixOrderIds = [...new Set(postFixIssues.map((i) => i.orderId))];
+  const postFixOrders = await chunkedGetAll("orders", postFixOrderIds);
+  for (const issue of postFixIssues) {
+    issue.orderName = postFixOrders.get(issue.orderId)?.name ?? `(id ${issue.orderId})`;
+  }
+}
+
 // ---- 5. Report ----
-console.log("================ KORREKTUR-LISTE: doppelt abgebuchte Chargen ================");
-console.log("(remaining_qty pro Charge um +Korrektur erhöhen — editBatch zieht on_hand_total automatisch mit)\n");
-const charges = [...perCharge.entries()].sort((x, y) => {
-  const p = x[1].product.localeCompare(y[1].product);
-  return p !== 0 ? p : x[1].charge_number.localeCompare(y[1].charge_number);
-});
-const csv = [
-  "produkt;variante;sku;charge;batch_id;variant_id;status;aktuell_remaining;korrektur_plus;neu_remaining;orders",
-];
 const csvField = (f) => {
   const s = String(f ?? "");
   return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
-if (charges.length === 0) {
-  console.log("  Keine bestätigten Doppel-Abbuchungen gefunden. 🎉\n");
+const sortCharges = (arr) =>
+  arr.sort((x, y) => {
+    const p = x[1].product.localeCompare(y[1].product);
+    return p !== 0 ? p : x[1].charge_number.localeCompare(y[1].charge_number);
+  });
+const offen = sortCharges([...perCharge.entries()]);
+
+console.log("================ NOCH ZU KORRIGIEREN ================");
+console.log("(remaining_qty pro Charge um +KORR erhöhen — editBatch zieht on_hand_total mit)\n");
+if (offen.length === 0) {
+  console.log("  🎉 Keine unkorrigierten Chargen mehr.\n");
 } else {
-  for (const [batchId, e] of charges) {
+  for (const [batchId, e] of offen) {
     const prod = e.variantTitle ? `${e.product} – ${e.variantTitle}` : e.product;
     const neu = typeof e.remaining === "number" ? e.remaining + e.wrong : "?";
     const orders = e.orders.map((o) => `${o.name} (${o.qty})`).join(", ");
     console.log(`Charge ${e.charge_number}  ·  ${prod}  (SKU ${e.sku})`);
-    console.log(`   aktuell remaining_qty = ${e.remaining}   →   +${e.wrong}   →   NEU = ${neu}`);
+    console.log(`   doppelt abgebucht +${e.wrong}   →   aktuell ${e.remaining}  →  NEU = ${neu}`);
     console.log(`   batch=${batchId}  variant=${e.variant_id}  Status=${e.status}`);
     console.log(`   verursacht durch: ${orders}\n`);
-    csv.push(
-      [e.product, e.variantTitle, e.sku, e.charge_number, batchId, e.variant_id, e.status, e.remaining, e.wrong, neu, orders]
-        .map(csvField)
-        .join(";"),
-    );
   }
-  const csvPath = "scripts/double-deduction-correction.csv";
-  writeFileSync(csvPath, csv.join("\n") + "\n");
-  console.log(`📄 CSV zum Abhaken geschrieben: ${csvPath}\n`);
 }
 
-console.log("================ Betroffene Orders (Übersicht) ================\n");
+// CSV: offene Chargen + Post-Fix-Wiederholungen (eine Zeile pro Charge).
+const csv = [
+  "produkt;variante;sku;charge;batch_id;variant_id;status;aktuell_remaining;doppelt_abgebucht;bereits_korrigiert;hat_double_fix;zustand;noch_zu_addieren;neu_remaining;fix_at;orders",
+];
+for (const [batchId, e] of offen) {
+  const neu = typeof e.remaining === "number" ? e.remaining + e.wrong : "?";
+  const orders = e.orders.map((o) => `${o.name} (${o.qty})`).join(", ");
+  csv.push(
+    [e.product, e.variantTitle, e.sku, e.charge_number, batchId, e.variant_id, e.status, e.remaining, e.wrong, 0, "nein", "OFFEN", e.wrong, neu, "", orders]
+      .map(csvField)
+      .join(";"),
+  );
+}
+const postFixByCharge = new Map();
+for (const i of postFixIssues) {
+  if (!postFixByCharge.has(i.batchId)) {
+    postFixByCharge.set(i.batchId, { ...i, postFixQty: 0, orders: [] });
+  }
+  const e = postFixByCharge.get(i.batchId);
+  e.postFixQty += i.postFixQty;
+  e.orders.push({ name: i.orderName, qty: i.postFixQty });
+}
+for (const e of [...postFixByCharge.values()].sort(
+  (a, b) => a.product.localeCompare(b.product) || a.charge_number.localeCompare(b.charge_number),
+)) {
+  const neu = typeof e.remaining === "number" ? e.remaining + e.postFixQty : "?";
+  const corrected = correctedByBatch.get(e.batchId) ?? 0;
+  const orders = e.orders.map((o) => `${o.name} (${o.qty})`).join(", ");
+  csv.push(
+    [
+      e.product,
+      e.variantTitle,
+      e.sku,
+      e.charge_number,
+      e.batchId,
+      e.variant_id,
+      e.status,
+      e.remaining,
+      e.postFixQty,
+      corrected,
+      "ja",
+      "POST-FIX",
+      e.postFixQty,
+      neu,
+      e.fixAt,
+      orders,
+    ]
+      .map(csvField)
+      .join(";"),
+  );
+}
+const postFixChargeCount = postFixByCharge.size;
+const csvPath = "scripts/double-deduction-correction.csv";
+writeFileSync(csvPath, csv.join("\n") + "\n");
+console.log(`📄 CSV: ${csvPath}  (${offen.length} offen, ${postFixChargeCount} post-fix Chargen)\n`);
+
+console.log("================ NACH Double#-KORREKTUR NOCHMAL ABGEZOGEN ================");
+console.log("(Order hat auf derselben Charge nach der Korrektur erneut konsumiert — darf nicht)\n");
+if (postFixIssues.length === 0) {
+  console.log("  ✅ Keine Post-Fix-Wiederholungen auf korrigierten Chargen.\n");
+} else {
+  for (const i of postFixIssues.sort((a, b) => a.orderName.localeCompare(b.orderName))) {
+    const prod = i.variantTitle ? `${i.product} – ${i.variantTitle}` : i.product;
+    console.log(`${i.orderName.padEnd(8)}  Charge ${i.charge_number}  ·  ${prod}`);
+    console.log(`   Korrektur: ${i.fixAt}  (${i.fixNotes})`);
+    console.log(
+      `   Consume-Cluster: ${i.clusterTimes.length} (${i.clusterTimes.join(", ")})  ` +
+      `vor Fix=${i.preFixQty}  nach Fix=${i.postFixQty} ⚠️`,
+    );
+    console.log(`   batch=${i.batchId}  order=${i.orderId}\n`);
+  }
+}
+
+console.log("================ Betroffene Orders (Übersicht, nur mit offenen Chargen) ================\n");
 for (const a of affected.sort((x, y) => (x.confidence < y.confidence ? -1 : 1))) {
+  const hasOpenBatch = Object.keys(a.wrongByBatch).some((id) => perCharge.has(id));
+  if (!hasOpenBatch) continue;
   console.log(
     `${a.name.padEnd(8)} [${a.confidence}]  status=${a.status}  ` +
     `Consume-Cluster: ${a.clusterTimes.length} (${a.clusterTimes.join(", ")})  ` +
@@ -209,12 +398,11 @@ for (const a of affected.sort((x, y) => (x.confidence < y.confidence ? -1 : 1)))
 }
 
 // ---- 6. Summary ----
-const confirmed = affected.filter((a) => a.confidence === "CONFIRMED");
-const totalWrong = [...perCharge.values()].reduce((s, e) => s + e.wrong, 0);
+const offenUnits = offen.reduce((s, [, e]) => s + e.wrong, 0);
+const openOrders = affected.filter((a) => Object.keys(a.wrongByBatch).some((id) => perCharge.has(id))).length;
 console.log("\n================ Summary ================");
-console.log(`  Orders mit Doppel-Abbuchung (CONFIRMED): ${confirmed.length}`);
-console.log(`  Davon zur Prüfung (REVIEW):              ${affected.filter((a) => a.confidence === "REVIEW").length}`);
-console.log(`  Ohne Order-Doc (NO-ORDER):               ${affected.filter((a) => a.confidence === "NO-ORDER").length}`);
-console.log(`  Betroffene Chargen:                      ${perCharge.size}`);
-console.log(`  Fälschlich abgebuchte Einheiten gesamt:  ${totalWrong}`);
+console.log(`  Double-Bewegungen (bereits korrigiert, ausgeblendet): ${doubleMovements}`);
+console.log(`  Chargen mit Double#-Fix: ${doubleFixesByBatch.size}`);
+console.log(`  ⚠️ Post-Fix-Wiederholungen: ${postFixIssues.length} Order×Charge / ${postFixChargeCount} Chargen`);
+console.log(`  ➜ OFFEN: ${offenUnits} Einheiten / ${offen.length} Chargen / ${openOrders} Orders`);
 console.log();

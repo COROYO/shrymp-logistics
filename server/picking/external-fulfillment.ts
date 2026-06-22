@@ -9,6 +9,7 @@ import {
 import { log } from "@/lib/logger";
 import { assignBatchesForOrder } from "./assign-batches";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+import { orderHasActiveConsumption } from "./consume-guard";
 
 /**
  * Treat a Shopify-side fulfillment (someone clicked "Fulfill" inside Shopify
@@ -65,6 +66,15 @@ export async function applyExternalFulfillment(
     return { ok: true, applied: false, reason: "already_externally_fulfilled" };
   }
 
+  const existingAllocs = await db
+    .collection(Collections.Allocations)
+    .where("order_id", "==", orderId)
+    .get();
+  if (orderHasActiveConsumption(existingAllocs.docs.map((d) => d.data() as Allocation))) {
+    log.warn("external_fulfill_already_consumed", { orderId });
+    return { ok: true, applied: false, reason: "already_consumed" };
+  }
+
   // Pin the oldest-MHD Chargen (decrements batch.remaining_qty) so we consume
   // the right batches. Best-effort — even if it bails, we still mark PACKED.
   try {
@@ -91,6 +101,10 @@ export async function applyExternalFulfillment(
     const allocSnap = await tx.get(
       db.collection(Collections.Allocations).where("order_id", "==", orderId),
     );
+    const allAllocs = allocSnap.docs.map((d) => d.data() as Allocation);
+    if (orderHasActiveConsumption(allAllocs)) {
+      return null;
+    }
     const open = allocSnap.docs
       .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
       .filter((a) => !a.data.consumed_at);
@@ -162,8 +176,9 @@ export async function applyExternalFulfillment(
   });
 
   if (consumedByVariant === null) {
-    // Lost the race to a concurrent path that already packed/cancelled it.
-    return { ok: true, applied: false, reason: "race_lost" };
+    // Lost the race to a concurrent path that already packed/cancelled it,
+    // or stock was already committed for this order (consume guard).
+    return { ok: true, applied: false, reason: "race_lost_or_already_consumed" };
   }
 
   // ---- Outside-tx: Shopify outbox + audit ----

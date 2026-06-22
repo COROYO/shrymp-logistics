@@ -10,6 +10,7 @@ import {
 import { log } from "@/lib/logger";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 import { assignBatchesForOrder } from "./assign-batches";
+import { orderHasActiveConsumption } from "./consume-guard";
 
 /**
  * Atomic state transitions for the picking/packing workflow.
@@ -27,6 +28,7 @@ export class TransitionError extends Error {
       | "not_in_ship_state"
       | "not_in_picking_state"
       | "no_open_allocations"
+      | "already_consumed"
       | "batch_inconsistency",
     message?: string,
   ) {
@@ -161,6 +163,13 @@ export async function confirmPacking(
           .collection(Collections.Allocations)
           .where("order_id", "==", orderId),
       );
+      const allAllocs = allocSnap.docs.map((d) => d.data() as Allocation);
+      if (orderHasActiveConsumption(allAllocs)) {
+        throw new TransitionError(
+          "already_consumed",
+          "Bestand wurde für diese Order bereits abgezogen.",
+        );
+      }
       const openAllocs = allocSnap.docs
         .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
         .filter((a) => !a.data.consumed_at);

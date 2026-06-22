@@ -15,6 +15,7 @@ import {
 } from "./batch-assignability";
 import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
 import { orderAssignmentCoversLineItems } from "./assignment-coverage";
+import { orderHasActiveConsumption } from "./consume-guard";
 
 export { orderAssignmentCoversLineItems } from "./assignment-coverage";
 
@@ -67,6 +68,13 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
     const myAllocSnap = await tx.get(
       db.collection(Collections.Allocations).where("order_id", "==", orderId),
     );
+    const myAllocs = myAllocSnap.docs.map((d) => d.data() as Allocation);
+    // Never pin new Chargen once this order already committed stock — prevents
+    // a second consume cluster even if status was wrongly reverted to SHIP.
+    if (orderHasActiveConsumption(myAllocs)) {
+      log.warn("assign_batches_already_consumed", { orderId });
+      return false;
+    }
     const myOpen = myAllocSnap.docs
       .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
       .filter((a) => !a.data.consumed_at);
