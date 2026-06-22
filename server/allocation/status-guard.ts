@@ -27,3 +27,24 @@ export function allocationRunMayWriteStatus(
 ): boolean {
   return current != null && REALLOCATABLE_SET.has(current);
 }
+
+/**
+ * The internal_status a MIRROR or SYNC write may persist for an order.
+ *
+ * These paths mirror Shopify data; they do NOT own the internal state machine
+ * (allocation / picking / fulfillment do). So they must never *change* an
+ * existing order's status — only initialise a brand-new order to NEW, or move
+ * forward to CANCELLED when Shopify reports a cancellation.
+ *
+ * Pass the order's CURRENT status (freshly re-read, ideally inside the write
+ * transaction). This makes it impossible for a mirror/sync to revert a
+ * PACKED / PICKING / STOP order back to SHIP/NEW — the root cause of the
+ * double-deduction (a resurrected PACKED order gets its Chargen consumed twice).
+ */
+export function mirrorInternalStatus(
+  currentFresh: OrderInternalStatus | null | undefined,
+  isCancelled: boolean,
+): OrderInternalStatus {
+  if (isCancelled) return "CANCELLED";
+  return currentFresh ?? "NEW";
+}

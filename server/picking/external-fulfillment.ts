@@ -57,6 +57,13 @@ export async function applyExternalFulfillment(
   if (order.internal_status === "CANCELLED") {
     return { ok: true, applied: false, reason: "cancelled" };
   }
+  // Idempotency backstop: if this order was already fulfilled once (its stock is
+  // consumed), NEVER consume again — even if its status was somehow reverted to
+  // SHIP (e.g. an order still sitting in the pre-fix clobber backlog). This
+  // defends against double-deduction independently of the status-revert guards.
+  if (order.externally_fulfilled) {
+    return { ok: true, applied: false, reason: "already_externally_fulfilled" };
+  }
 
   // Pin the oldest-MHD Chargen (decrements batch.remaining_qty) so we consume
   // the right batches. Best-effort — even if it bails, we still mark PACKED.
@@ -73,7 +80,11 @@ export async function applyExternalFulfillment(
     const fresh = await tx.get(orderRef);
     if (!fresh.exists) throw new Error("order_gone_mid_txn");
     const o = fresh.data() as Order;
-    if (o.internal_status === "PACKED" || o.internal_status === "CANCELLED") {
+    if (
+      o.internal_status === "PACKED" ||
+      o.internal_status === "CANCELLED" ||
+      o.externally_fulfilled
+    ) {
       return null;
     }
 

@@ -10,6 +10,7 @@ import { log } from "@/lib/logger";
 import { mapShopifyOrderToFirestore, type ShopifyOrderPayload } from "./mappers";
 import { TOPICS, type ShopifyTopic } from "./topics";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+import { mirrorInternalStatus } from "@/server/allocation/status-guard";
 import { fetchOrderLineItems } from "./bundles";
 
 /**
@@ -97,24 +98,42 @@ async function mirrorOrder(
     });
   }
 
-  await ref.set(
-    {
-      ...doc,
-      updated_at: FieldValue.serverTimestamp(),
-    },
-    { merge: false },
-  );
+  // Atomic, status-preserving write. `internal_status` is owned by OUR state
+  // machine (allocation / picking / fulfillment) — a mirror must NEVER change an
+  // existing order's status. We re-read the CURRENT status INSIDE the txn and
+  // keep it (only a brand-new order becomes NEW; a Shopify cancellation moves
+  // forward to CANCELLED). This makes it impossible for a mirror to revert a
+  // PACKED/PICKING order back to SHIP — the root cause of the double-deduction.
+  // merge:true preserves our internal fields (packed_at, externally_fulfilled,
+  // tracking, …) that the Shopify payload doesn't carry.
+  const isCancelled = !!payload.cancelled_at;
+  const statusBefore = await db.runTransaction(async (tx) => {
+    const cur = await tx.get(ref);
+    const before: OrderInternalStatus | null = cur.exists
+      ? ((cur.data() as Order).internal_status ?? null)
+      : null;
+    tx.set(
+      ref,
+      {
+        ...doc,
+        internal_status: mirrorInternalStatus(before, isCancelled),
+        updated_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return before;
+  });
 
   // If Shopify is reporting the order as fulfilled (someone clicked "Fulfill"
   // inside Shopify Admin, or another integration created the fulfillment),
   // mirror that state on our side: consume the FEFO-allocated stock, swap
   // the LAGER_SHIP tag for LAGER_PACKED, push the new inventory level.
   // We do NOT enqueue an allocation run in that branch — the external-fulfill
-  // helper queues its own.
+  // helper queues its own. `wasPacked` uses the FRESH in-txn status.
   const fulfillmentStatus = (doc.shopify_fulfillment_status ?? "").toLowerCase();
   const isFulfilled =
     fulfillmentStatus === "fulfilled" || fulfillmentStatus === "partial";
-  const wasPacked = previousStatus === "PACKED";
+  const wasPacked = statusBefore === "PACKED";
 
   if (isFulfilled && !wasPacked) {
     try {
@@ -146,7 +165,7 @@ async function mirrorOrder(
   log.info("shopify_order_mirrored", {
     orderId: doc.id,
     trigger,
-    internalStatus: doc.internal_status,
+    internalStatus: mirrorInternalStatus(statusBefore, isCancelled),
   });
   return { kind: "ok", action: `mirrored:${trigger}` };
 }

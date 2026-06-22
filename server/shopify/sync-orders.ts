@@ -10,6 +10,7 @@ import { log } from "@/lib/logger";
 import { shopifyGraphQL } from "./client";
 import { numericIdFromGid } from "./sync";
 import { moneyDecimalToCents } from "./mappers";
+import { mirrorInternalStatus } from "@/server/allocation/status-guard";
 
 /**
  * Backfill existing orders from the shop into Firestore.
@@ -232,10 +233,14 @@ export async function backfillOrders(
       const prevLagerSynced = existing.exists
         ? ((existing.data()?.lager_tag_synced as "SHIP" | "STOP" | null) ?? null)
         : null;
+      // Never let a Shopify re-sync change an existing order's internal status
+      // (owned by the state machine) — only init a new order or move forward to
+      // CANCELLED. Same invariant as the webhook mirror.
       const cancelled = !!n.cancelledAt;
-      const internalStatus: OrderInternalStatus = cancelled
-        ? "CANCELLED"
-        : (prevStatus ?? "NEW");
+      const internalStatus: OrderInternalStatus = mirrorInternalStatus(
+        prevStatus,
+        cancelled,
+      );
 
       const doc: Omit<Order, "updated_at"> = {
         id: orderId,
@@ -320,10 +325,13 @@ export async function backfillOrders(
         created_at_shopify: new Date(n.createdAt),
       };
 
+      // merge:true so a Shopify re-sync never wipes our internal state-machine
+      // fields (packed_at, externally_fulfilled, tracking, picking_*, …) that
+      // the Shopify payload doesn't carry.
       batch.set(
         ref,
         { ...doc, updated_at: FieldValue.serverTimestamp() },
-        { merge: false },
+        { merge: true },
       );
       opsInBatch++;
       mirroredCount++;
