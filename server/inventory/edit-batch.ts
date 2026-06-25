@@ -181,7 +181,7 @@ export async function editBatch(
     await queueInventoryPush(
       variantId,
       "correction",
-      `monolith-lager://batch/${batchId}/edit`,
+      `shrymp-logistics://batch/${batchId}/edit`,
     );
     // Drain BEFORE returning so the serverless container doesn't kill the
     // background promise. User waits ~1-2s but Shopify is synced when the
@@ -263,7 +263,7 @@ export async function archiveBatch(
   await queueInventoryPush(
     variantId,
     "correction",
-    `monolith-lager://batch/${batchId}/archive`,
+    `shrymp-logistics://batch/${batchId}/archive`,
   );
   try {
     await processOutbox(20);

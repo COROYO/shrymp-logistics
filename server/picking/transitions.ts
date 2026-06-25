@@ -440,7 +440,7 @@ async function queueShopifyOutbox(
       op: "INVENTORY_SET",
       payload: {
         reason: "correction",
-        referenceDocumentUri: `monolith-lager://order/${orderId}`,
+        referenceDocumentUri: `shrymp-logistics://order/${orderId}`,
         setQuantities: [
           {
             inventoryItemId: inventoryItemGid,

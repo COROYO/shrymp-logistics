@@ -6,13 +6,13 @@ env:
   # Cloud Tasks queue for serialized allocation runs (concurrency = 1).
   # Without these the allocation falls back to inline (synchronous) runs.
   - variable: GCP_PROJECT_ID
-    value: monolith-lager
+    value: shrymp-logistics
   - variable: GCP_LOCATION
     value: europe-west3
   - variable: ALLOCATION_QUEUE
     value: allocation-runs
   - variable: ALLOCATION_TARGET_URL
-    value: https://europe-west3-monolith-lager.cloudfunctions.net/runAllocation
+    value: https://europe-west3-shrymp-logistics.cloudfunctions.net/runAllocation
   # Consumer endpoint auth is currently open (matches the open cron endpoints).
   # Harden later: drop this and configure OIDC (ALLOCATION_INVOKER_SERVICE_ACCOUNT)
   # together with CRON_SECRET.

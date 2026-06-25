@@ -94,7 +94,7 @@ export async function pushAllInventoryToShopify(): Promise<BulkPushResult> {
       op: "INVENTORY_SET",
       payload: {
         reason: "correction",
-        referenceDocumentUri: `monolith-lager://bulk-push/${runId}/${idx}`,
+        referenceDocumentUri: `shrymp-logistics://bulk-push/${runId}/${idx}`,
         setQuantities: chunk,
       },
       attempts: 0,

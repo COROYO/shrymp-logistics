@@ -259,7 +259,7 @@ async function cancelOrder(
           await queueInventoryPush(
             variantId,
             "cancellation",
-            `monolith-lager://order/${orderId}/cancelled`,
+            `shrymp-logistics://order/${orderId}/cancelled`,
           );
         }
         await processOutbox(20);

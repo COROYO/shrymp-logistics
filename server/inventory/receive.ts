@@ -103,7 +103,7 @@ export async function receiveBatch(
   await queueInventoryPush(
     input.variantId,
     "received",
-    `monolith-lager://batch/${batchRef.id}/inbound`,
+    `shrymp-logistics://batch/${batchRef.id}/inbound`,
   );
 
   // Drain BEFORE returning so the serverless container doesn't kill the

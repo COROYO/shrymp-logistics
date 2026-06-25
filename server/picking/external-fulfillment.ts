@@ -264,7 +264,7 @@ async function queueShopifyOutboxForExternal(
       op: "INVENTORY_SET",
       payload: {
         reason: "correction",
-        referenceDocumentUri: `monolith-lager://order/${orderId}/external-fulfill`,
+        referenceDocumentUri: `shrymp-logistics://order/${orderId}/external-fulfill`,
         setQuantities: [
           {
             inventoryItemId: inventoryItemGid,
