@@ -18,44 +18,25 @@ Greenfield Next.js 16 + Firestore project.
 
 > The Next.js installed here has breaking changes vs. older versions. Read `node_modules/next/dist/docs/` before guessing.
 
-- `middleware.ts` is **gone** — use `proxy.ts` at project root.
+- `middleware.ts` is **gone** — use `proxy.ts` in `apps/logistics/`.
 - `params` / `searchParams` are **Promises** in pages/route handlers.
 - Server Components default; client components require `"use client"`.
 
 ## Project layout
 
 ```
-app/
-  layout.tsx, page.tsx            # root: redirect by role
-  login/                          # public
-  admin/                          # ADMIN-only (gated in layout)
-  lager/                          # LAGER + ADMIN (gated in layout)
-  api/webhooks/shopify/route.ts   # HMAC (via SHOPIFY_API_SECRET), dedupe, enqueue
-  api/auth/session/route.ts       # POST: create session cookie, DELETE: clear
-  api/setup/bootstrap-admin/route.ts  # first-time admin bootstrap (no auth)
-
-lib/
-  auth/session.ts                 # getSessionUser, requireRole
-  firebase/client.ts              # browser SDK init
-  logger.ts                       # structured JSON logger
-
-server/
-  firestore/schema.ts             # Zod schemas + Collections constants
-  firestore/admin.ts              # Admin SDK init (server-only)
-  shopify/auth.ts                 # shop-domain validation
-  shopify/                        # client, mutations, queries, hmac, outbox
-  allocation/                     # runAllocation (pure), run (Firestore), enqueue
-  inventory/receive.ts            # Wareneingang (txn-atomic batch + audit)
-  pdf/                            # react-pdf packing slip (M8)
+apps/
+  logistics/                      # Warehouse app (Next.js, deployed via Firebase)
+    app/                          # admin/, lager/, api/, login/, setup/
+    server/                       # Firestore, Shopify, allocation, picking
+    lib/                          # auth, firebase client, logger
+    proxy.ts                      # Next.js 16 proxy — cookie presence check
+    apphosting.yaml
+  website/                        # Marketing site (public funnel → logistics app)
 
 functions/                        # Firebase Functions (deployed separately)
-  src/shopifyWebhook.ts
-  src/runAllocation.ts
-  src/nightlyReconcile.ts
-  src/outboxRetry.ts
-
-proxy.ts                          # Next.js 16 proxy — cookie presence check only
 firebase.json, .firebaserc, firestore.rules, firestore.indexes.json
+pnpm-workspace.yaml
 ```
 
 ## Conventions
@@ -97,11 +78,12 @@ drops at packing-confirm. Reprints reuse the same Charge (idempotent).
 
 ## Commands
 
-- `pnpm dev` — Next.js dev server (port 3000)
-- `pnpm build` — production build
-- `pnpm lint` — ESLint
-- `pnpm test` — Vitest
-- `firebase emulators:start` — local Firestore/Auth/Functions emulators
+- `pnpm dev` / `pnpm dev:logistics` — logistics app (port 3000)
+- `pnpm dev:website` — marketing site (port 3001)
+- `pnpm build` — production build (logistics)
+- `pnpm lint` — ESLint (all apps)
+- `pnpm test` — Vitest (logistics)
+- `firebase emulators:start` — local Firestore/Auth/Functions emulators (from repo root)
 
 Deploy / Cloud Scheduler / allocation-queue setup: see `docs/scheduler.md`.
 

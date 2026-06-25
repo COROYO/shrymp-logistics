@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-navy: #0f1b33;
+  --color-brand-navy-soft: #1a2848;
+  --color-brand-burgundy: #9b1b30;
+  --color-brand-burgundy-dark: #7e1426;
+  --color-brand-cream: #faf7f1;
+  --color-brand-ink: #1c1c1c;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  letter-spacing: -0.005em;
+}

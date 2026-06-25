@@ -1,0 +1,54 @@
+env:
+  # ---------- Firebase (server) ----------
+  - variable: FIREBASE_PROJECT_ID
+    value: shrymp-logistics
+
+  # ---------- Firebase (client, public) ----------
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyDQlU_eDgL7h568U8pPlaWYKtq1fRSuqwo
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: shrymp-logistics.firebaseapp.com
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: shrymp-logistics
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: shrymp-logistics.firebasestorage.app
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "308132633024"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:308132633024:web:69952d85ad26f1995c9025
+
+  # ---------- Shopify ----------
+  - variable: SHOPIFY_API_KEY
+    secret: SHOPIFY_API_KEY
+  - variable: SHOPIFY_API_SECRET
+    secret: SHOPIFY_API_SECRET
+  - variable: SHOPIFY_API_VERSION
+    value: "2026-04"
+  - variable: SHOPIFY_SCOPES
+    value: read_products,read_orders,write_orders,read_inventory,write_inventory,read_fulfillments,write_fulfillments,read_locations
+
+  # ---------- DHL ----------
+  - variable: DHL_API_KEY
+    secret: DHL_API_KEY
+  - variable: DHL_API_SECRET
+    secret: DHL_API_SECRET
+
+  # ---------- Cloud Tasks (allocation queue) ----------
+  - variable: GCP_PROJECT_ID
+    value: shrymp-logistics
+  - variable: GCP_LOCATION
+    value: europe-west3
+  - variable: ALLOCATION_QUEUE
+    value: allocation-runs
+  - variable: ALLOCATION_TARGET_URL
+    value: https://europe-west3-shrymp-logistics.cloudfunctions.net/runAllocation
+  - variable: ALLOCATION_ALLOW_UNAUTHENTICATED
+    value: "1"
+
+  # ---------- App ----------
+  - variable: APP_BASE_URL
+    value: https://lager.shrymp.de
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+  - variable: NODE_ENV
+    value: production

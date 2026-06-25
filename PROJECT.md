@@ -246,7 +246,7 @@ Optionale Allocation-Verbesserung. 1:1 und 1:2 Swap-Versuche: kann ein STOP-Orde
 ### Einmaliges Setup
 
 1. **Firebase-Projekt** anlegen, Firestore-DB in `europe-west3`, Email/Password-Provider aktivieren.
-2. **`.env.local`** aus `.env.local.example` befüllen — Firebase-Client-Config, `FIREBASE_SERVICE_ACCOUNT_JSON` (single-quoted!), `SHOPIFY_API_KEY`/`SHOPIFY_API_SECRET`, `SHOPIFY_SHOP_DOMAIN`, `APP_BASE_URL`.
+2. **`.env.local`** aus `.env.local.example` befüllen — Firebase-Client-Config, `FIREBASE_SERVICE_ACCOUNT_JSON` (single-quoted!), `SHOPIFY_API_KEY`/`SHOPIFY_API_SECRET`, `APP_BASE_URL`.
 3. **Deploy**, App muss unter `APP_BASE_URL` öffentlich erreichbar sein.
 4. Browser auf `/` → `/setup` → ersten Admin anlegen.
 5. **Shopify Partner Dashboard** → App-Konfiguration: App URL und Allowed redirection URL beide = `<APP_BASE_URL>/api/shopify/callback`.

@@ -1,0 +1,40 @@
+{
+  "name": "@monolith/logistics",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "emulators": "firebase emulators:start --only auth,firestore,functions"
+  },
+  "dependencies": {
+    "@google-cloud/tasks": "^6.2.2",
+    "firebase": "^12.13.0",
+    "firebase-admin": "^13.10.0",
+    "google-auth-library": "^10.6.2",
+    "next": "16.2.6",
+    "next-intl": "^4.12.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.7",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "fast-check": "^4.8.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.7"
+  }
+}

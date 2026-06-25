@@ -1,6 +1,6 @@
-# pnpm settings live here as of pnpm 10.x (no longer read from package.json's
-# "pnpm" field). Approve native/build-script dependencies so the Firebase App
-# Hosting buildpack compiles them (sharp is required by next/image).
+packages:
+  - "apps/*"
+
 onlyBuiltDependencies:
   - "@firebase/util"
   - "@parcel/watcher"
