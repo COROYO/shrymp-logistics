@@ -138,8 +138,8 @@ export async function runAllocationInFirestore(
       const [variantSnaps, remainingByVariant, preAssigned] = await Promise.all(
         [
           db.getAll(...variantRefs),
-          loadAssignableRemainingByVariant(variantIds),
-          loadPreAssignedShippableOrderIds(ordersRaw),
+          loadAssignableRemainingByVariant(variantIds, shopId),
+          loadPreAssignedShippableOrderIds(ordersRaw, shopId),
         ],
       );
       preAssignedOrderIds = preAssigned;

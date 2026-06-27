@@ -11,6 +11,7 @@ import {
   type Order,
 } from "@/server/firestore/schema";
 import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
+import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,6 @@ function tsToIso(t: unknown): string | null {
 }
 
 async function load(orderId: string) {
-  await releaseUnshippableBatchAssignments(orderId);
   const db = adminDb();
   const orderSnap = await db
     .collection(Collections.Orders)
@@ -32,6 +32,10 @@ async function load(orderId: string) {
     .get();
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
+  // Tenant gate before any mutation/read of foreign order data.
+  await assertShopAccessibleForPage(order.shop_id, `/admin/orders/${orderId}`);
+
+  await releaseUnshippableBatchAssignments(orderId);
 
   const [allocSnap, movSnap] = await Promise.all([
     db

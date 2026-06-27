@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getSessionUser } from "@/lib/auth/session";
+import { merchantNeedsShopifyConnect } from "@/lib/auth/merchant";
 import { BrandMark } from "@/app/_components/brand-mark";
 import {
   Sidebar,
@@ -18,6 +19,7 @@ export default async function AdminLayout({
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/admin");
   if (user.role !== "ADMIN") redirect("/lager");
+  if (await merchantNeedsShopifyConnect(user)) redirect("/onboarding");
 
   const t = await getTranslations("nav");
   const SECTIONS: SidebarSection[] = [

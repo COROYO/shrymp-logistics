@@ -6,6 +6,7 @@ import { shopifyGraphQL } from "./client";
 import { ensureWebhookSubscription } from "./mutations";
 import { TOPICS } from "./topics";
 import { log } from "@/lib/logger";
+import { normalizeShopId } from "@/server/tenant/id";
 
 /**
  * Shopify connection health check + auto-heal.
@@ -78,9 +79,10 @@ const WEBHOOKS_QUERY = /* GraphQL */ `
  * callback URL.
  */
 export async function checkShopifyHealth(
-  opts: { autoHeal?: boolean; baseUrl?: string } = {},
+  opts: { autoHeal?: boolean; baseUrl?: string; shopId?: string } = {},
 ): Promise<HealthCheckResult> {
   const autoHeal = opts.autoHeal !== false;
+  const shopId = opts.shopId;
   const baseUrl = (opts.baseUrl ?? process.env.APP_BASE_URL ?? "").replace(
     /\/$/,
     "",
@@ -102,7 +104,7 @@ export async function checkShopifyHealth(
   try {
     const data = await shopifyGraphQL<{
       shop: { name: string; myshopifyDomain: string };
-    }>(SHOP_PING_QUERY);
+    }>(SHOP_PING_QUERY, undefined, shopId ? { shopId } : undefined);
     result.tokenValid = true;
     result.shop = data.shop.myshopifyDomain;
   } catch (e) {
@@ -110,7 +112,7 @@ export async function checkShopifyHealth(
     result.errors.push(`token_check_failed: ${msg}`);
     result.ok = false;
     // Don't continue with webhook checks if we can't even ping the shop.
-    await persistHealth(result);
+    await persistHealth(result, shopId);
     return result;
   }
 
@@ -118,7 +120,7 @@ export async function checkShopifyHealth(
   if (!expectedCallback) {
     result.errors.push("missing_app_base_url");
     result.ok = false;
-    await persistHealth(result);
+    await persistHealth(result, shopId);
     return result;
   }
 
@@ -136,7 +138,7 @@ export async function checkShopifyHealth(
           endpoint: { __typename: string; callbackUrl?: string };
         }>;
       };
-    }>(WEBHOOKS_QUERY);
+    }>(WEBHOOKS_QUERY, undefined, shopId ? { shopId } : undefined);
     existingSubs = data.webhookSubscriptions.nodes.map((n) => ({
       id: n.id,
       topic: n.topic,
@@ -149,7 +151,7 @@ export async function checkShopifyHealth(
     const msg = e instanceof Error ? e.message : String(e);
     result.errors.push(`webhooks_query_failed: ${msg}`);
     result.ok = false;
-    await persistHealth(result);
+    await persistHealth(result, shopId);
     return result;
   }
 
@@ -192,15 +194,23 @@ export async function checkShopifyHealth(
     }
   }
 
-  await persistHealth(result);
+  await persistHealth(result, shopId);
   return result;
 }
 
-async function persistHealth(r: HealthCheckResult): Promise<void> {
+function healthDocId(shopId?: string): string {
+  if (!shopId) return HEALTH_DOC_ID;
+  return `shopify_health_${normalizeShopId(shopId).replace(/\./g, "_")}`;
+}
+
+async function persistHealth(
+  r: HealthCheckResult,
+  shopId?: string,
+): Promise<void> {
   try {
     await adminDb()
       .collection(Collections.Config)
-      .doc(HEALTH_DOC_ID)
+      .doc(healthDocId(shopId))
       .set(
         {
           ...r,
@@ -214,12 +224,12 @@ async function persistHealth(r: HealthCheckResult): Promise<void> {
   }
 }
 
-export async function readLastHealth(): Promise<
-  (HealthCheckResult & { checkedAt: string }) | null
-> {
+export async function readLastHealth(
+  shopId?: string,
+): Promise<(HealthCheckResult & { checkedAt: string }) | null> {
   const snap = await adminDb()
     .collection(Collections.Config)
-    .doc(HEALTH_DOC_ID)
+    .doc(healthDocId(shopId))
     .get();
   if (!snap.exists) return null;
   const d = snap.data() ?? {};

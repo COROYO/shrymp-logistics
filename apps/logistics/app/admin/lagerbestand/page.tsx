@@ -1,10 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import {
-  Collections,
   type Product,
   type Variant,
 } from "@/server/firestore/schema";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import { productsForShop, variantsForShop } from "@/server/tenant/queries";
 import { loadOrderDemandByVariant } from "@/server/inventory/reserved";
 import { loadShippableQtyByVariant } from "@/server/inventory/shippable-stock";
 import {
@@ -15,15 +16,15 @@ import { ImportExportBar } from "./import-export";
 
 export const dynamic = "force-dynamic";
 
-async function loadRows(): Promise<LagerbestandRow[]> {
+async function loadRows(shopId: string): Promise<LagerbestandRow[]> {
   const db = adminDb();
   const [productsSnap, variantsSnap, reservedByVariant] = await Promise.all([
-    db.collection(Collections.Products).get(),
-    db.collection(Collections.Variants).get(),
-    loadOrderDemandByVariant(),
+    productsForShop(db, shopId).get(),
+    variantsForShop(db, shopId).get(),
+    loadOrderDemandByVariant(shopId),
   ]);
   const variantIds = variantsSnap.docs.map((d) => d.id);
-  const shippableByVariant = await loadShippableQtyByVariant(variantIds);
+  const shippableByVariant = await loadShippableQtyByVariant(variantIds, shopId);
 
   const products = new Map<string, Product>();
   for (const p of productsSnap.docs) {
@@ -62,7 +63,8 @@ async function loadRows(): Promise<LagerbestandRow[]> {
 }
 
 export default async function LagerbestandPage() {
-  const rows = await loadRows();
+  const { shopId } = await requireTenantPageContext("/admin/lagerbestand");
+  const rows = await loadRows(shopId);
   const t = await getTranslations("lagerbestand");
 
   const totals = rows.reduce(

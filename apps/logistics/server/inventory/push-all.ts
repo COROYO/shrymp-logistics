@@ -3,7 +3,6 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
-  ConfigDocs,
   type Variant,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
@@ -33,17 +32,21 @@ export type BulkPushResult = {
   drained: { processed: number; failed: number; done: number };
 };
 
-export async function pushAllInventoryToShopify(): Promise<BulkPushResult> {
+export async function pushAllInventoryToShopify(
+  shopId: string,
+): Promise<BulkPushResult> {
   const db = adminDb();
-  const [variantsSnap, metaSnap] = await Promise.all([
-    db.collection(Collections.Variants).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyMeta).get(),
+  const { variantsForShop } = await import("@/server/tenant/queries");
+  const { getShop } = await import("@/server/tenant/shop");
+  const [variantsSnap, shop] = await Promise.all([
+    variantsForShop(db, shopId).get(),
+    getShop(shopId),
   ]);
 
-  const locationGid = metaSnap.data()?.location_gid as string | undefined;
+  const locationGid = shop?.location_gid;
   if (!locationGid) {
     throw new Error(
-      "Keine Location-GID in config/shopify_meta. Zuerst Produkt-Sync laufen lassen.",
+      "Keine Location-GID für diesen Shop. Zuerst Produkt-Sync laufen lassen.",
     );
   }
 

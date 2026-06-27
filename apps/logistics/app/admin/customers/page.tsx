@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import { formatMoneyCents, listCustomers } from "@/server/customers/aggregate";
 import { BackfillAllOrdersButton } from "./backfill-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
-  const customers = await listCustomers();
+  const { shopId } = await requireTenantPageContext("/admin/customers");
+  const customers = await listCustomers(shopId);
   const t = await getTranslations("customers");
 
   const totalRevenue = customers.reduce((s, c) => s + c.totalSpendCents, 0);

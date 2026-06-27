@@ -6,6 +6,12 @@ import {
   type Product,
   type Variant,
 } from "@/server/firestore/schema";
+import {
+  batchesForShop,
+  productsForShop,
+  variantsForShop,
+} from "@/server/tenant/queries";
+import { normalizeShopId } from "@/server/tenant/id";
 import { receiveBatch } from "./receive";
 import { editBatch } from "./edit-batch";
 import { log } from "@/lib/logger";
@@ -77,21 +83,24 @@ function csvRow(cells: Array<string | number | null | undefined>): string {
  * Beginnt mit einem UTF-8-BOM, damit Excel Umlaute korrekt liest.
  */
 export type BuildCsvOptions = {
+  /** Tenant scope — required so the export never crosses shops. */
+  shopId: string;
   /** Wenn false, werden nur Produktzeilen exportiert (keine Chargenzeilen). */
   includeBatches?: boolean;
 };
 
 export async function buildLagerbestandCsv(
-  options: BuildCsvOptions = {},
+  options: BuildCsvOptions,
 ): Promise<string> {
   const includeBatches = options.includeBatches ?? true;
+  const shopId = normalizeShopId(options.shopId);
   const db = adminDb();
   const { loadOrderDemandByVariant } = await import("./reserved");
   const { loadShippableQtyByVariant } = await import("./shippable-stock");
   const [productsSnap, variantsSnap, batchesSnap] = await Promise.all([
-    db.collection(Collections.Products).get(),
-    db.collection(Collections.Variants).get(),
-    db.collection(Collections.Batches).get(),
+    productsForShop(db, shopId).get(),
+    variantsForShop(db, shopId).get(),
+    batchesForShop(db, shopId).get(),
   ]);
 
   // Reservierte Menge (offene Order-Nachfrage) und versandfähiger Bestand je
@@ -99,8 +108,8 @@ export async function buildLagerbestandCsv(
   // im Export mit der UI übereinstimmen.
   const variantIds = variantsSnap.docs.map((d) => d.id);
   const [reservedByVariant, shippableByVariant] = await Promise.all([
-    loadOrderDemandByVariant(),
-    loadShippableQtyByVariant(variantIds),
+    loadOrderDemandByVariant(shopId),
+    loadShippableQtyByVariant(variantIds, shopId),
   ]);
 
   const products = new Map<string, Product>();
@@ -343,6 +352,15 @@ export async function applyLagerbestandImport(
   }
 
   const db = adminDb();
+  const normalizedShop = normalizeShopId(shopId);
+
+  // Tenant guard: only variants belonging to the active shop may be touched.
+  // Preloaded once to avoid a per-row read and to reject cross-tenant ids.
+  const shopVariantIds = new Set<string>(
+    (await variantsForShop(db, normalizedShop).select().get()).docs.map(
+      (d) => d.id,
+    ),
+  );
 
   for (let r = 1; r < rows.length; r++) {
     const cells = rows[r]!;
@@ -366,6 +384,16 @@ export async function applyLagerbestandImport(
         charge,
         status: "error",
         message: "Charge ohne Varianten-ID.",
+      });
+      continue;
+    }
+    if (!shopVariantIds.has(variantId)) {
+      summary.errors++;
+      summary.results.push({
+        row: rowNo,
+        charge,
+        status: "error",
+        message: "Varianten-ID gehört nicht zu diesem Shop.",
       });
       continue;
     }

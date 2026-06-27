@@ -10,7 +10,18 @@ import {
   setUserRole,
   UserMgmtError,
 } from "@/server/users/management";
+import {
+  assertUserInAccessibleShops,
+  TenantAccessError,
+} from "@/lib/auth/tenant-guard";
 import { log } from "@/lib/logger";
+
+function tenantErrorResult(e: unknown): { ok: false; error: string } | null {
+  if (e instanceof TenantAccessError) {
+    return { ok: false, error: e.code === "NOT_FOUND" ? "not_found" : "forbidden" };
+  }
+  return null;
+}
 
 // ----------------------- create -----------------------
 
@@ -50,11 +61,15 @@ export async function createUserAction(
   }
 
   try {
+    const actor = await requireRole("ADMIN");
+    const { requireActiveShopId } = await import("@/lib/auth/tenant");
+    const shopId = await requireActiveShopId(actor);
     const r = await createUser({
       email: parsed.data.email,
       password: parsed.data.password,
       displayName: parsed.data.displayName || undefined,
       role: parsed.data.role,
+      shop_ids: [shopId],
     });
     revalidatePath("/admin/users");
     return { ok: true, uid: r.uid };
@@ -78,10 +93,13 @@ export async function setUserRoleAction(
     return { ok: false, error: "forbidden" };
   }
   try {
+    await assertUserInAccessibleShops(uid, actor);
     await setUserRole(uid, role, actor.uid);
     revalidatePath("/admin/users");
     return { ok: true };
   } catch (e) {
+    const te = tenantErrorResult(e);
+    if (te) return te;
     if (e instanceof UserMgmtError) return { ok: false, error: e.message };
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
@@ -100,10 +118,13 @@ export async function setUserDisabledAction(
     return { ok: false, error: "forbidden" };
   }
   try {
+    await assertUserInAccessibleShops(uid, actor);
     await setUserDisabled(uid, disabled, actor.uid);
     revalidatePath("/admin/users");
     return { ok: true };
   } catch (e) {
+    const te = tenantErrorResult(e);
+    if (te) return te;
     if (e instanceof UserMgmtError) return { ok: false, error: e.message };
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
@@ -115,8 +136,9 @@ export async function resetUserPasswordAction(
   uid: string,
   newPassword: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  let actor;
   try {
-    await requireRole("ADMIN");
+    actor = await requireRole("ADMIN");
   } catch {
     return { ok: false, error: "forbidden" };
   }
@@ -124,9 +146,12 @@ export async function resetUserPasswordAction(
     return { ok: false, error: "Passwort min. 8 Zeichen" };
   }
   try {
+    await assertUserInAccessibleShops(uid, actor);
     await resetUserPassword(uid, newPassword);
     return { ok: true };
   } catch (e) {
+    const te = tenantErrorResult(e);
+    if (te) return te;
     if (e instanceof UserMgmtError) return { ok: false, error: e.message };
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
@@ -144,10 +169,13 @@ export async function deleteUserAction(
     return { ok: false, error: "forbidden" };
   }
   try {
+    await assertUserInAccessibleShops(uid, actor);
     await deleteUser(uid, actor.uid);
     revalidatePath("/admin/users");
     return { ok: true };
   } catch (e) {
+    const te = tenantErrorResult(e);
+    if (te) return te;
     if (e instanceof UserMgmtError) return { ok: false, error: e.message };
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }

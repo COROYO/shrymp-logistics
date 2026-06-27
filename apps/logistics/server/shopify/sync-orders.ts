@@ -223,21 +223,38 @@ export async function backfillOrders(
       query: opts.query ?? null,
     });
 
+    // Batch-read all existing docs for this page in one round-trip instead of
+    // one `ref.get()` per order (N+1).
+    const pageOrderIds = data.orders.nodes.map((n) => numericIdFromGid(n.id));
+    const existingByeId = new Map<
+      string,
+      FirebaseFirestore.DocumentData | undefined
+    >();
+    if (pageOrderIds.length > 0) {
+      const existingSnaps = await db.getAll(
+        ...pageOrderIds.map((id) =>
+          db.collection(Collections.Orders).doc(id),
+        ),
+      );
+      for (const snap of existingSnaps) {
+        existingByeId.set(snap.id, snap.exists ? snap.data() : undefined);
+      }
+    }
+
     for (const n of data.orders.nodes) {
       const orderId = numericIdFromGid(n.id);
       const ref = db.collection(Collections.Orders).doc(orderId);
 
       // Preserve existing internal_status so we don't reset SHIP/STOP/PACKED.
-      const existing = await ref.get();
+      const existingData = existingByeId.get(orderId);
       const prevStatus =
-        existing.exists
-          ? ((existing.data()?.internal_status as OrderInternalStatus) ?? null)
-          : null;
+        (existingData?.internal_status as OrderInternalStatus | undefined) ??
+        null;
       // LAGER tags are system-owned; preserve our confirmed push state across
       // mirrors so a Shopify webhook doesn't reset it and re-trigger a push.
-      const prevLagerSynced = existing.exists
-        ? ((existing.data()?.lager_tag_synced as "SHIP" | "STOP" | null) ?? null)
-        : null;
+      const prevLagerSynced =
+        (existingData?.lager_tag_synced as "SHIP" | "STOP" | null | undefined) ??
+        null;
       // Never let a Shopify re-sync change an existing order's internal status
       // (owned by the state machine) — only init a new order or move forward to
       // CANCELLED. Same invariant as the webhook mirror.

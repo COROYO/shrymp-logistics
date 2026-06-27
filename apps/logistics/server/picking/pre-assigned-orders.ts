@@ -16,6 +16,7 @@ import { orderAssignmentCoversLineItems } from "./assignment-coverage";
  */
 export async function loadPreAssignedShippableOrderIds(
   orders: Order[],
+  shopId?: string,
 ): Promise<Set<string>> {
   const candidates = orders.filter(
     (o) => o.internal_status === "SHIP" || o.internal_status === "PICKING",
@@ -23,27 +24,37 @@ export async function loadPreAssignedShippableOrderIds(
   if (candidates.length === 0) return new Set();
 
   const db = adminDb();
-  const lagerCfg = await loadLagerConfig();
+  const lagerCfg = await loadLagerConfig(
+    shopId ?? candidates[0]?.shop_id ?? undefined,
+  );
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
   const out = new Set<string>();
 
-  const allocSnaps = await Promise.all(
-    candidates.map((o) =>
-      db
-        .collection(Collections.Allocations)
-        .where("order_id", "==", o.id)
-        .get(),
-    ),
-  );
+  // Group allocations by order via chunked `order_id IN` queries (30 ids per
+  // query) instead of one query per order.
+  const candidateIds = candidates.map((o) => o.id);
+  const allocsByOrderId = new Map<string, Allocation[]>();
+  for (let i = 0; i < candidateIds.length; i += 30) {
+    const chunk = candidateIds.slice(i, i + 30);
+    const snap = await db
+      .collection(Collections.Allocations)
+      .where("order_id", "in", chunk)
+      .get();
+    for (const d of snap.docs) {
+      const a = d.data() as Allocation;
+      const list = allocsByOrderId.get(a.order_id);
+      if (list) list.push(a);
+      else allocsByOrderId.set(a.order_id, [a]);
+    }
+  }
 
   const batchIds = new Set<string>();
   const openByOrder = new Map<string, Allocation[]>();
-  for (let i = 0; i < candidates.length; i++) {
-    const order = candidates[i]!;
-    const open = allocSnaps[i]!
-      .docs.map((d) => d.data() as Allocation)
-      .filter((a) => !a.consumed_at && !a.released);
+  for (const order of candidates) {
+    const open = (allocsByOrderId.get(order.id) ?? []).filter(
+      (a) => !a.consumed_at && !a.released,
+    );
     if (!orderAssignmentCoversLineItems(order.line_items, open)) continue;
     openByOrder.set(order.id, open);
     for (const a of open) batchIds.add(a.batch_id);

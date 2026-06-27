@@ -1,5 +1,6 @@
 import { getSessionUser } from "@/lib/auth/session";
-import { listUsers } from "@/server/users/management";
+import { listAccessibleShopIds } from "@/lib/auth/tenant";
+import { listUsersForShops } from "@/server/users/management";
 import { NewUserForm } from "./new-user-form";
 import { UserRow } from "./user-row";
 
@@ -7,7 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   const me = await getSessionUser();
-  const users = await listUsers();
+  if (!me) return null;
+  const shopIds = await listAccessibleShopIds(me);
+  const users = await listUsersForShops(shopIds, me.uid);
   const myUid = me?.uid ?? "";
 
   const adminCount = users.filter(

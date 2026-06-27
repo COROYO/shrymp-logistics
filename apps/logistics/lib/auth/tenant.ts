@@ -25,7 +25,7 @@ async function loadUserShopIds(uid: string): Promise<string[] | null> {
   return raw.map((s) => normalizeShopId(String(s)));
 }
 
-/** Shops the user may access. ADMIN with no shop_ids ⇒ all active shops. */
+/** Shops the user may access (explicit shop_ids only — no cross-tenant leakage). */
 export async function listAccessibleShopIds(
   user: SessionUser,
 ): Promise<string[]> {
@@ -33,14 +33,9 @@ export async function listAccessibleShopIds(
   const active = await listActiveShops();
   const activeIds = active.map((s) => s.id);
 
-  if (user.role === "ADMIN") {
-    const restricted = await loadUserShopIds(user.uid);
-    if (!restricted || restricted.length === 0) return activeIds;
-    return activeIds.filter((id) => restricted.includes(id));
-  }
-
   const restricted = await loadUserShopIds(user.uid);
   if (!restricted || restricted.length === 0) {
+    if (user.role === "ADMIN") return [];
     throw new TenantError(
       "NO_SHOPS",
       "Kein Mandant zugewiesen — Admin muss shop_ids setzen.",

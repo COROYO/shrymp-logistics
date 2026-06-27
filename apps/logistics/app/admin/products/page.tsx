@@ -1,50 +1,47 @@
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
-import { Collections, ConfigDocs } from "@/server/firestore/schema";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import { getShop } from "@/server/tenant/shop";
+import { productsForShop, variantsForShop } from "@/server/tenant/queries";
 import { ProductSyncButton } from "./sync-button";
 
 export const dynamic = "force-dynamic";
 
-async function getStats() {
+async function getStats(shopId: string) {
   const db = adminDb();
-  const [prodCount, varCount, configSnap] = await Promise.all([
-    db
-      .collection(Collections.Products)
+  const [prodCount, varCount, shop] = await Promise.all([
+    productsForShop(db, shopId)
       .count()
       .get()
       .then((s) => s.data().count)
       .catch(() => 0),
-    db
-      .collection(Collections.Variants)
+    variantsForShop(db, shopId)
       .count()
       .get()
       .then((s) => s.data().count)
       .catch(() => 0),
-    db
-      .collection(Collections.Config)
-      .doc(ConfigDocs.ShopifyMeta)
-      .get()
-      .catch(() => null),
+    getShop(shopId),
   ]);
 
-  const config = configSnap?.exists ? configSnap.data() : null;
-  const updatedAt = config?.["updated_at"];
-  const updatedAtIso =
-    updatedAt && typeof updatedAt === "object" && "toDate" in updatedAt
-      ? (updatedAt as { toDate(): Date }).toDate().toISOString()
-      : null;
+  const updatedAt = shop?.updated_at;
+  let updatedAtIso: string | null = null;
+  const ts = updatedAt as unknown as { toDate?: () => Date };
+  if (ts && typeof ts.toDate === "function") {
+    updatedAtIso = ts.toDate().toISOString();
+  }
 
   return {
     productCount: prodCount,
     variantCount: varCount,
-    locationGid: (config?.["location_gid"] as string | undefined) ?? null,
-    shopDomain: (config?.["shop_domain"] as string | undefined) ?? null,
+    locationGid: shop?.location_gid ?? null,
+    shopDomain: shop?.shop_domain ?? null,
     updatedAtIso,
   };
 }
 
 export default async function ProductsPage() {
-  const stats = await getStats();
+  const { shopId } = await requireTenantPageContext("/admin/products");
+  const stats = await getStats(shopId);
   const t = await getTranslations("products");
   return (
     <div className="space-y-8">

@@ -15,7 +15,7 @@ export function RegisterWebhooksButton({ baseUrl }: { baseUrl: string | null }) 
     setErr(null);
     setOutput(null);
     startTransition(async () => {
-      const res = await registerWebhooksAction(baseUrl);
+      const res = await registerWebhooksAction();
       if (res.ok) {
         const summary = res.results
           .map((r) => `${r.topic}: ${r.created ? "neu" : "bereits vorhanden"}`)

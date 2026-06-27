@@ -6,8 +6,30 @@ import {
   persistToken,
   verifyInstallHmac,
 } from "@/server/shopify/auth";
+import {
+  OAUTH_STATE_TTL_MS,
+  signOAuthState,
+  verifyOAuthState,
+} from "@/server/shopify/oauth-state";
+import { getSessionUser } from "@/lib/auth/session";
+import {
+  linkUserToShop,
+  assertShopLinkable,
+  loadPendingShopDomain,
+  ShopLinkError,
+} from "@/lib/auth/merchant";
 import { SHOP_COOKIE } from "@/lib/auth/tenant";
+import { normalizeShopId } from "@/server/tenant/id";
 import { log } from "@/lib/logger";
+
+/** Reject install/callback requests with a stale timestamp (replay defense). */
+function isFreshTimestamp(params: URLSearchParams): boolean {
+  const raw = params.get("timestamp");
+  if (!raw) return false;
+  const ts = Number(raw);
+  if (!Number.isFinite(ts)) return false;
+  return Math.abs(Date.now() - ts * 1000) < 5 * 60 * 1000;
+}
 
 /**
  * GET /api/shopify/callback
@@ -22,10 +44,8 @@ import { log } from "@/lib/logger";
  *   (B) OAuth callback: after merchant approves, Shopify redirects back here
  *       with ?code=…&hmac=…&host=…&shop=…&state=…&timestamp=…
  *       → we verify HMAC, exchange `code` for an offline access token,
- *         persist it in Firestore, and forward to /admin/settings.
- *
- * No session/cookie required — Shopify is the caller in both cases, and the
- * HMAC (signed with our Client Secret) guarantees authenticity.
+ *         persist it in Firestore, link the shop to the merchant account,
+ *         and forward to /admin/settings.
  */
 
 const REQUIRED_SCOPES = [
@@ -48,7 +68,7 @@ export async function GET(req: Request) {
       error: msg,
       stack: e instanceof Error ? e.stack : undefined,
     });
-    return plain(`callback_error: ${msg}`, 500);
+    return plain("callback_error", 500);
   }
 }
 
@@ -58,6 +78,7 @@ async function handle(req: Request): Promise<Response> {
   const shop = (params.get("shop") ?? "").trim();
   const code = params.get("code");
   const hmac = params.get("hmac");
+  const stateParam = params.get("state");
 
   if (!isValidShopDomain(shop)) {
     return plain(
@@ -70,10 +91,11 @@ async function handle(req: Request): Promise<Response> {
   const { apiKey, apiSecret } = getAppCreds();
   if (!verifyInstallHmac(params, apiSecret)) {
     log.warn("shopify_callback_hmac_failed", { shop, hasCode: !!code });
-    return plain(
-      "invalid_hmac: SHOPIFY_API_SECRET stimmt nicht mit dem Client Secret der App überein.",
-      401,
-    );
+    return plain("invalid_request", 401);
+  }
+  if (!isFreshTimestamp(params)) {
+    log.warn("shopify_callback_stale_timestamp", { shop, hasCode: !!code });
+    return plain("invalid_request", 401);
   }
 
   // ----- Case (A): initial install hit — no code yet, kick off OAuth ------
@@ -83,7 +105,22 @@ async function handle(req: Request): Promise<Response> {
     authorize.searchParams.set("client_id", apiKey);
     authorize.searchParams.set("scope", REQUIRED_SCOPES.join(","));
     authorize.searchParams.set("redirect_uri", redirectUri);
-    authorize.searchParams.set("state", "install");
+
+    const sessionUser = await getSessionUser();
+    if (sessionUser?.role === "ADMIN") {
+      const state = signOAuthState(
+        {
+          uid: sessionUser.uid,
+          shop,
+          exp: Date.now() + OAUTH_STATE_TTL_MS,
+        },
+        apiSecret,
+      );
+      authorize.searchParams.set("state", state);
+    } else {
+      authorize.searchParams.set("state", "install");
+    }
+
     log.info("shopify_install_redirect_to_authorize", { shop, redirectUri });
     return NextResponse.redirect(authorize.toString());
   }
@@ -106,11 +143,49 @@ async function handle(req: Request): Promise<Response> {
     tokenResult.scope,
   );
 
+  let linkUid: string | undefined;
+  if (stateParam && stateParam !== "install") {
+    const payload = verifyOAuthState(stateParam, apiSecret);
+    if (payload?.shop === shop) linkUid = payload.uid;
+  }
+  // Fallback for Shopify-initiated installs (state="install"): only link the
+  // logged-in ADMIN when their registration intent (pending_shop_domain)
+  // matches this shop. This binds the link to a deliberate signup and prevents
+  // a CSRF'd OAuth flow from attaching an arbitrary shop to a victim session.
+  if (!linkUid) {
+    const sessionUser = await getSessionUser();
+    if (sessionUser?.role === "ADMIN") {
+      const pending = await loadPendingShopDomain(sessionUser.uid);
+      if (pending && normalizeShopId(pending) === shopId) {
+        linkUid = sessionUser.uid;
+      }
+    }
+  }
+  if (linkUid) {
+    try {
+      await assertShopLinkable(linkUid, shopId);
+      await linkUserToShop(linkUid, shopId);
+    } catch (e) {
+      if (e instanceof ShopLinkError) {
+        log.warn("shopify_link_rejected", { shopId, uid: linkUid, code: e.code });
+        return NextResponse.redirect(
+          new URL(
+            `/onboarding?error=${encodeURIComponent(e.message)}`,
+            url.origin,
+          ),
+        );
+      }
+      throw e;
+    }
+  }
+
   log.info("shopify_install_complete", {
     shop,
     shopId,
     scope: tokenResult.scope,
+    linkedUid: linkUid ?? null,
   });
+
   const res = NextResponse.redirect(
     new URL("/admin/settings?installed=1", url.origin),
   );

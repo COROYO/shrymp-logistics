@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
-import { Collections, type Order } from "@/server/firestore/schema";
+import { type Order } from "@/server/firestore/schema";
+import { ordersForShop } from "@/server/tenant/queries";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import { PackedTable, type PackedRow } from "./packed-table";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +16,9 @@ function tsToIso(t: unknown): string {
   return "";
 }
 
-async function loadPacked(): Promise<PackedRow[]> {
+async function loadPacked(shopId: string): Promise<PackedRow[]> {
   const db = adminDb();
-  const snap = await db
-    .collection(Collections.Orders)
+  const snap = await ordersForShop(db, shopId)
     .where("internal_status", "==", "PACKED")
     .limit(300)
     .get();
@@ -45,7 +46,8 @@ async function loadPacked(): Promise<PackedRow[]> {
 }
 
 export default async function PackedOrdersPage() {
-  const rows = await loadPacked();
+  const { shopId } = await requireTenantPageContext("/lager/packed-orders");
+  const rows = await loadPacked(shopId);
   const t = await getTranslations("packedOrders");
 
   return (

@@ -3,13 +3,14 @@ import { notFound } from "next/navigation";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
-  ConfigDocs,
-  DhlConfigSchema,
   type Allocation,
   type Batch,
   type Order,
   type OrderDhlShipment,
 } from "@/server/firestore/schema";
+import { loadDhlConfig } from "@/server/dhl/config";
+import { getShop } from "@/server/tenant/shop";
+import { runWithTenantAsync } from "@/server/tenant/context";
 import { signLabel } from "@/server/dhl/storage";
 import { ConfirmPackingForm } from "./confirm-packing-form";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
@@ -18,6 +19,7 @@ import { DhlLabelButtons } from "./dhl-label-buttons";
 import { DhlServicesBadges } from "./dhl-services-badges";
 import { summarizeDhlServices } from "@/server/dhl/request-builder";
 import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
+import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 
 export const dynamic = "force-dynamic";
 
@@ -29,68 +31,72 @@ type AllocLine = {
 };
 
 async function loadOrderForPacking(orderId: string) {
-  await releaseUnshippableBatchAssignments(orderId);
   const db = adminDb();
-  const [orderSnap, metaSnap, tokenSnap, dhlSnap] = await Promise.all([
-    db.collection(Collections.Orders).doc(orderId).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyMeta).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyToken).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.DhlConfig).get(),
-  ]);
+  const orderSnap = await db.collection(Collections.Orders).doc(orderId).get();
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
-  const shopDomain =
-    (metaSnap.data()?.shop_domain as string | undefined) ??
-    (tokenSnap.data()?.shop_domain as string | undefined) ??
-    "";
-  const dhlConfig = dhlSnap.exists
-    ? (DhlConfigSchema.safeParse(dhlSnap.data()).data ?? null)
-    : null;
+  const shopId = order.shop_id;
+  if (!shopId) return null;
+  // Tenant gate before any mutation/read of foreign order data.
+  await assertShopAccessibleForPage(shopId, `/lager/packing/${orderId}`);
 
-  const allocSnap = await db
-    .collection(Collections.Allocations)
-    .where("order_id", "==", orderId)
-    .get();
-  const allocs = allocSnap.docs.map((d) => d.data() as Allocation);
-  const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
-  const batchSnaps = await Promise.all(
-    batchIds.map((b) => db.collection(Collections.Batches).doc(b).get()),
-  );
-  const batchById = new Map<string, Batch>();
-  for (const b of batchSnaps) {
-    if (b.exists) batchById.set(b.id, b.data() as Batch);
-  }
+  await releaseUnshippableBatchAssignments(orderId);
 
-  const allocsByLi = new Map<string, AllocLine[]>();
-  for (const a of allocs) {
-    if (a.consumed_at) continue;
-    const b = batchById.get(a.batch_id);
-    if (!b) continue;
-    const exp = b.expiry_date as unknown as
-      | { toDate?(): Date; seconds?: number }
-      | undefined;
-    let iso: string | null = null;
-    if (exp && typeof (exp as { toDate?: unknown }).toDate === "function") {
-      iso = (exp as { toDate(): Date }).toDate().toISOString().slice(0, 10);
-    } else if (exp && typeof (exp as { seconds?: number }).seconds === "number") {
-      iso = new Date((exp as { seconds: number }).seconds * 1000)
-        .toISOString()
-        .slice(0, 10);
+  return runWithTenantAsync(shopId, async () => {
+    const [shop, dhlConfig] = await Promise.all([
+      getShop(shopId),
+      loadDhlConfig(shopId),
+    ]);
+    const shopDomain = shop?.shop_domain ?? "";
+
+    const allocSnap = await db
+      .collection(Collections.Allocations)
+      .where("order_id", "==", orderId)
+      .get();
+    const allocs = allocSnap.docs.map((d) => d.data() as Allocation);
+    const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
+    const batchSnaps = await Promise.all(
+      batchIds.map((b) => db.collection(Collections.Batches).doc(b).get()),
+    );
+    const batchById = new Map<string, Batch>();
+    for (const b of batchSnaps) {
+      if (b.exists) batchById.set(b.id, b.data() as Batch);
     }
-    const entry: AllocLine = {
-      lineItemId: a.line_item_id,
-      chargeNumber: b.charge_number,
-      expiryDateIso: iso,
-      qty: a.qty,
-    };
-    const list = allocsByLi.get(a.line_item_id);
-    if (list) list.push(entry);
-    else allocsByLi.set(a.line_item_id, [entry]);
-  }
 
-  const dhlShipmentForUi = await prepareDhlShipmentForUi(order);
+    const allocsByLi = new Map<string, AllocLine[]>();
+    for (const a of allocs) {
+      if (a.consumed_at) continue;
+      const b = batchById.get(a.batch_id);
+      if (!b) continue;
+      const exp = b.expiry_date as unknown as
+        | { toDate?(): Date; seconds?: number }
+        | undefined;
+      let iso: string | null = null;
+      if (exp && typeof (exp as { toDate?: unknown }).toDate === "function") {
+        iso = (exp as { toDate(): Date }).toDate().toISOString().slice(0, 10);
+      } else if (
+        exp &&
+        typeof (exp as { seconds?: number }).seconds === "number"
+      ) {
+        iso = new Date((exp as { seconds: number }).seconds * 1000)
+          .toISOString()
+          .slice(0, 10);
+      }
+      const entry: AllocLine = {
+        lineItemId: a.line_item_id,
+        chargeNumber: b.charge_number,
+        expiryDateIso: iso,
+        qty: a.qty,
+      };
+      const list = allocsByLi.get(a.line_item_id);
+      if (list) list.push(entry);
+      else allocsByLi.set(a.line_item_id, [entry]);
+    }
 
-  return { order, allocsByLi, shopDomain, dhlConfig, dhlShipmentForUi };
+    const dhlShipmentForUi = await prepareDhlShipmentForUi(order);
+
+    return { order, allocsByLi, shopDomain, dhlConfig, dhlShipmentForUi };
+  });
 }
 
 type DhlShipmentForUi = {

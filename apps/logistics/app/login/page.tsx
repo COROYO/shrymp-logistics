@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getSessionUser } from "@/lib/auth/session";
 import { hasAnyAdmin } from "@/lib/auth/bootstrap";
+import { safeNextPath } from "@/lib/safe-redirect";
 import { ServerConfigError } from "@/app/_components/server-config-error";
 import { BrandMark } from "@/app/_components/brand-mark";
 import { LoginForm } from "./login-form";
@@ -27,12 +28,13 @@ export default async function LoginPage({
       />
     );
   }
-  if (!adminExists) redirect("/setup");
+  if (!adminExists) redirect("/register");
 
   const user = await getSessionUser();
   const { next, error, setup } = await searchParams;
+  const safeNext = next ? safeNextPath(next, "") || null : null;
   if (user) {
-    redirect(next ?? (user.role === "ADMIN" ? "/admin" : "/lager"));
+    redirect(safeNext ?? (user.role === "ADMIN" ? "/admin" : "/lager"));
   }
 
   return (
@@ -69,7 +71,17 @@ export default async function LoginPage({
           </div>
         ) : null}
 
-        <LoginForm nextPath={next ?? null} />
+        <LoginForm nextPath={safeNext} />
+
+        <p className="text-center text-sm text-brand-navy/60">
+          Noch kein Konto?{" "}
+          <Link
+            href="/register"
+            className="font-semibold text-brand-burgundy underline-offset-2 hover:underline"
+          >
+            Registrieren
+          </Link>
+        </p>
 
         <p className="text-xs text-brand-navy/50">
           Passwort vergessen?{" "}

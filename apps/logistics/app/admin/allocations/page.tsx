@@ -8,6 +8,8 @@ import {
   type Product,
   type Variant,
 } from "@/server/firestore/schema";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import { allocationsForShop } from "@/server/tenant/queries";
 import {
   AllocationsTable,
   type AllocationTableRow,
@@ -31,26 +33,18 @@ async function loadAllocationRows(opts: {
   status: StatusFilter;
   orderId?: string;
   batchId?: string;
+  shopId: string;
 }): Promise<AllocationTableRow[]> {
   const db = adminDb();
+  const scoped = allocationsForShop(db, opts.shopId);
 
   let allocSnap;
   if (opts.batchId) {
-    allocSnap = await db
-      .collection(Collections.Allocations)
-      .where("batch_id", "==", opts.batchId)
-      .get();
+    allocSnap = await scoped.where("batch_id", "==", opts.batchId).get();
   } else if (opts.orderId) {
-    allocSnap = await db
-      .collection(Collections.Allocations)
-      .where("order_id", "==", opts.orderId)
-      .get();
+    allocSnap = await scoped.where("order_id", "==", opts.orderId).get();
   } else {
-    allocSnap = await db
-      .collection(Collections.Allocations)
-      .orderBy("created_at", "desc")
-      .limit(500)
-      .get();
+    allocSnap = await scoped.orderBy("created_at", "desc").limit(500).get();
   }
 
   let allocs = allocSnap.docs.map((d) => d.data() as Allocation);
@@ -158,12 +152,12 @@ export type ReservedSummaryRow = {
  * SHIP/PICKING orders. Source of truth = order demand (see
  * server/inventory/reserved.ts), independent of charge-allocation docs.
  */
-async function loadReservedSummary(): Promise<ReservedSummaryRow[]> {
+async function loadReservedSummary(shopId: string): Promise<ReservedSummaryRow[]> {
   const db = adminDb();
   const { loadReservedDetailByVariant } = await import(
     "@/server/inventory/reserved"
   );
-  const detail = await loadReservedDetailByVariant();
+  const detail = await loadReservedDetailByVariant(shopId);
   if (detail.size === 0) return [];
 
   const variantIds = [...detail.keys()];
@@ -219,10 +213,12 @@ export default async function AllocationsPage({
     ? (status as StatusFilter)
     : "ALL";
 
+  const { shopId } = await requireTenantPageContext("/admin/allocations");
   const rows = await loadAllocationRows({
     status: filter,
     orderId: order_id,
     batchId: batch_id,
+    shopId,
   });
 
   const openCount = rows.filter((r) => !r.consumedIso).length;
@@ -234,7 +230,7 @@ export default async function AllocationsPage({
   // order demand (NOT from charge-allocation docs, which only exist after a
   // slip is printed). This is what's actually committed and unavailable to
   // new orders.
-  const reservedSummary = await loadReservedSummary();
+  const reservedSummary = await loadReservedSummary(shopId);
   const reservedTotal = reservedSummary.reduce((s, r) => s + r.qty, 0);
 
   return (

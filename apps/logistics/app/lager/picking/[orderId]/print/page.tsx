@@ -8,6 +8,7 @@ import {
   type Order,
 } from "@/server/firestore/schema";
 import { PrintTrigger } from "./print-trigger";
+import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,10 @@ async function load(orderId: string) {
   const orderSnap = await db.collection(Collections.Orders).doc(orderId).get();
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
+  await assertShopAccessibleForPage(
+    order.shop_id,
+    `/lager/picking/${orderId}/print`,
+  );
 
   const allocSnap = await db
     .collection(Collections.Allocations)

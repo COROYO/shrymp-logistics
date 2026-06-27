@@ -1,6 +1,9 @@
 "use client";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { clientAuth } from "@/lib/firebase/client";
 
 const inputClass =
   "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
@@ -8,24 +11,26 @@ const inputClass =
 const labelClass =
   "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70";
 
-export function SetupForm() {
+export function RegisterForm() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email") ?? "");
+    const password = String(fd.get("password") ?? "");
     const payload = {
-      email: String(fd.get("email") ?? ""),
-      password: String(fd.get("password") ?? ""),
+      email,
+      password,
       displayName: String(fd.get("displayName") ?? "") || undefined,
+      shopDomain: String(fd.get("shopDomain") ?? "") || undefined,
     };
 
     try {
-      const res = await fetch("/api/setup/bootstrap-admin", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
@@ -35,20 +40,41 @@ export function SetupForm() {
         | { ok: false; error: string }
         | null;
 
-      if (!j) {
-        setError(`HTTP ${res.status}: leere Antwort`);
+      if (!j?.ok) {
+        const code = j?.error ?? "";
+        setError(
+          code === "invalid_shop_domain"
+            ? "Ungültige Shop-Domain."
+            : code === "email-already-exists" ||
+                code.includes("email-already-exists")
+              ? "Diese E-Mail ist bereits registriert."
+              : code === "rate_limited"
+                ? "Zu viele Versuche. Bitte später erneut versuchen."
+                : code === "registration_failed"
+                  ? "Registrierung fehlgeschlagen. Bitte später erneut versuchen."
+                  : (code || `HTTP ${res.status}`),
+        );
         return;
       }
-      if (!j.ok) {
-        setError(j.error);
-        return;
+
+      const cred = await signInWithEmailAndPassword(
+        clientAuth(),
+        email,
+        password,
+      );
+      const idToken = await cred.user.getIdToken();
+      const sessionRes = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      if (!sessionRes.ok) {
+        throw new Error("session_failed");
       }
-      setDone(true);
+
       startTransition(() => {
-        setTimeout(() => {
-          router.replace("/login?setup=1");
-          router.refresh();
-        }, 500);
+        router.replace("/onboarding");
+        router.refresh();
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -97,12 +123,22 @@ export function SetupForm() {
           className={inputClass}
         />
       </div>
+      <div>
+        <label htmlFor="shopDomain" className={labelClass}>
+          Shopify-Shop (optional)
+        </label>
+        <input
+          id="shopDomain"
+          name="shopDomain"
+          type="text"
+          placeholder="mein-shop.myshopify.com"
+          className={inputClass}
+        />
+        <p className="mt-1.5 text-xs text-brand-navy/55">
+          Kannst du auch gleich im nächsten Schritt verbinden.
+        </p>
+      </div>
 
-      {done ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          Admin-Konto angelegt. Weiterleitung zum Login…
-        </div>
-      ) : null}
       {error ? (
         <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-3 py-2 text-sm text-brand-burgundy-dark">
           {error}
@@ -111,10 +147,10 @@ export function SetupForm() {
 
       <button
         type="submit"
-        disabled={pending || done}
+        disabled={pending}
         className="btn-primary w-full !py-3"
       >
-        {pending ? "Erstelle…" : "Admin anlegen"}
+        {pending ? "Registriere…" : "Konto anlegen"}
       </button>
     </form>
   );

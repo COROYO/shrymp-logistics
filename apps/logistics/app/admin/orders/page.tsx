@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import { ordersForShop } from "@/server/tenant/queries";
 import { SyncOrdersButton } from "./sync-orders-button";
 import {
   Collections,
@@ -40,10 +42,9 @@ function tsToIso(t: unknown): string {
   return "";
 }
 
-async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
+async function loadOrderRows(filter: Filter, shopId: string): Promise<OrderRow[]> {
   const db = adminDb();
-
-  const baseCol = db.collection(Collections.Orders);
+  const baseCol = ordersForShop(db, shopId);
   const q =
     filter === "ALL"
       ? baseCol.orderBy("created_at_shopify", "desc").limit(100)
@@ -63,7 +64,7 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
   const { loadShippableQtyByVariant } = await import(
     "@/server/inventory/shippable-stock"
   );
-  const reservedByVariant = await loadReservedByVariant();
+  const reservedByVariant = await loadReservedByVariant(shopId);
 
   const variantIds = Array.from(
     new Set(
@@ -81,7 +82,7 @@ async function loadOrderRows(filter: Filter): Promise<OrderRow[]> {
     );
     const [variantSnaps, shippable] = await Promise.all([
       db.getAll(...variantRefs),
-      loadShippableQtyByVariant(variantIds),
+      loadShippableQtyByVariant(variantIds, shopId),
     ]);
     for (const v of variantSnaps) {
       if (v.exists) byId.set(v.id, v.data() as Variant);
@@ -262,7 +263,8 @@ export default async function OrdersPage({
     ? (status as Filter)
     : "ALL";
 
-  const rows = await loadOrderRows(filter);
+  const { shopId } = await requireTenantPageContext("/admin/orders");
+  const rows = await loadOrderRows(filter, shopId);
   const t = await getTranslations("ordersAdmin");
 
   const filterLabel = (f: Filter): string => {

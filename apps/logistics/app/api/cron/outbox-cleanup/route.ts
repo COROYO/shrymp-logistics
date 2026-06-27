@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cleanupOutbox } from "@/server/shopify/outbox";
+import { checkCronAuth } from "@/lib/auth/cron";
 import { log } from "@/lib/logger";
 
 /**
@@ -27,19 +28,12 @@ import { log } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const expected = process.env.CRON_SECRET;
-  if (expected) {
-    const fromQuery = url.searchParams.get("secret");
-    const fromHeader = req.headers
-      .get("authorization")
-      ?.replace(/^Bearer\s+/i, "");
-    const provided = fromQuery ?? fromHeader ?? "";
-    if (provided !== expected) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
+  const auth = checkCronAuth(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  const url = new URL(req.url);
   const doneDays = Number(url.searchParams.get("doneDays"));
   const staleDays = Number(url.searchParams.get("staleDays"));
 

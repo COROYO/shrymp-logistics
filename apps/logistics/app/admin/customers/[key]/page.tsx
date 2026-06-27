@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import {
   formatMoneyCents,
   getCustomerDetail,
@@ -24,7 +25,10 @@ export default async function CustomerDetailPage({
   params: Promise<{ key: string }>;
 }) {
   const { key } = await params;
-  const detail = await getCustomerDetail(decodeURIComponent(key));
+  const { shopId } = await requireTenantPageContext(
+    `/admin/customers/${encodeURIComponent(key)}`,
+  );
+  const detail = await getCustomerDetail(decodeURIComponent(key), shopId);
   if (!detail) notFound();
 
   const t = await getTranslations("customers.detail");

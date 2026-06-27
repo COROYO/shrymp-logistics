@@ -7,6 +7,8 @@ import {
 } from "@/server/firestore/schema";
 import { loadLagerConfig } from "@/server/lager/config";
 import { isBatchAssignableForShipping } from "@/server/picking/batch-assignability";
+import { allocationsForShop, batchesForShop } from "@/server/tenant/queries";
+import { normalizeShopId } from "@/server/tenant/id";
 
 /**
  * Versandfähiger Bestand pro Variante: Summe aus `remaining_qty` plus offenen
@@ -54,8 +56,19 @@ export function computeAssignableRemainingByVariant(
 
 async function loadBatchesForVariants(
   variantIds: string[],
+  shopId?: string,
 ): Promise<Batch[]> {
   const db = adminDb();
+  const variantSet = new Set(variantIds);
+  if (variantSet.size === 0) return [];
+
+  if (shopId) {
+    const snap = await batchesForShop(db, shopId).get();
+    return snap.docs
+      .map((d) => ({ ...(d.data() as Batch), id: d.id }))
+      .filter((b) => variantSet.has(b.variant_id));
+  }
+
   const batches: Batch[] = [];
   for (const c of chunk(variantIds, 30)) {
     const snap = await db
@@ -71,13 +84,14 @@ async function loadBatchesForVariants(
 
 export async function loadAssignableRemainingByVariant(
   variantIds: string[],
+  shopId?: string,
 ): Promise<Map<string, number>> {
   if (variantIds.length === 0) return new Map();
 
-  const lagerCfg = await loadLagerConfig();
+  const lagerCfg = await loadLagerConfig(shopId);
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
-  const batches = await loadBatchesForVariants(variantIds);
+  const batches = await loadBatchesForVariants(variantIds, shopId);
   return computeAssignableRemainingByVariant(
     batches,
     minDays,
@@ -87,28 +101,45 @@ export async function loadAssignableRemainingByVariant(
 
 export async function loadShippableQtyByVariant(
   variantIds: string[],
+  shopId?: string,
 ): Promise<Map<string, number>> {
   if (variantIds.length === 0) return new Map();
 
-  const lagerCfg = await loadLagerConfig();
+  const lagerCfg = await loadLagerConfig(shopId);
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
-  const batches = await loadBatchesForVariants(variantIds);
+  const batches = await loadBatchesForVariants(variantIds, shopId);
 
   const openAllocQtyByBatch = new Map<string, number>();
   const db = adminDb();
-  for (const c of chunk(variantIds, 30)) {
-    const allocSnap = await db
-      .collection(Collections.Allocations)
-      .where("variant_id", "in", c)
-      .get();
+  const normalizedShop = shopId ? normalizeShopId(shopId) : null;
+
+  if (normalizedShop) {
+    const allocSnap = await allocationsForShop(db, normalizedShop).get();
+    const variantSet = new Set(variantIds);
     for (const d of allocSnap.docs) {
       const a = d.data() as Allocation;
+      if (!variantSet.has(a.variant_id)) continue;
       if (a.consumed_at || a.released) continue;
       openAllocQtyByBatch.set(
         a.batch_id,
         (openAllocQtyByBatch.get(a.batch_id) ?? 0) + a.qty,
       );
+    }
+  } else {
+    for (const c of chunk(variantIds, 30)) {
+      const allocSnap = await db
+        .collection(Collections.Allocations)
+        .where("variant_id", "in", c)
+        .get();
+      for (const d of allocSnap.docs) {
+        const a = d.data() as Allocation;
+        if (a.consumed_at || a.released) continue;
+        openAllocQtyByBatch.set(
+          a.batch_id,
+          (openAllocQtyByBatch.get(a.batch_id) ?? 0) + a.qty,
+        );
+      }
     }
   }
 

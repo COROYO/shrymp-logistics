@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/session";
+import { assertOrderAccessible } from "@/lib/auth/tenant-guard";
 import {
   cancelPicking,
   startPicking,
@@ -20,6 +21,7 @@ export async function startPickingAction(
     return { ok: false, error: "forbidden" };
   }
   try {
+    await assertOrderAccessible(orderId, user);
     await startPicking(orderId, user.uid);
     revalidatePath("/lager/picking");
     revalidatePath(`/lager/picking/${orderId}`);
@@ -41,6 +43,7 @@ export async function cancelPickingAction(
     return { ok: false, error: "forbidden" };
   }
   try {
+    await assertOrderAccessible(orderId, user);
     await cancelPicking(orderId, user.uid);
     revalidatePath("/lager/picking");
     revalidatePath(`/lager/picking/${orderId}`);

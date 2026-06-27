@@ -18,6 +18,8 @@ import {
 import { orderAssignmentCoversLineItemsAnyState } from "./assignment-coverage";
 import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
 import { loadLagerConfig } from "@/server/lager/config";
+import { loadSlipBranding, type SlipBrandingConfig } from "@/server/slip/branding";
+import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 import {
   isBatchAssignableForShipping,
   isBatchExpired,
@@ -64,6 +66,7 @@ export type SlipData = {
    */
   variantTitleByLi: Map<string, string | null>;
   lieferschein: LieferscheinRef;
+  branding: SlipBrandingConfig;
 };
 
 /** Shopify's placeholder title for products without real variants. */
@@ -77,7 +80,6 @@ const DEFAULT_VARIANT_TITLE = "Default Title";
  */
 export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   const db = adminDb();
-  const lagerCfg = await loadLagerConfig();
 
   const orderSnap = await db
     .collection(Collections.Orders)
@@ -85,6 +87,11 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     .get();
   if (!orderSnap.exists) return null;
   const order = orderSnap.data() as Order;
+  const shopId = order.shop_id;
+  // Tenant gate before any assignment/Lieferschein mutation on foreign data.
+  await assertShopAccessibleForPage(shopId, `/lager/picking/${orderId}/slip`);
+  const lagerCfg = await loadLagerConfig(shopId ?? undefined);
+  const branding = await loadSlipBranding(shopId);
 
   // A finished (PACKED) order is a REPRINT: its Chargen are already pinned and
   // consumed. We must not re-assign or re-validate expiry — just render the
@@ -234,7 +241,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   // on the FIRST print without an extra read round-trip.
   order.lieferschein_no = lieferschein.number;
 
-  return { order, allocsByLi, variantTitleByLi, lieferschein };
+  return { order, allocsByLi, variantTitleByLi, lieferschein, branding };
 }
 
 export function tsToDate(t: unknown): Date | null {

@@ -3,6 +3,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
 import {
+  assertOrderAccessible,
+  TenantAccessError,
+} from "@/lib/auth/tenant-guard";
+import { listAccessibleShopIds } from "@/lib/auth/tenant";
+import { normalizeShopId } from "@/server/tenant/id";
+import {
   confirmPacking,
   startPicking,
   TransitionError,
@@ -68,6 +74,7 @@ export async function bulkConfirmPackingAction(
 
   const db = adminDb();
   const results: BulkConfirmResult["results"] = [];
+  const accessibleShops = await listAccessibleShopIds(user);
 
   for (const orderId of orderIds) {
     try {
@@ -77,6 +84,12 @@ export async function bulkConfirmPackingAction(
         continue;
       }
       const order = snap.data() as Order;
+
+      if (!accessibleShops.includes(normalizeShopId(order.shop_id ?? ""))) {
+        // Mask cross-tenant ids as not found.
+        results.push({ orderId, ok: false, error: "not_found" });
+        continue;
+      }
 
       if (order.internal_status === "PACKED") {
         // Idempotent: already packed = success.
@@ -131,6 +144,7 @@ export async function confirmPackingAction(
   }
 
   try {
+    await assertOrderAccessible(orderId, user);
     await confirmPacking(orderId, user.uid, parsedTracking.data);
     revalidatePath("/lager/picking");
     revalidatePath("/admin/orders");
@@ -192,6 +206,7 @@ export async function createDhlLabelAction(
   if (!parsedCod.success) return { ok: false, error: "invalid_cod_amount" };
 
   try {
+    await assertOrderAccessible(orderId, user);
     const res = await createLabelForOrder({
       orderId,
       userId: user.uid,
@@ -237,6 +252,9 @@ export async function createDhlLabelAction(
     };
   } catch (e) {
     log.warn("create_dhl_label_failed", { orderId, error: String(e) });
+    if (e instanceof TenantAccessError) {
+      return { ok: false, error: "not_found" };
+    }
     if (e instanceof DhlConfigError) {
       return { ok: false, error: `dhl_config:${e.code}` };
     }
@@ -247,17 +265,18 @@ export async function createDhlLabelAction(
       return { ok: false, error: `dhl_services:${e.code}` };
     }
     if (e instanceof CreateLabelError && e.code === "dhl_services_error") {
-      return { ok: false, error: `dhl_services:${e.message}`, details: e.details };
+      // Internal API payloads (e.details / e.body) are logged above only.
+      return { ok: false, error: `dhl_services:${e.message}` };
     }
     if (e instanceof DhlAuthError) {
       return { ok: false, error: `dhl_auth:${e.status}` };
     }
     if (e instanceof DhlApiError) {
-      return { ok: false, error: `dhl_api:${e.status}`, details: e.body };
+      return { ok: false, error: `dhl_api:${e.status}` };
     }
     if (e instanceof CreateLabelError) {
-      return { ok: false, error: e.code, details: e.details };
+      return { ok: false, error: e.code };
     }
-    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+    return { ok: false, error: "unknown" };
   }
 }

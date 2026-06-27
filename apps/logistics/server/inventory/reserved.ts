@@ -1,6 +1,8 @@
 import "server-only";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Order } from "@/server/firestore/schema";
+import { ordersForShop } from "@/server/tenant/queries";
+import { normalizeShopId } from "@/server/tenant/id";
 
 /** Statuses that actually reserve stock (allocation + picking). */
 export const RESERVED_ORDER_STATUSES = ["SHIP", "PICKING"] as const;
@@ -27,19 +29,26 @@ export type ReservedDetail = { qty: number; orderIds: Set<string> };
 
 async function loadDemandDetailByVariant(
   statuses: readonly string[],
+  shopId?: string,
 ): Promise<Map<string, ReservedDetail>> {
   const db = adminDb();
   const reserved = new Map<string, ReservedDetail>();
+  const normalizedShop = shopId ? normalizeShopId(shopId) : null;
 
-  // One equality query per status rather than an `in` query so each hits the
-  // simplest possible index and the result sets stay small.
-  for (const status of statuses) {
-    const snap = await db
-      .collection(Collections.Orders)
-      .where("internal_status", "==", status)
-      .get();
+  // Status queries are independent — run them in parallel instead of serially.
+  const snaps = await Promise.all(
+    statuses.map((status) => {
+      const base = normalizedShop
+        ? ordersForShop(db, normalizedShop)
+        : db.collection(Collections.Orders);
+      return base.where("internal_status", "==", status).get();
+    }),
+  );
+
+  for (const snap of snaps) {
     for (const d of snap.docs) {
       const o = d.data() as Order;
+      if (normalizedShop && o.shop_id && o.shop_id !== normalizedShop) continue;
       for (const li of o.line_items ?? []) {
         const cur = reserved.get(li.variant_id) ?? {
           qty: 0,
@@ -55,27 +64,25 @@ async function loadDemandDetailByVariant(
   return reserved;
 }
 
-/**
- * Reserved quantity + the set of reserving orders, per variant. Computed from
- * SHIP/PICKING order demand (see file header).
- */
-export async function loadReservedDetailByVariant(): Promise<
-  Map<string, ReservedDetail>
-> {
-  return loadDemandDetailByVariant(RESERVED_ORDER_STATUSES);
+export async function loadReservedDetailByVariant(
+  shopId?: string,
+): Promise<Map<string, ReservedDetail>> {
+  return loadDemandDetailByVariant(RESERVED_ORDER_STATUSES, shopId);
 }
 
-/** Convenience: just the reserved quantity per variant (SHIP/PICKING). */
-export async function loadReservedByVariant(): Promise<Map<string, number>> {
-  const detail = await loadReservedDetailByVariant();
+export async function loadReservedByVariant(
+  shopId?: string,
+): Promise<Map<string, number>> {
+  const detail = await loadReservedDetailByVariant(shopId);
   const out = new Map<string, number>();
   for (const [vid, d] of detail) out.set(vid, d.qty);
   return out;
 }
 
-/** Order demand incl. STOP — for Lagerbestand "In Orders" column. */
-export async function loadOrderDemandByVariant(): Promise<Map<string, number>> {
-  const detail = await loadDemandDetailByVariant(ORDER_DEMAND_STATUSES);
+export async function loadOrderDemandByVariant(
+  shopId?: string,
+): Promise<Map<string, number>> {
+  const detail = await loadDemandDetailByVariant(ORDER_DEMAND_STATUSES, shopId);
   const out = new Map<string, number>();
   for (const [vid, d] of detail) out.set(vid, d.qty);
   return out;

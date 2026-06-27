@@ -27,12 +27,87 @@ export type UserListEntry = {
   display_name: string | null;
   role: UserRole | null;
   disabled: boolean;
+  shop_ids: string[];
   /** Last sign-in / creation timestamps as ISO. */
   created_at_iso: string | null;
   last_sign_in_iso: string | null;
   /** True if a Firestore mirror doc exists. */
   has_mirror: boolean;
 };
+
+export async function listUsersForShops(
+  shopIds: string[],
+  includeUid?: string,
+): Promise<UserListEntry[]> {
+  const normalized = shopIds.map((s) => s.trim().toLowerCase());
+  if (normalized.length === 0 && !includeUid) return [];
+
+  const db = adminDb();
+  const auth = adminAuth();
+
+  // Query only the mirror docs scoped to these shops (chunks of 30 for the
+  // Firestore array-contains-any limit) — no global user scan.
+  const uids = new Set<string>();
+  for (let i = 0; i < normalized.length; i += 30) {
+    const chunk = normalized.slice(i, i + 30);
+    if (chunk.length === 0) continue;
+    const snap = await db
+      .collection(Collections.Users)
+      .where("shop_ids", "array-contains-any", chunk)
+      .get();
+    for (const d of snap.docs) uids.add(d.id);
+  }
+  if (includeUid) uids.add(includeUid);
+  if (uids.size === 0) return [];
+
+  const uidList = [...uids];
+  const mirrorByUid = new Map<
+    string,
+    {
+      role: UserRole | null;
+      display_name: string | null;
+      disabled: boolean;
+      shop_ids: string[];
+    }
+  >();
+  // Fetch mirror docs + auth records in batches of 100 (getUsers limit).
+  const entries: UserListEntry[] = [];
+  for (let i = 0; i < uidList.length; i += 100) {
+    const chunk = uidList.slice(i, i + 100);
+    const [mirrorSnaps, authResult] = await Promise.all([
+      db.getAll(
+        ...chunk.map((uid) => db.collection(Collections.Users).doc(uid)),
+      ),
+      auth.getUsers(chunk.map((uid) => ({ uid }))),
+    ]);
+    for (const d of mirrorSnaps) {
+      if (!d.exists) continue;
+      const data = d.data() ?? {};
+      const rawIds = data.shop_ids;
+      mirrorByUid.set(d.id, {
+        role: (data.role as UserRole | undefined) ?? null,
+        display_name: (data.display_name as string | undefined) ?? null,
+        disabled: !!data.disabled,
+        shop_ids: Array.isArray(rawIds)
+          ? rawIds.map((s) => String(s).trim().toLowerCase())
+          : [],
+      });
+    }
+    for (const u of authResult.users) {
+      entries.push(userRecordToEntry(u, mirrorByUid));
+    }
+  }
+
+  return entries.sort((a, b) => {
+    if ((a.role === "ADMIN") !== (b.role === "ADMIN")) {
+      return a.role === "ADMIN" ? -1 : 1;
+    }
+    const da = a.created_at_iso ?? "";
+    const dbb = b.created_at_iso ?? "";
+    if (da !== dbb) return dbb.localeCompare(da);
+    return (a.email ?? "").localeCompare(b.email ?? "");
+  });
+}
 
 export async function listUsers(): Promise<UserListEntry[]> {
   const auth = adminAuth();
@@ -43,14 +118,23 @@ export async function listUsers(): Promise<UserListEntry[]> {
   const mirrorSnap = await db.collection(Collections.Users).get();
   const mirrorByUid = new Map<
     string,
-    { role: UserRole | null; display_name: string | null; disabled: boolean }
+    {
+      role: UserRole | null;
+      display_name: string | null;
+      disabled: boolean;
+      shop_ids: string[];
+    }
   >();
   for (const d of mirrorSnap.docs) {
     const data = d.data() ?? {};
+    const rawIds = data.shop_ids;
     mirrorByUid.set(d.id, {
       role: (data.role as UserRole | undefined) ?? null,
       display_name: (data.display_name as string | undefined) ?? null,
       disabled: !!data.disabled,
+      shop_ids: Array.isArray(rawIds)
+        ? rawIds.map((s) => String(s).trim().toLowerCase())
+        : [],
     });
   }
 
@@ -72,7 +156,12 @@ function userRecordToEntry(
   u: UserRecord,
   mirror: Map<
     string,
-    { role: UserRole | null; display_name: string | null; disabled: boolean }
+    {
+      role: UserRole | null;
+      display_name: string | null;
+      disabled: boolean;
+      shop_ids: string[];
+    }
   >,
 ): UserListEntry {
   const m = mirror.get(u.uid);
@@ -83,6 +172,7 @@ function userRecordToEntry(
     display_name: m?.display_name ?? u.displayName ?? null,
     role: claimRole ?? m?.role ?? null,
     disabled: u.disabled,
+    shop_ids: m?.shop_ids ?? [],
     created_at_iso: u.metadata.creationTime
       ? new Date(u.metadata.creationTime).toISOString()
       : null,
@@ -100,6 +190,7 @@ export async function createUser(input: {
   password: string;
   displayName?: string;
   role: UserRole;
+  shop_ids?: string[];
 }): Promise<{ uid: string }> {
   if (!input.email) throw new UserMgmtError("invalid_email");
   if (!input.password || input.password.length < 8) {
@@ -138,6 +229,7 @@ export async function createUser(input: {
     email: input.email.trim(),
     display_name: input.displayName?.trim() ?? null,
     role: input.role,
+    ...(input.shop_ids?.length ? { shop_ids: input.shop_ids } : {}),
     created_at: FieldValue.serverTimestamp(),
     disabled: false,
   });

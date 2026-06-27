@@ -1,6 +1,7 @@
 import "server-only";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Batch } from "@/server/firestore/schema";
+import { batchesForShop } from "@/server/tenant/queries";
 import { log } from "@/lib/logger";
 import { isBatchExpired } from "@/server/picking/batch-assignability";
 
@@ -11,16 +12,19 @@ export type MarkExpiredBatchesResult = {
 
 /**
  * Set `status: EXPIRED` on ACTIVE Chargen whose MHD has passed (Berlin calendar)
- * but still have physical stock (`remaining_qty > 0`).
+ * but still have physical stock (`remaining_qty > 0`). Pass `shopId` to scope
+ * to one tenant; omit it for the global reconcile sweep.
  */
-export async function markExpiredBatches(): Promise<MarkExpiredBatchesResult> {
+export async function markExpiredBatches(
+  shopId?: string,
+): Promise<MarkExpiredBatchesResult> {
   const db = adminDb();
   const referenceDate = new Date();
 
-  const snap = await db
-    .collection(Collections.Batches)
-    .where("status", "==", "ACTIVE")
-    .get();
+  const base = shopId
+    ? batchesForShop(db, shopId)
+    : db.collection(Collections.Batches);
+  const snap = await base.where("status", "==", "ACTIVE").get();
 
   const toMark: string[] = [];
   for (const doc of snap.docs) {

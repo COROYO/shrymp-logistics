@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase/client";
+import { safeNextPath } from "@/lib/safe-redirect";
 
 const inputClass =
   "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
@@ -42,7 +43,7 @@ export function LoginForm({ nextPath }: { nextPath: string | null }) {
       }
 
       startTransition(() => {
-        router.replace(nextPath ?? "/");
+        router.replace(safeNextPath(nextPath, "/"));
         router.refresh();
       });
     } catch (e: unknown) {

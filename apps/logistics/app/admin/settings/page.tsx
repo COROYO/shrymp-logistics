@@ -1,62 +1,42 @@
-import { adminDb } from "@/server/firestore/admin";
 import {
-  Collections,
-  ConfigDocs,
-  DhlConfigSchema,
-  LagerConfigSchema,
   type DhlConfig,
   type LagerConfig,
 } from "@/server/firestore/schema";
-import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY } from "@/lib/lager/defaults";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import { getShop } from "@/server/tenant/shop";
+import { loadLagerConfig } from "@/server/lager/config";
+import { loadDhlConfig } from "@/server/dhl/config";
+import { loadSlipBranding } from "@/server/slip/branding";
+import { ShopifyConnectForm } from "@/app/_components/shopify-connect-form";
 import { RegisterWebhooksButton } from "./register-webhooks-button";
 import { RunAllocationButton } from "./run-allocation-button";
 import { BackfillOrdersButton } from "./backfill-orders-button";
 import { PushInventoryButton } from "./push-inventory-button";
 import { DhlConfigForm, type DhlConfigFormValue } from "./dhl-config-form";
 import { LagerConfigForm } from "./lager-config-form";
+import { SlipBrandingForm } from "./slip-branding-form";
 import { HealthPanel, type HealthSnapshot } from "./health-panel";
 import { readLastHealth } from "@/server/shopify/health";
 
 export const dynamic = "force-dynamic";
 
-async function getStatus() {
-  const db = adminDb();
-  const [metaSnap, tokenSnap] = await Promise.all([
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyMeta).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyToken).get(),
-  ]);
-  const meta = metaSnap.exists ? metaSnap.data() : null;
-  const token = tokenSnap.exists ? tokenSnap.data() : null;
+async function getShopStatus(shopId: string) {
+  const shop = await getShop(shopId);
   return {
-    token_installed: !!token,
-    token_shop_domain: (token?.["shop_domain"] as string | undefined) ?? null,
-    token_scope: (token?.["scope"] as string | undefined) ?? null,
-    location_gid: (meta?.["location_gid"] as string | undefined) ?? null,
-    api_version: (meta?.["api_version"] as string | undefined) ?? null,
+    token_installed: !!(shop?.access_token && shop.status === "ACTIVE"),
+    token_shop_domain: shop?.shop_domain ?? null,
+    token_scope: shop?.scope ?? null,
+    location_gid: shop?.location_gid ?? null,
+    api_version: shop?.api_version ?? null,
   };
 }
 
-async function getLagerConfig(): Promise<LagerConfig> {
-  const snap = await adminDb()
-    .collection(Collections.Config)
-    .doc(ConfigDocs.LagerConfig)
-    .get();
-  const parsed = LagerConfigSchema.safeParse(snap.data());
-  if (parsed.success) return parsed.data;
-  return {
-    batch_min_days_before_expiry: DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY,
-    updated_at: new Date(),
-    updated_by_uid: null,
-  };
+async function getLagerConfig(shopId: string): Promise<LagerConfig> {
+  return loadLagerConfig(shopId);
 }
 
-async function getDhlConfig(): Promise<DhlConfig | null> {
-  const snap = await adminDb()
-    .collection(Collections.Config)
-    .doc(ConfigDocs.DhlConfig)
-    .get();
-  if (!snap.exists) return null;
-  return DhlConfigSchema.safeParse(snap.data()).data ?? null;
+async function getDhlConfig(shopId: string): Promise<DhlConfig | null> {
+  return loadDhlConfig(shopId);
 }
 
 /** Drop the Firestore Timestamp + the raw password before sending to a client component. */
@@ -103,13 +83,16 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ installed?: string }>;
 }) {
-  const [status, lagerCfg, dhlCfg, env, sp, lastHealth] = await Promise.all([
-    getStatus(),
-    getLagerConfig(),
-    getDhlConfig(),
+  const { shopId } = await requireTenantPageContext("/admin/settings");
+  const [status, lagerCfg, dhlCfg, slipBranding, env, sp, lastHealth] =
+    await Promise.all([
+    getShopStatus(shopId),
+    getLagerConfig(shopId),
+    getDhlConfig(shopId),
+    loadSlipBranding(shopId),
     Promise.resolve(getEnvHealth()),
     searchParams,
-    readLastHealth(),
+    readLastHealth(shopId),
   ]);
   const justInstalled = sp.installed === "1";
 
@@ -132,35 +115,45 @@ export default async function SettingsPage({
       </div>
 
       {justInstalled ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Shopify-App erfolgreich installiert. Access-Token in Firestore
-          gespeichert.
+        <div className="space-y-4">
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            Shopify erfolgreich verbunden. Als Nächstes: Produkte syncen, Orders
+            nachladen, optional DHL konfigurieren.
+          </div>
+          <ol className="list-decimal list-inside space-y-2 rounded-md border border-zinc-200 bg-white px-4 py-4 text-sm text-brand-navy">
+            <li>
+              <strong>Produkte syncen</strong> unter{" "}
+              <a href="/admin/products" className="text-brand-burgundy underline">
+                Produkte
+              </a>
+            </li>
+            <li>
+              <strong>Offene Orders nachladen</strong> (Button unten bei Orders)
+            </li>
+            <li>
+              <strong>Verbindung prüfen</strong> — Health-Check startet Webhooks
+            </li>
+            <li>
+              <strong>DHL konfigurieren</strong> (falls Versandlabels gewünscht)
+            </li>
+          </ol>
         </div>
       ) : null}
 
       <section className="card p-6">
         <p className="eyebrow">Shopify-Verbindung</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          Custom Distribution App
+          Dein Shopify-Shop
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Die App authentifiziert sich mit Client ID + Client Secret. Beim
-          ersten Install klickt der Shop-Owner den vom Partner Dashboard
-          generierten Install-Link — Shopify ruft daraufhin{" "}
-          <code>/api/shopify/callback</code> auf, der Token landet in Firestore.
+          Die Verbindung läuft über OAuth — du musst keine API-Keys eintragen.
         </p>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
-          <DefItem label="Client ID (env)">
-            <Badge ok={env.apiKey} />
-          </DefItem>
-          <DefItem label="Client Secret (env)">
-            <Badge ok={env.apiSecret} />
-          </DefItem>
           <DefItem label="App installiert (Token in Firestore)">
             <Badge ok={status.token_installed} />
           </DefItem>
-          <DefItem label="Installiert für Shop">
+          <DefItem label="Shop">
             <span className="font-mono text-xs">
               {status.token_shop_domain ?? "—"}
             </span>
@@ -183,30 +176,18 @@ export default async function SettingsPage({
         </dl>
 
         {!status.token_installed ? (
-          <div className="mt-5 space-y-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <p className="font-semibold">Noch nicht installiert.</p>
-            <ol className="list-decimal list-inside space-y-1 text-xs">
-              <li>Im Partner Dashboard die App-Settings öffnen.</li>
-              <li>
-                <strong>App URL</strong> und{" "}
-                <strong>Allowed redirection URL(s)</strong> beide auf{" "}
-                <code>
-                  {env.appUrl
-                    ? `${stripScheme(env.appUrl)}/api/shopify/callback`
-                    : "<APP_BASE_URL>/api/shopify/callback"}
-                </code>{" "}
-                setzen.
-              </li>
-              <li>
-                Den Install-Link aus dem Partner Dashboard öffnen (einmaliger
-                Klick).
-              </li>
-              <li>
-                Shopify ruft danach automatisch{" "}
-                <code>/api/shopify/callback</code> auf — Token landet hier in
-                Firestore.
-              </li>
-            </ol>
+          <div className="mt-5 space-y-4">
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-semibold">Noch nicht verbunden.</p>
+              <p className="mt-1 text-xs">
+                Shop-Domain eingeben und auf Verbinden klicken — Shopify fragt
+                nur die App-Freigabe ab.
+              </p>
+            </div>
+            <ShopifyConnectForm
+              initialShopDomain={status.token_shop_domain}
+              compact
+            />
           </div>
         ) : null}
       </section>
@@ -350,6 +331,21 @@ export default async function SettingsPage({
       </section>
 
       <section className="card p-6">
+        <p className="eyebrow">Lieferschein</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Branding & Layout
+        </h2>
+        <p className="mt-1 text-xs text-brand-navy/60">
+          Markenname, Farben und Footer für den gedruckten Lieferschein — pro
+          Shop individuell. Tabellen-Labels (Produkt, Menge, Charge) bleiben
+          auf Deutsch.
+        </p>
+        <div className="mt-6">
+          <SlipBrandingForm current={slipBranding} />
+        </div>
+      </section>
+
+      <section className="card p-6">
         <p className="eyebrow">Allocation</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
           Allocation-Run starten
@@ -397,8 +393,4 @@ function Badge({ ok }: { ok: boolean }) {
       {ok ? "OK" : "fehlt"}
     </span>
   );
-}
-
-function stripScheme(s: string): string {
-  return s.replace(/\/$/, "");
 }

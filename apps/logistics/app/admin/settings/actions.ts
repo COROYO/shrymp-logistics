@@ -22,12 +22,13 @@ export async function pushAllInventoryAction(): Promise<
 > {
   try {
     const { requireRole } = await import("@/lib/auth/session");
-    await requireRole("ADMIN");
-  } catch {
-    return { ok: false, error: "forbidden" };
-  }
-  try {
-    const r = await pushAllInventoryToShopify();
+    const { requireActiveShopId } = await import("@/lib/auth/tenant");
+    const { runWithTenantAsync } = await import("@/server/tenant/context");
+    const user = await requireRole("ADMIN");
+    const shopId = await requireActiveShopId(user);
+    const r = await runWithTenantAsync(shopId, () =>
+      pushAllInventoryToShopify(shopId),
+    );
     revalidatePath("/admin/batches");
     revalidatePath("/admin/settings");
     return { ok: true, ...r };
@@ -128,7 +129,10 @@ export async function runHealthCheckAction(): Promise<
   }
   try {
     const { checkShopifyHealth } = await import("@/server/shopify/health");
-    const r = await checkShopifyHealth({ autoHeal: true });
+    const { requireActiveShopId } = await import("@/lib/auth/tenant");
+    const user = await requireRole("ADMIN");
+    const shopId = await requireActiveShopId(user);
+    const r = await checkShopifyHealth({ autoHeal: true, shopId });
     revalidatePath("/admin/settings");
     return {
       ok: r.ok,
@@ -146,9 +150,7 @@ export async function runHealthCheckAction(): Promise<
   }
 }
 
-export async function registerWebhooksAction(
-  baseUrl: string,
-): Promise<
+export async function registerWebhooksAction(): Promise<
   | { ok: true; results: Array<{ topic: string; created: boolean; id: string }> }
   | { ok: false; error: string }
 > {
@@ -157,18 +159,28 @@ export async function registerWebhooksAction(
   } catch {
     return { ok: false, error: "forbidden" };
   }
-  if (!baseUrl) return { ok: false, error: "missing APP_BASE_URL env" };
+  // Callback host must come from server env only — never from the client,
+  // otherwise an admin could point shop webhooks at an attacker-controlled URL.
+  const envBaseUrl = process.env.APP_BASE_URL;
+  if (!envBaseUrl) return { ok: false, error: "missing APP_BASE_URL env" };
 
-  const callbackUrl = `${normalizeBaseUrl(baseUrl)}/api/webhooks/shopify`;
+  const callbackUrl = `${normalizeBaseUrl(envBaseUrl)}/api/webhooks/shopify`;
 
   try {
-    const results = [];
-    for (const dotTopic of Object.values(TOPICS)) {
-      const enumTopic = TOPIC_ENUM_BY_DOT[dotTopic];
-      if (!enumTopic) continue;
-      const r = await ensureWebhookSubscription(enumTopic, callbackUrl);
-      results.push({ topic: enumTopic, ...r });
-    }
+    const { requireActiveShopId } = await import("@/lib/auth/tenant");
+    const { runWithTenantAsync } = await import("@/server/tenant/context");
+    const user = await requireRole("ADMIN");
+    const shopId = await requireActiveShopId(user);
+    const results = await runWithTenantAsync(shopId, async () => {
+      const out = [];
+      for (const dotTopic of Object.values(TOPICS)) {
+        const enumTopic = TOPIC_ENUM_BY_DOT[dotTopic];
+        if (!enumTopic) continue;
+        const r = await ensureWebhookSubscription(enumTopic, callbackUrl);
+        out.push({ topic: enumTopic, ...r });
+      }
+      return out;
+    });
     revalidatePath("/admin/settings");
     return { ok: true, results };
   } catch (e) {

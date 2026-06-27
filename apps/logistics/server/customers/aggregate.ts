@@ -1,6 +1,7 @@
 import "server-only";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Order } from "@/server/firestore/schema";
+import { ordersForShop } from "@/server/tenant/queries";
 
 /**
  * Read-only customer aggregation.
@@ -75,12 +76,9 @@ function displayNameFor(c: {
   return c.email ?? "Unbekannt";
 }
 
-export async function listCustomers(): Promise<CustomerSummary[]> {
+export async function listCustomers(shopId: string): Promise<CustomerSummary[]> {
   const db = adminDb();
-  // Cap at 1000 — well above expected volume; if we ever cross this we
-  // need a proper /customers collection.
-  const snap = await db
-    .collection(Collections.Orders)
+  const snap = await ordersForShop(db, shopId)
     .orderBy("created_at_shopify", "desc")
     .limit(1000)
     .get();
@@ -138,14 +136,14 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
 
 export async function getCustomerDetail(
   key: string,
+  shopId: string,
 ): Promise<CustomerDetail | null> {
   const db = adminDb();
 
-  // Parse key
   const [kind, raw] = key.split(":", 2);
   if (!raw) return null;
 
-  let q: FirebaseFirestore.Query = db.collection(Collections.Orders);
+  let q = ordersForShop(db, shopId);
   if (kind === "s") {
     q = q.where("customer.shopify_id", "==", raw);
   } else if (kind === "e") {

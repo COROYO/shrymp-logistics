@@ -8,6 +8,13 @@ import {
   type User,
   type Variant,
 } from "@/server/firestore/schema";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import {
+  allocationsForShop,
+  batchesForShop,
+  productsForShop,
+  variantsForShop,
+} from "@/server/tenant/queries";
 import { isBatchExpired } from "@/server/picking/batch-assignability";
 import { ProductAccordion, type ProductRow } from "./product-accordion";
 
@@ -23,42 +30,44 @@ function tsToIso(t: unknown): string | null {
   return null;
 }
 
-async function loadProductRows(): Promise<ProductRow[]> {
-  const { markExpiredBatches } = await import(
-    "@/server/inventory/mark-expired-batches"
-  );
-  await markExpiredBatches();
-
+async function loadProductRows(shopId: string): Promise<ProductRow[]> {
+  // Expiry persistence is handled by the reconcile cron — the UI already flags
+  // expired batches live via `isBatchExpired`, so we don't mutate on read.
   const db = adminDb();
   const referenceDate = new Date();
-  const [productsSnap, variantsSnap, batchesSnap, allocationsSnap, usersSnap] =
+  const [productsSnap, variantsSnap, batchesSnap, allocationsSnap] =
     await Promise.all([
-      db.collection(Collections.Products).get(),
-      db.collection(Collections.Variants).get(),
-      // Load ALL batches (incl. DEPLETED/EXPIRED + emptied ones). The panel
-      // hides non-active/empty ones behind a toggle, but they must be in the
-      // payload so the toggle can reveal them without a round-trip.
-      db.collection(Collections.Batches).get(),
-      // For "verkauft"-counter per batch: only allocations that were
-      // actually consumed (= packed + shipped) count as sold. Released
-      // allocations (cancelled orders) are skipped — they didn't leave
-      // the warehouse.
-      db.collection(Collections.Allocations).get(),
-      // Users — to resolve received_by_uid to a human-readable label.
-      db.collection(Collections.Users).get(),
+      productsForShop(db, shopId).get(),
+      variantsForShop(db, shopId).get(),
+      batchesForShop(db, shopId).get(),
+      allocationsForShop(db, shopId).get(),
     ]);
 
+  // Resolve only the uids that actually appear on this shop's batches.
+  const receiverUids = Array.from(
+    new Set(
+      batchesSnap.docs
+        .map((d) => (d.data() as Batch).received_by_uid)
+        .filter((uid): uid is string => !!uid),
+    ),
+  );
   const userNameByUid: Record<string, string> = {};
-  for (const u of usersSnap.docs) {
-    const data = u.data() as User;
-    userNameByUid[u.id] = data.display_name || data.email || u.id;
+  if (receiverUids.length > 0) {
+    const userSnaps = await db.getAll(
+      ...receiverUids.map((uid) => db.collection(Collections.Users).doc(uid)),
+    );
+    for (const u of userSnaps) {
+      if (!u.exists) continue;
+      const data = u.data() as User;
+      userNameByUid[u.id] = data.display_name || data.email || u.id;
+    }
   }
 
   // Reserved per variant — computed LIVE from SHIP/PICKING order demand (the
   // authoritative source), not from the drift-prone variant.reserved_total
   // cache. Keeps this page consistent with the orders view.
   const { loadReservedByVariant } = await import("@/server/inventory/reserved");
-  const reservedByVariant = await loadReservedByVariant();
+  const reservedByVariant = await loadReservedByVariant(shopId);
 
   // Map batch_id → total sold qty (consumed, not released).
   const soldByBatch: Record<string, number> = {};
@@ -80,7 +89,7 @@ async function loadProductRows(): Promise<ProductRow[]> {
     "@/server/inventory/shippable-stock"
   );
   const { loadLagerConfig } = await import("@/server/lager/config");
-  const lagerCfg = await loadLagerConfig();
+  const lagerCfg = await loadLagerConfig(shopId);
   const allBatches = batchesSnap.docs.map((d) => ({
     ...(d.data() as Batch),
     id: d.id,
@@ -186,7 +195,8 @@ async function loadProductRows(): Promise<ProductRow[]> {
 }
 
 export default async function BatchesPage() {
-  const rows = await loadProductRows();
+  const { shopId } = await requireTenantPageContext("/admin/batches");
+  const rows = await loadProductRows(shopId);
   const t = await getTranslations("batches");
   const totals = {
     products: rows.length,

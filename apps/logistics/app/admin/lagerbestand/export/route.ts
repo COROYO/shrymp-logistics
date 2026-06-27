@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
+import { requireActiveShopId } from "@/lib/auth/tenant";
 import { buildLagerbestandCsv } from "@/server/inventory/lagerbestand-csv";
 import { log } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  let shopId: string;
   try {
-    await requireRole("ADMIN");
+    const user = await requireRole("ADMIN");
+    shopId = await requireActiveShopId(user);
   } catch {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
@@ -16,7 +19,7 @@ export async function GET(req: Request) {
     // `?charges=0` exportiert nur Produktzeilen (ohne Chargen).
     const includeBatches =
       new URL(req.url).searchParams.get("charges") !== "0";
-    const csv = await buildLagerbestandCsv({ includeBatches });
+    const csv = await buildLagerbestandCsv({ shopId, includeBatches });
     const stamp = new Date().toISOString().slice(0, 10);
     const suffix = includeBatches ? "" : "-ohne-chargen";
     return new NextResponse(csv, {

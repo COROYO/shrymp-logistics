@@ -33,3 +33,9 @@ export function allocationRunsForShop(db: Firestore, shopId: string) {
     .collection(Collections.AllocationRuns)
     .where("shop_id", "==", normalizeShopId(shopId));
 }
+
+export function allocationsForShop(db: Firestore, shopId: string) {
+  return db
+    .collection(Collections.Allocations)
+    .where("shop_id", "==", normalizeShopId(shopId));
+}

@@ -49,11 +49,29 @@ export async function createFirstAdmin(input: {
 /**
  * Used by both `createFirstAdmin` and (later) the in-app user invitation flow.
  */
+export async function createMerchantAccount(input: {
+  email: string;
+  password: string;
+  displayName?: string;
+  pendingShopDomain?: string;
+}): Promise<{ uid: string }> {
+  return createUserWithRole({
+    email: input.email,
+    password: input.password,
+    displayName: input.displayName,
+    role: "ADMIN",
+    shop_ids: [],
+    pending_shop_domain: input.pendingShopDomain,
+  });
+}
+
 export async function createUserWithRole(input: {
   email: string;
   password: string;
   role: UserRole;
   displayName?: string;
+  shop_ids?: string[];
+  pending_shop_domain?: string;
 }): Promise<{ uid: string }> {
   const auth = adminAuth();
   const db = adminDb();
@@ -72,6 +90,10 @@ export async function createUserWithRole(input: {
     email: input.email,
     display_name: input.displayName ?? null,
     role: input.role,
+    ...(input.shop_ids?.length ? { shop_ids: input.shop_ids } : {}),
+    ...(input.pending_shop_domain
+      ? { pending_shop_domain: input.pending_shop_domain }
+      : {}),
     created_at: FieldValue.serverTimestamp(),
     disabled: false,
   });

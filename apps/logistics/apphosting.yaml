@@ -34,6 +34,10 @@ env:
     secret: DHL_API_SECRET
 
   # ---------- Cloud Tasks (allocation queue) ----------
+  # The Cloud Tasks consumer is the Next.js route /api/internal/allocation/run
+  # (the allocation logic lives in the app's server/ code — no separate Cloud
+  # Function). The route verifies an OIDC token minted for
+  # ALLOCATION_INVOKER_SERVICE_ACCOUNT with audience = ALLOCATION_TARGET_URL.
   - variable: GCP_PROJECT_ID
     value: shrymp-logistics
   - variable: GCP_LOCATION
@@ -41,9 +45,11 @@ env:
   - variable: ALLOCATION_QUEUE
     value: allocation-runs
   - variable: ALLOCATION_TARGET_URL
-    value: https://europe-west3-shrymp-logistics.cloudfunctions.net/runAllocation
-  - variable: ALLOCATION_ALLOW_UNAUTHENTICATED
-    value: "1"
+    value: https://lager.shrymp.de/api/internal/allocation/run
+  # App Hosting runtime service account — verify the exact email in the GCP
+  # console (App Hosting backend → service account) before the first run.
+  - variable: ALLOCATION_INVOKER_SERVICE_ACCOUNT
+    value: firebase-app-hosting-compute@shrymp-logistics.iam.gserviceaccount.com
 
   # ---------- App ----------
   - variable: APP_BASE_URL

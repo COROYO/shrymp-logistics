@@ -62,6 +62,34 @@ export async function upsertShopOAuth(
   return shopId;
 }
 
+/** One-time: bind migrated legacy shop to the oldest ADMIN account. */
+async function linkLegacyAdminToShop(shopId: string): Promise<void> {
+  const db = adminDb();
+  const usersSnap = await db
+    .collection(Collections.Users)
+    .where("role", "==", "ADMIN")
+    .get();
+  if (usersSnap.empty) return;
+
+  const candidates = usersSnap.docs
+    .map((d) => ({ id: d.id, data: d.data() }))
+    .filter((u) => {
+      const ids = u.data.shop_ids;
+      if (Array.isArray(ids) && ids.length > 0) return false;
+      if (u.data.pending_shop_domain) return false;
+      return true;
+    });
+  if (candidates.length === 0) return;
+
+  const oldest = candidates[0]!;
+  await db
+    .collection(Collections.Users)
+    .doc(oldest.id)
+    .set({ shop_ids: FieldValue.arrayUnion(shopId) }, { merge: true });
+  await shopRef(shopId).set({ owner_uid: oldest.id }, { merge: true });
+  log.info("legacy_admin_linked_to_shop", { shopId, uid: oldest.id });
+}
+
 export async function markShopUninstalled(shopId: string): Promise<void> {
   await shopRef(shopId).set(
     {
@@ -121,6 +149,24 @@ export async function updateShopDhlConfig(
   );
 }
 
+export async function updateShopSlipBranding(
+  shopId: string,
+  branding: Record<string, unknown>,
+  updatedByUid: string | null,
+): Promise<void> {
+  await shopRef(shopId).set(
+    {
+      slip_branding: {
+        ...branding,
+        updated_by_uid: updatedByUid,
+        updated_at: FieldValue.serverTimestamp(),
+      },
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 /**
  * One-time lift from legacy singleton `config/*` docs into `shops/{shopId}`.
  * Returns the migrated shop id, or null if nothing to migrate.
@@ -165,6 +211,7 @@ export async function migrateLegacyShopIfNeeded(): Promise<string | null> {
   });
 
   log.info("legacy_shop_migrated", { shopId });
+  await linkLegacyAdminToShop(shopId);
   return shopId;
 }
 

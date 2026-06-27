@@ -303,8 +303,10 @@ export const UserSchema = z.object({
   email: z.string().email(),
   display_name: z.string().nullable().default(null),
   role: UserRoleSchema,
-  /** Empty / omitted for ADMIN ⇒ access to all shops. LAGER must have ≥1. */
+  /** Shops this user may access. Merchants get entries after OAuth install. */
   shop_ids: z.array(z.string()).optional(),
+  /** Pre-filled shop domain from registration, cleared after OAuth. */
+  pending_shop_domain: z.string().optional(),
   created_at: FirestoreTimestamp,
   disabled: z.boolean().default(false),
 });
@@ -472,6 +474,26 @@ export const DhlConfigSchema = z.object({
   updated_by_uid: z.string().nullable().default(null),
 });
 
+// ---------- packing slip branding (per shop) ----------
+
+const hexColor = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, "Must be #RRGGBB hex color");
+
+export const SlipBrandingSchema = z.object({
+  brand_name: z.string().min(1).max(80),
+  eyebrow: z.string().max(120),
+  company_line: z.string().max(200),
+  contact_email: z.string().email().max(120),
+  accent_color: hexColor,
+  header_color: hexColor,
+  document_title: z.string().min(1).max(40),
+  signature: z.string().max(500),
+  footer_legal: z.string().max(400),
+  updated_at: FirestoreTimestamp.optional(),
+  updated_by_uid: z.string().nullable().optional(),
+});
+
 // ---------- shops (multi-tenant root) ----------
 // Doc id = normalized shop domain, e.g. `return-my-shrimps.myshopify.com`.
 
@@ -491,6 +513,10 @@ export const ShopSchema = z.object({
   lager_updated_by_uid: z.string().nullable().optional(),
   /** Per-shop DHL Parcel DE config (same shape as legacy config/dhl_config). */
   dhl_config: DhlConfigSchema.optional(),
+  /** Per-shop packing slip (Lieferschein) branding. */
+  slip_branding: SlipBrandingSchema.optional(),
+  /** Firebase Auth uid of the merchant who connected this shop. */
+  owner_uid: z.string().optional(),
   created_at: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });
@@ -518,6 +544,7 @@ export type AllocationTrigger = z.infer<typeof AllocationTriggerSchema>;
 export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 export type ShopifyOutbox = z.infer<typeof ShopifyOutboxSchema>;
 export type Shop = z.infer<typeof ShopSchema>;
+export type SlipBranding = z.infer<typeof SlipBrandingSchema>;
 export type ShopStatus = z.infer<typeof ShopStatusSchema>;
 export type ShopifyConfig = z.infer<typeof ShopifyConfigSchema>;
 export type ShopifyToken = z.infer<typeof ShopifyTokenSchema>;
