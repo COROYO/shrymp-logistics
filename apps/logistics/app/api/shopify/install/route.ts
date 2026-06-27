@@ -6,18 +6,8 @@ import {
   signOAuthState,
 } from "@/server/shopify/oauth-state";
 import { normalizeShopDomainInput } from "@/server/tenant/id";
+import { REQUIRED_OAUTH_SCOPE_STRING } from "@/server/shopify/scopes";
 import { log } from "@/lib/logger";
-
-const REQUIRED_SCOPES = [
-  "read_products",
-  "read_orders",
-  "write_orders",
-  "read_inventory",
-  "write_inventory",
-  "read_fulfillments",
-  "write_fulfillments",
-  "read_locations",
-];
 
 /**
  * GET /api/shopify/install?shop=my-store.myshopify.com
@@ -63,7 +53,7 @@ export async function GET(req: Request) {
   const redirectUri = `${url.origin}/api/shopify/callback`;
   const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
   authorize.searchParams.set("client_id", apiKey);
-  authorize.searchParams.set("scope", REQUIRED_SCOPES.join(","));
+  authorize.searchParams.set("scope", REQUIRED_OAUTH_SCOPE_STRING);
   authorize.searchParams.set("redirect_uri", redirectUri);
   authorize.searchParams.set("state", state);
 
