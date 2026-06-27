@@ -17,8 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Monolith Lager",
-  description: "Kommissionierung & Chargenführung für Ikrinka",
+  title: "Shrymp Logistics",
+  description: "Kommissionierung & Chargenführung",
 };
 
 export default async function RootLayout({

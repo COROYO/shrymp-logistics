@@ -1,6 +1,6 @@
-# Monolith Lager
+# Shrymp Logistics
 
-Interne Kommissionierungs- und Chargenführungs-App für **Ikrinka / Monolith Caviar**. Sitzt zwischen Shopify (Bestellungs- und Bestands-Master) und dem physischen Lager (Picking, Packing, Versand).
+Interne Kommissionierungs- und Chargenführungs-App für **verschiedene Shopify Merchants**. Sitzt zwischen Shopify (Bestellungs- und Bestands-Master) und dem physischen Lager (Picking, Packing, Versand).
 
 ---
 
@@ -29,15 +29,15 @@ Naive Reihenfolge fulfillt 3 Orders, optimal sind **4** (#1001, #1003, #1004, #1
 
 ## 2. Architektur
 
-| | |
-|---|---|
-| Frontend/Backend | Next.js 16 (App Router) + TypeScript + Tailwind 4 |
-| DB | Firestore (default-deny rules, alle Writes über Admin SDK) |
-| Auth | Firebase Auth, Rollen `ADMIN` / `LAGER` (Custom Claims) |
-| Hosting | Firebase Hosting (App), Cloud Functions Gen 2 (Webhooks/Allocation) |
-| Async | Cloud Tasks Queue `allocation-runs` (concurrency=1, deterministisch) |
-| Shopify | Custom Distribution App, OAuth-Callback (`/api/shopify/callback`) holt Offline-Token → Firestore. Webhooks signiert mit App-Client-Secret. |
-| Tests | Vitest + fast-check (property-based) |
+|                  |                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend/Backend | Next.js 16 (App Router) + TypeScript + Tailwind 4                                                                                          |
+| DB               | Firestore (default-deny rules, alle Writes über Admin SDK)                                                                                 |
+| Auth             | Firebase Auth, Rollen `ADMIN` / `LAGER` (Custom Claims)                                                                                    |
+| Hosting          | Firebase Hosting (App), Cloud Functions Gen 2 (Webhooks/Allocation)                                                                        |
+| Async            | Cloud Tasks Queue `allocation-runs` (concurrency=1, deterministisch)                                                                       |
+| Shopify          | Custom Distribution App, OAuth-Callback (`/api/shopify/callback`) holt Offline-Token → Firestore. Webhooks signiert mit App-Client-Secret. |
+| Tests            | Vitest + fast-check (property-based)                                                                                                       |
 
 ### Datenmodell (Firestore)
 
@@ -59,6 +59,7 @@ config/shopify_token       access_token, scope, installed_at (aus OAuth)
 ### Allocation-Algorithmus (M5)
 
 Zwei Phasen + optionaler Swap (M10):
+
 1. **Phase A** — alle `EXPRESS_DHL`-Orders nach `created_at ASC`, hard greedy.
 2. **Phase B** — Rest sortiert nach `totalDemand ASC`, dann `created_at ASC`, greedy.
 3. **Phase C (M10)** — 1:1 / 1:2 Swap-Optimierung, deadline 2s, deterministisch.
@@ -71,16 +72,16 @@ Innerhalb einer SHIP-Entscheidung: FEFO über `batches.where(variant=X, status=A
 
 ### ✅ Fertig
 
-| Milestone | Bereich | Wesentliche Dateien |
-|---|---|---|
-| M1 | Foundation: Next.js + Firebase + Auth-Rollen, Setup-Flow für ersten Admin | [proxy.ts](proxy.ts), [lib/auth/session.ts](lib/auth/session.ts), [app/setup/page.tsx](app/setup/page.tsx) |
-| M2 | Shopify-Webhook-Empfang (HMAC, Dedup, Topic-Dispatch) + Outbound-Mutations (`tagsAdd`, `fulfillmentCreate`, `inventorySetOnHandQuantities`, `webhookSubscriptionCreate`) | [app/api/webhooks/shopify/route.ts](app/api/webhooks/shopify/route.ts), [server/shopify/](server/shopify/) |
-| M2.5/M12 | Shopify OAuth (Custom Distribution): Single-Endpoint Callback, App-URL-Hit + OAuth-Code in derselben Route, Token in Firestore | [app/api/shopify/callback/route.ts](app/api/shopify/callback/route.ts), [server/shopify/auth.ts](server/shopify/auth.ts) |
-| M3 | Products/Variants Sync, Location-Resolver | [server/shopify/queries.ts](server/shopify/queries.ts), [server/shopify/sync.ts](server/shopify/sync.ts), [app/admin/products/](app/admin/products/) |
-| M3+ | **Orders-Backfill** (existing Orders aus Shopify pullen — Webhooks decken nur neue ab) | [server/shopify/sync-orders.ts](server/shopify/sync-orders.ts), Settings-Page |
-| M4 | Wareneingang-UI (Admin): Charge + MHD + Qty, transactional batch + audit + Re-Allocation-Trigger | [server/inventory/receive.ts](server/inventory/receive.ts), [app/admin/batches/](app/admin/batches/) |
-| M5 | Allocation-Kern (FEFO + Express + Greedy) + Customer-Szenario-Test + Property-Tests | [server/allocation/runAllocation.ts](server/allocation/runAllocation.ts), [runAllocation.test.ts](server/allocation/runAllocation.test.ts) |
-| M6 | Firestore-Wrapper für Allocation, Cloud-Tasks-Enqueue mit Inline-Fallback, OIDC-Endpoint, Outbox-Drain, Admin-Settings + Orders-Page | [server/allocation/run.ts](server/allocation/run.ts), [server/allocation/enqueue.ts](server/allocation/enqueue.ts), [app/api/internal/allocation/run/route.ts](app/api/internal/allocation/run/route.ts), [server/shopify/outbox.ts](server/shopify/outbox.ts) |
+| Milestone | Bereich                                                                                                                                                                  | Wesentliche Dateien                                                                                                                                                                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1        | Foundation: Next.js + Firebase + Auth-Rollen, Setup-Flow für ersten Admin                                                                                                | [proxy.ts](proxy.ts), [lib/auth/session.ts](lib/auth/session.ts), [app/setup/page.tsx](app/setup/page.tsx)                                                                                                                                                     |
+| M2        | Shopify-Webhook-Empfang (HMAC, Dedup, Topic-Dispatch) + Outbound-Mutations (`tagsAdd`, `fulfillmentCreate`, `inventorySetOnHandQuantities`, `webhookSubscriptionCreate`) | [app/api/webhooks/shopify/route.ts](app/api/webhooks/shopify/route.ts), [server/shopify/](server/shopify/)                                                                                                                                                     |
+| M2.5/M12  | Shopify OAuth (Custom Distribution): Single-Endpoint Callback, App-URL-Hit + OAuth-Code in derselben Route, Token in Firestore                                           | [app/api/shopify/callback/route.ts](app/api/shopify/callback/route.ts), [server/shopify/auth.ts](server/shopify/auth.ts)                                                                                                                                       |
+| M3        | Products/Variants Sync, Location-Resolver                                                                                                                                | [server/shopify/queries.ts](server/shopify/queries.ts), [server/shopify/sync.ts](server/shopify/sync.ts), [app/admin/products/](app/admin/products/)                                                                                                           |
+| M3+       | **Orders-Backfill** (existing Orders aus Shopify pullen — Webhooks decken nur neue ab)                                                                                   | [server/shopify/sync-orders.ts](server/shopify/sync-orders.ts), Settings-Page                                                                                                                                                                                  |
+| M4        | Wareneingang-UI (Admin): Charge + MHD + Qty, transactional batch + audit + Re-Allocation-Trigger                                                                         | [server/inventory/receive.ts](server/inventory/receive.ts), [app/admin/batches/](app/admin/batches/)                                                                                                                                                           |
+| M5        | Allocation-Kern (FEFO + Express + Greedy) + Customer-Szenario-Test + Property-Tests                                                                                      | [server/allocation/runAllocation.ts](server/allocation/runAllocation.ts), [runAllocation.test.ts](server/allocation/runAllocation.test.ts)                                                                                                                     |
+| M6        | Firestore-Wrapper für Allocation, Cloud-Tasks-Enqueue mit Inline-Fallback, OIDC-Endpoint, Outbox-Drain, Admin-Settings + Orders-Page                                     | [server/allocation/run.ts](server/allocation/run.ts), [server/allocation/enqueue.ts](server/allocation/enqueue.ts), [app/api/internal/allocation/run/route.ts](app/api/internal/allocation/run/route.ts), [server/shopify/outbox.ts](server/shopify/outbox.ts) |
 
 Aktueller Run-State: 6 Orders gespiegelt (3 SHIP, 3 STOP), 3 Allocations geschrieben, 4 Batches im Lager. End-to-End läuft.
 
@@ -121,6 +122,7 @@ State-Machine:
 Allocation-Filter: `internal_status in (NEW, SHIP, STOP)` — `PICKING`, `PACKED`, `CANCELLED` werden ignoriert.
 
 **Files:**
+
 - [server/firestore/schema.ts](server/firestore/schema.ts) — `OrderInternalStatusSchema` erweitern: `["NEW","SHIP","STOP","PICKING","PACKED","CANCELLED"]`.
 - [server/allocation/run.ts](server/allocation/run.ts) — `ORDER_STATUSES_TO_REALLOCATE` bleibt wie ist (`["NEW","SHIP","STOP"]`); PICKING wird automatisch übersprungen.
 
@@ -129,15 +131,18 @@ Allocation-Filter: `internal_status in (NEW, SHIP, STOP)` — `PICKING`, `PACKED
 Drei atomare Transitionen, alle als Server-Actions in [server/picking/](server/picking/):
 
 **`startPicking(orderId, user)`**
+
 - Tx: read order → wenn `internal_status === "SHIP"` setze auf `PICKING`, sonst Fehler `not_shippable`
 - Audit: log
 - Kein Allocation-Trigger nötig.
 
 **`cancelPicking(orderId, user)`**
+
 - Tx: read order → wenn `internal_status === "PICKING"` zurück auf `SHIP`, sonst Fehler
 - Audit: log
 
 **`confirmPacking(orderId, user, tracking?)`**
+
 - Eine Firestore-Transaction:
   1. read order → muss `PICKING` sein
   2. read alle `allocations.where(order_id=X, consumed_at=null)`
@@ -160,12 +165,14 @@ Drei atomare Transitionen, alle als Server-Actions in [server/picking/](server/p
 ### 4.3 UI-Routes
 
 **Picking-Queue** — `/lager/picking/page.tsx`
+
 - Tabelle: alle Orders mit `internal_status in ("SHIP","PICKING")`, sortiert: Express zuerst, dann nach `created_at ASC`
 - Spalten: Order-Nr · Tags (mit Express-Highlight) · Items-Count · Stadt · Status-Badge · Action
 - Action: "Picken starten" → server action `startPicking` → redirect zu `/lager/picking/[orderId]`
 - Wer schon PICKING ist: Button "Weiter packen" → direkt zum Pack-Screen
 
 **Picking-Detail** — `/lager/picking/[orderId]/page.tsx`
+
 - Header: Order-Nr, Lieferadresse (knapp), Anzahl Items
 - Tabelle pro Line Item:
   - SKU, Titel, Variant, **Menge**
@@ -177,6 +184,7 @@ Drei atomare Transitionen, alle als Server-Actions in [server/picking/](server/p
 - Optional: Pro Allocation-Zeile Checkbox "✓ entnommen" mit Persistierung in `sessionStorage` (kein Backend-State, nur visuelle Selbstkontrolle für den Mitarbeiter)
 
 **Packing** — `/lager/packing/[orderId]/page.tsx`
+
 - Header: Order-Nr, Status: PICKING
 - Lieferadresse groß und kopierbar
 - Items-Übersicht (knapper als Picking-Detail)
@@ -189,6 +197,7 @@ Drei atomare Transitionen, alle als Server-Actions in [server/picking/](server/p
 ### 4.4 Admin-Order-Detail
 
 **`/admin/orders/[id]/page.tsx`** — read-only Detail-View für Admin-Debugging
+
 - alle Order-Felder
 - allocations (mit Charge + Batch-Link)
 - inventory_movements gefiltert auf diese Order
@@ -217,6 +226,7 @@ Drei atomare Transitionen, alle als Server-Actions in [server/picking/](server/p
 ## 5. M8 — Packing Slip PDF (kurz)
 
 `server/pdf/packingSlip.tsx` mit `@react-pdf/renderer`. Renderer als API-Route oder Server Component:
+
 - Briefkopf mit Logo
 - Lieferadresse (zum Aufkleben formatiert)
 - Order-Nr, Datum

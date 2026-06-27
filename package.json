@@ -1,5 +1,5 @@
 {
-  "name": "monolith",
+  "name": "Shrymp Logistics",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.33.0",
@@ -8,6 +8,7 @@
     "dev:logistics": "pnpm --filter @monolith/logistics dev",
     "dev:website": "pnpm --filter @monolith/website dev",
     "build": "pnpm --filter @monolith/logistics build",
+    "start": "pnpm --filter @monolith/logistics start",
     "build:logistics": "pnpm --filter @monolith/logistics build",
     "build:website": "pnpm --filter @monolith/website build",
     "lint": "pnpm -r lint",

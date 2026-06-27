@@ -1,11 +1,11 @@
 {
-  "name": "@monolith/logistics",
+  "name": "@shrymp/logistics",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "next start --port ${PORT:-3000}",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

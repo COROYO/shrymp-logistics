@@ -1,13 +1,13 @@
-# Monolith
+# Shrymp Logistics
 
 pnpm-Monorepo für Marketing-Webseite und Lager-App (Shopify + Firestore).
 
 ## Apps
 
-| App | Pfad | Port | Beschreibung |
-|-----|------|------|--------------|
-| **Logistics** | `apps/logistics` | 3000 | Interne Kommissionierungs-App |
-| **Website** | `apps/website` | 3001 | Marketing-Landing → Weiterleitung zur App |
+| App           | Pfad             | Port | Beschreibung                              |
+| ------------- | ---------------- | ---- | ----------------------------------------- |
+| **Logistics** | `apps/logistics` | 3000 | Interne Kommissionierungs-App             |
+| **Website**   | `apps/website`   | 3001 | Marketing-Landing → Weiterleitung zur App |
 
 ## Setup
 

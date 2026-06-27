@@ -21,7 +21,7 @@ export function BrandMark({ variant = "light" }: BrandMarkProps) {
           className={`font-bold leading-none tracking-tight ${text}`}
           style={{ fontSize: "15px" }}
         >
-          M<span className={accent}>·</span>L
+          S<span className={accent}>·</span>L
         </span>
       </span>
       <span className="flex flex-col leading-tight">
@@ -30,14 +30,14 @@ export function BrandMark({ variant = "light" }: BrandMarkProps) {
             isDark ? "text-brand-navy" : "text-white"
           }`}
         >
-          Monolith
+          Shrymp
         </span>
         <span
           className={`text-[10px] font-semibold uppercase tracking-[0.32em] ${
             isDark ? "text-brand-burgundy" : "text-white/60"
           }`}
         >
-          Caviar Lager
+          Logistics
         </span>
       </span>
     </span>
