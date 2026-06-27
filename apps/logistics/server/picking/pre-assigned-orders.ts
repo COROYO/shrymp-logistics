@@ -27,6 +27,8 @@ export async function loadPreAssignedShippableOrderIds(
   const lagerCfg = await loadLagerConfig(
     shopId ?? candidates[0]?.shop_id ?? undefined,
   );
+  if (!lagerCfg.batches_enabled) return new Set();
+
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
   const out = new Set<string>();

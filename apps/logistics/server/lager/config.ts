@@ -1,6 +1,6 @@
 import "server-only";
 import { adminDb } from "@/server/firestore/admin";
-import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY } from "@/lib/lager/defaults";
+import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY, DEFAULT_BATCHES_ENABLED } from "@/lib/lager/defaults";
 import {
   Collections,
   ConfigDocs,
@@ -23,6 +23,7 @@ export async function loadLagerConfig(shopId?: string): Promise<LagerConfig> {
   const shop = await getShop(id);
   if (shop) {
     return LagerConfigSchema.parse({
+      batches_enabled: shop.batches_enabled,
       batch_min_days_before_expiry: shop.batch_min_days_before_expiry,
       updated_at: shop.lager_updated_at ?? new Date(),
       updated_by_uid: shop.lager_updated_by_uid ?? null,
@@ -36,8 +37,15 @@ export async function loadLagerConfig(shopId?: string): Promise<LagerConfig> {
   const parsed = LagerConfigSchema.safeParse(snap.data());
   if (parsed.success) return parsed.data;
   return LagerConfigSchema.parse({
+    batches_enabled: DEFAULT_BATCHES_ENABLED,
     batch_min_days_before_expiry: DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY,
     updated_at: new Date(),
     updated_by_uid: null,
   });
+}
+
+/** Convenience guard — avoids loading full config at hot call sites. */
+export async function isBatchesEnabled(shopId?: string): Promise<boolean> {
+  const cfg = await loadLagerConfig(shopId);
+  return cfg.batches_enabled;
 }

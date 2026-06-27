@@ -94,19 +94,9 @@ export async function backfillAllOrdersAction(): Promise<
 }
 
 import { requireRole } from "@/lib/auth/session";
-import { ensureWebhookSubscription } from "@/server/shopify/mutations";
+import { registerAllWebhooks } from "@/server/shopify/register-webhooks";
 import { runAllocationInFirestore } from "@/server/allocation/run";
-import { TOPICS } from "@/server/shopify/topics";
 import { log } from "@/lib/logger";
-
-const TOPIC_ENUM_BY_DOT: Record<string, string> = {
-  [TOPICS.ORDERS_CREATE]: "ORDERS_CREATE",
-  [TOPICS.ORDERS_UPDATED]: "ORDERS_UPDATED",
-  [TOPICS.ORDERS_EDITED]: "ORDERS_EDITED",
-  [TOPICS.ORDERS_CANCELLED]: "ORDERS_CANCELLED",
-  [TOPICS.INVENTORY_LEVELS_UPDATE]: "INVENTORY_LEVELS_UPDATE",
-  [TOPICS.APP_UNINSTALLED]: "APP_UNINSTALLED",
-};
 
 export async function runHealthCheckAction(): Promise<
   | {
@@ -168,19 +158,9 @@ export async function registerWebhooksAction(): Promise<
 
   try {
     const { requireActiveShopId } = await import("@/lib/auth/tenant");
-    const { runWithTenantAsync } = await import("@/server/tenant/context");
     const user = await requireRole("ADMIN");
     const shopId = await requireActiveShopId(user);
-    const results = await runWithTenantAsync(shopId, async () => {
-      const out = [];
-      for (const dotTopic of Object.values(TOPICS)) {
-        const enumTopic = TOPIC_ENUM_BY_DOT[dotTopic];
-        if (!enumTopic) continue;
-        const r = await ensureWebhookSubscription(enumTopic, callbackUrl);
-        out.push({ topic: enumTopic, ...r });
-      }
-      return out;
-    });
+    const results = await registerAllWebhooks(shopId, callbackUrl);
     revalidatePath("/admin/settings");
     return { ok: true, results };
   } catch (e) {

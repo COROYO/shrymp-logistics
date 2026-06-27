@@ -179,6 +179,29 @@ async function handle(req: Request): Promise<Response> {
     }
   }
 
+  const appBaseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "");
+  if (appBaseUrl) {
+    try {
+      const { registerAllWebhooks } = await import(
+        "@/server/shopify/register-webhooks"
+      );
+      await registerAllWebhooks(
+        shopId,
+        `${appBaseUrl}/api/webhooks/shopify`,
+      );
+    } catch (e) {
+      log.error("shopify_install_webhooks_failed", {
+        shopId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  } else {
+    log.warn("shopify_install_webhooks_skipped", {
+      shopId,
+      reason: "missing APP_BASE_URL",
+    });
+  }
+
   log.info("shopify_install_complete", {
     shop,
     shopId,

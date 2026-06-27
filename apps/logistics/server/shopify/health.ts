@@ -4,6 +4,7 @@ import { adminDb } from "@/server/firestore/admin";
 import { Collections } from "@/server/firestore/schema";
 import { shopifyGraphQL } from "./client";
 import { ensureWebhookSubscription } from "./mutations";
+import { TOPIC_ENUM_BY_DOT } from "./register-webhooks";
 import { TOPICS } from "./topics";
 import { log } from "@/lib/logger";
 import { normalizeShopId } from "@/server/tenant/id";
@@ -22,15 +23,6 @@ import { normalizeShopId } from "@/server/tenant/id";
  */
 
 const HEALTH_DOC_ID = "shopify_health";
-
-const TOPIC_ENUM_BY_DOT: Record<string, string> = {
-  [TOPICS.ORDERS_CREATE]: "ORDERS_CREATE",
-  [TOPICS.ORDERS_UPDATED]: "ORDERS_UPDATED",
-  [TOPICS.ORDERS_EDITED]: "ORDERS_EDITED",
-  [TOPICS.ORDERS_CANCELLED]: "ORDERS_CANCELLED",
-  [TOPICS.INVENTORY_LEVELS_UPDATE]: "INVENTORY_LEVELS_UPDATE",
-  [TOPICS.APP_UNINSTALLED]: "APP_UNINSTALLED",
-};
 
 export type HealthCheckResult = {
   ok: boolean;
@@ -172,7 +164,11 @@ export async function checkShopifyHealth(
       result.ok = false;
       if (autoHeal) {
         try {
-          await ensureWebhookSubscription(enumTopic, expectedCallback);
+          await ensureWebhookSubscription(
+            enumTopic,
+            expectedCallback,
+            shopId,
+          );
           entry.repaired = true;
           entry.present = true;
           entry.callbackUrl = expectedCallback;

@@ -4,6 +4,7 @@ import {
   Collections,
   type Allocation,
   type Batch,
+  type Variant,
 } from "@/server/firestore/schema";
 import { loadLagerConfig } from "@/server/lager/config";
 import { isBatchAssignableForShipping } from "@/server/picking/batch-assignability";
@@ -82,6 +83,28 @@ async function loadBatchesForVariants(
   return batches;
 }
 
+async function loadVariantAvailableById(
+  variantIds: string[],
+): Promise<Map<string, number>> {
+  if (variantIds.length === 0) return new Map();
+  const db = adminDb();
+  const out = new Map<string, number>();
+  for (const c of chunk(variantIds, 30)) {
+    const snaps = await db.getAll(
+      ...c.map((id) => db.collection(Collections.Variants).doc(id)),
+    );
+    for (const snap of snaps) {
+      if (!snap.exists) continue;
+      const v = snap.data() as Variant;
+      out.set(
+        snap.id,
+        Math.max(0, (v.on_hand_total ?? 0) - (v.reserved_total ?? 0)),
+      );
+    }
+  }
+  return out;
+}
+
 export async function loadAssignableRemainingByVariant(
   variantIds: string[],
   shopId?: string,
@@ -89,6 +112,10 @@ export async function loadAssignableRemainingByVariant(
   if (variantIds.length === 0) return new Map();
 
   const lagerCfg = await loadLagerConfig(shopId);
+  if (!lagerCfg.batches_enabled) {
+    return loadVariantAvailableById(variantIds);
+  }
+
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
   const batches = await loadBatchesForVariants(variantIds, shopId);
@@ -106,6 +133,10 @@ export async function loadShippableQtyByVariant(
   if (variantIds.length === 0) return new Map();
 
   const lagerCfg = await loadLagerConfig(shopId);
+  if (!lagerCfg.batches_enabled) {
+    return loadVariantAvailableById(variantIds);
+  }
+
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
   const batches = await loadBatchesForVariants(variantIds, shopId);

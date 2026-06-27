@@ -325,7 +325,9 @@ const WEBHOOK_SUBSCRIPTION_DELETE_MUTATION = /* GraphQL */ `
 export async function ensureWebhookSubscription(
   topic: string, // SCREAMING_SNAKE enum, e.g. "ORDERS_CREATE"
   callbackUrl: string,
+  shopId?: string,
 ): Promise<{ created: boolean; id: string }> {
+  const gqlOpts = shopId ? { shopId } : undefined;
   // First, look up existing subscriptions and reuse if URL+topic already match.
   const list = await shopifyGraphQL<{
     webhookSubscriptions: {
@@ -335,7 +337,7 @@ export async function ensureWebhookSubscription(
         endpoint: { __typename: string; callbackUrl?: string };
       }>;
     };
-  }>(WEBHOOK_SUBSCRIPTIONS_QUERY);
+  }>(WEBHOOK_SUBSCRIPTIONS_QUERY, undefined, gqlOpts);
 
   const existing = list.webhookSubscriptions.nodes.find(
     (n) =>
@@ -350,10 +352,14 @@ export async function ensureWebhookSubscription(
       webhookSubscription: { id: string } | null;
       userErrors: Array<{ message: string; field?: string[] | null }>;
     };
-  }>(WEBHOOK_SUBSCRIPTION_CREATE_MUTATION, {
-    topic,
-    webhookSubscription: { callbackUrl, format: "JSON" },
-  });
+  }>(
+    WEBHOOK_SUBSCRIPTION_CREATE_MUTATION,
+    {
+      topic,
+      webhookSubscription: { callbackUrl, format: "JSON" },
+    },
+    gqlOpts,
+  );
   throwIfUserErrors(
     "webhookSubscriptionCreate",
     data.webhookSubscriptionCreate.userErrors,

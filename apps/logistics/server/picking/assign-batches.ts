@@ -43,10 +43,12 @@ export { orderAssignmentCoversLineItems } from "./assignment-coverage";
  * Throws on genuine stock inconsistency (assignable stock < reserved need).
  */
 export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
+  const lagerCfg = await loadLagerConfig();
+  if (!lagerCfg.batches_enabled) return true;
+
   await releaseUnshippableBatchAssignments(orderId);
 
   const db = adminDb();
-  const lagerCfg = await loadLagerConfig();
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
 

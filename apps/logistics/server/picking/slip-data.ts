@@ -97,8 +97,9 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   // consumed. We must not re-assign or re-validate expiry — just render the
   // slip from the existing (consumed) allocations exactly as first printed.
   const isReprint = order.internal_status === "PACKED";
+  const batchesEnabled = lagerCfg.batches_enabled;
 
-  if (!isReprint) {
+  if (batchesEnabled && !isReprint) {
     await releaseUnshippableBatchAssignments(orderId);
 
     // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
@@ -141,15 +142,17 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     .get();
   const allocs = allocSnap.docs.map((d) => d.data() as Allocation);
 
-  const covered = isReprint
-    ? orderAssignmentCoversLineItemsAnyState(order.line_items, allocs)
-    : orderAssignmentCoversLineItems(order.line_items, allocs);
-  if (!covered) {
-    throw new SlipAssignmentBlockedError(
-      orderId,
-      "incomplete",
-      lagerCfg.batch_min_days_before_expiry,
-    );
+  if (batchesEnabled) {
+    const covered = isReprint
+      ? orderAssignmentCoversLineItemsAnyState(order.line_items, allocs)
+      : orderAssignmentCoversLineItems(order.line_items, allocs);
+    if (!covered) {
+      throw new SlipAssignmentBlockedError(
+        orderId,
+        "incomplete",
+        lagerCfg.batch_min_days_before_expiry,
+      );
+    }
   }
   const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
   const batchSnaps = await Promise.all(
@@ -160,7 +163,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     if (b.exists) batchById.set(b.id, b.data() as Batch);
   }
 
-  if (!isReprint) {
+  if (batchesEnabled && !isReprint) {
     const referenceDate = new Date();
     const minDays = lagerCfg.batch_min_days_before_expiry;
     const openAllocs = allocs.filter((a) => !a.consumed_at);

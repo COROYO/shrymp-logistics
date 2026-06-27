@@ -10,6 +10,8 @@ import {
   type SidebarSection,
 } from "@/app/_components/sidebar";
 import { MobileNav } from "@/app/_components/mobile-nav";
+import { loadLagerConfig } from "@/server/lager/config";
+import { requireActiveShopId } from "@/lib/auth/tenant";
 
 export default async function AdminLayout({
   children,
@@ -22,22 +24,30 @@ export default async function AdminLayout({
   if (await merchantNeedsShopifyConnect(user)) redirect("/onboarding");
 
   const t = await getTranslations("nav");
+  const shopId = await requireActiveShopId(user);
+  const lagerCfg = await loadLagerConfig(shopId);
+  const batchesEnabled = lagerCfg.batches_enabled;
+
+  const stockItems = [
+    {
+      href: "/admin/allocations",
+      label: t("allocations"),
+      icon: "allocations" as const,
+    },
+    ...(batchesEnabled
+      ? [{ href: "/admin/batches", label: t("batches"), icon: "batches" as const }]
+      : []),
+    {
+      href: "/admin/lagerbestand",
+      label: t("lagerbestand"),
+      icon: "batches" as const,
+    },
+  ];
+
   const SECTIONS: SidebarSection[] = [
     {
       label: t("stock"),
-      items: [
-        {
-          href: "/admin/allocations",
-          label: t("allocations"),
-          icon: "allocations",
-        },
-        { href: "/admin/batches", label: t("batches"), icon: "batches" },
-        {
-          href: "/admin/lagerbestand",
-          label: t("lagerbestand"),
-          icon: "batches",
-        },
-      ],
+      items: stockItems,
     },
     {
       label: t("operations"),

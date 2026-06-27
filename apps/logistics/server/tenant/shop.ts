@@ -121,12 +121,14 @@ export async function updateShopMeta(
 export async function updateShopLagerSettings(
   shopId: string,
   patch: {
+    batches_enabled: boolean;
     batch_min_days_before_expiry: number;
     updated_by_uid: string | null;
   },
 ): Promise<void> {
   await shopRef(shopId).set(
     {
+      batches_enabled: patch.batches_enabled,
       batch_min_days_before_expiry: patch.batch_min_days_before_expiry,
       lager_updated_by_uid: patch.updated_by_uid,
       lager_updated_at: FieldValue.serverTimestamp(),
@@ -205,6 +207,8 @@ export async function migrateLegacyShopIfNeeded(): Promise<string | null> {
     api_version: (meta.api_version as string | undefined) ?? "2026-04",
     batch_min_days_before_expiry:
       (lager.batch_min_days_before_expiry as number | undefined) ?? 10,
+    batches_enabled:
+      (lager.batches_enabled as boolean | undefined) ?? true,
     ...(dhl ? { dhl_config: dhl } : {}),
     created_at: FieldValue.serverTimestamp(),
     updated_at: FieldValue.serverTimestamp(),

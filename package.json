@@ -4,15 +4,15 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "dev": "pnpm --filter @monolith/logistics dev",
-    "dev:logistics": "pnpm --filter @monolith/logistics dev",
+    "dev": "pnpm --filter @shrymp/logistics dev",
+    "dev:logistics": "pnpm --filter @shrymp/logistics dev",
     "dev:website": "pnpm --filter @monolith/website dev",
-    "build": "pnpm --filter @monolith/logistics build",
-    "start": "pnpm --filter @monolith/logistics start",
-    "build:logistics": "pnpm --filter @monolith/logistics build",
+    "build": "pnpm --filter @shrymp/logistics build",
+    "start": "pnpm --filter @shrymp/logistics start",
+    "build:logistics": "pnpm --filter @shrymp/logistics build",
     "build:website": "pnpm --filter @monolith/website build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @monolith/logistics test"
+    "test": "pnpm --filter @shrymp/logistics test"
   }
 }

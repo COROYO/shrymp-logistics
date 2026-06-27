@@ -417,6 +417,8 @@ export const ShopifyTokenSchema = z.object({
 // `config/lager_config` — batch-assignment rules editable from Admin UI.
 
 export const LagerConfigSchema = z.object({
+  /** When false, skip Charge assignment, MHD checks, and batch-based stock caps. */
+  batches_enabled: z.boolean().default(true),
   /**
    * Chargen mit MHD in ≤ N Kalendertagen (Europe/Berlin) werden bei der
    * Lieferschein-Zuordnung übersprungen. Bereits zugeordnete Chargen auf
@@ -508,6 +510,7 @@ export const ShopSchema = z.object({
   installed_at: FirestoreTimestamp.optional(),
   location_gid: z.string().optional(),
   api_version: z.string().default("2026-04"),
+  batches_enabled: z.boolean().default(true),
   batch_min_days_before_expiry: z.number().int().nonnegative().default(10),
   lager_updated_at: FirestoreTimestamp.optional(),
   lager_updated_by_uid: z.string().nullable().optional(),

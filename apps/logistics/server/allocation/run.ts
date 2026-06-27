@@ -9,6 +9,7 @@ import {
   type Batch,
   type Order,
   type OrderInternalStatus,
+  type Variant,
 } from "@/server/firestore/schema";
 import { allocate } from "./runAllocation";
 import {
@@ -21,6 +22,7 @@ import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
 import { isBatchExpired } from "@/server/picking/batch-assignability";
 import { loadAssignableRemainingByVariant } from "@/server/inventory/shippable-stock";
+import { loadLagerConfig } from "@/server/lager/config";
 import { loadPreAssignedShippableOrderIds } from "@/server/picking/pre-assigned-orders";
 import { ordersForShop } from "@/server/tenant/queries";
 import { normalizeShopId } from "@/server/tenant/id";
@@ -31,11 +33,10 @@ import { normalizeShopId } from "@/server/tenant/id";
  * High-level flow (queue concurrency guarantees no parallel writers):
  *   1. Read `orders` (status ∈ {NEW, SHIP, STOP}) and the `variants` they
  *      reference.
- *   2. Compute per-variant available-to-reserve from unassigned assignable
- *      `remaining_qty` (MHD-aware; see shippable-stock.ts) and run `allocate()`
- *      — this only
- *      decides SHIP/STOP, it does NOT bind Chargen. The concrete batch is
- *      picked FEFO later, at packing-slip print time (see assign-batches.ts).
+ *   2. Compute per-variant available-to-reserve. With Chargen enabled this
+ *      comes from unassigned assignable `remaining_qty` (MHD-aware). With
+ *      Chargen disabled it is simply `on_hand_total − reserved_total` on the
+ *      variant — no batch reads, no pre-assigned order pinning.
  *   3. Update orders' internal_status and adjust variant.reserved_total by the
  *      in-memory delta (RECONCILE/MANUAL recompute from scratch instead).
  *   4. Release any printed Charge assignments for orders flipped back to STOP
@@ -89,6 +90,8 @@ export async function runAllocationInFirestore(
       .where("internal_status", "in", [...ORDER_STATUSES_TO_REALLOCATE])
       .get();
     const ordersRaw = ordersSnap.docs.map((d) => d.data() as Order);
+    const lagerCfg = await loadLagerConfig(shopId);
+    const batchesEnabled = lagerCfg.batches_enabled;
 
     // Quantity currently reserved BY THIS SET (orders presently in SHIP). We
     // "give it back" into the pool, then let the algorithm re-compete for it —
@@ -135,18 +138,33 @@ export async function runAllocationInFirestore(
       const variantRefs = variantIds.map((id) =>
         db.collection(Collections.Variants).doc(id),
       );
-      const [variantSnaps, remainingByVariant, preAssigned] = await Promise.all(
-        [
-          db.getAll(...variantRefs),
+      const variantSnaps = await db.getAll(...variantRefs);
+
+      let remainingByVariant: Map<string, number>;
+
+      if (batchesEnabled) {
+        [remainingByVariant, preAssignedOrderIds] = await Promise.all([
           loadAssignableRemainingByVariant(variantIds, shopId),
           loadPreAssignedShippableOrderIds(ordersRaw, shopId),
-        ],
-      );
-      preAssignedOrderIds = preAssigned;
+        ]);
+      } else {
+        remainingByVariant = new Map();
+        for (const snap of variantSnaps) {
+          if (!snap.exists) continue;
+          const v = snap.data() as Variant;
+          remainingByVariant.set(
+            snap.id,
+            Math.max(0, (v.on_hand_total ?? 0) - (v.reserved_total ?? 0)),
+          );
+        }
+        preAssignedOrderIds = new Set();
+      }
+
       for (const snap of variantSnaps) {
         if (!snap.exists) continue; // missing → allocate() reports UNKNOWN_VARIANT
         const remaining = remainingByVariant.get(snap.id) ?? 0;
-        // Unassigned assignable Chargen minus PICKING lock (already on a slip).
+        // Batch mode: unassigned assignable Chargen minus PICKING lock.
+        // Variant mode: on_hand − reserved minus PICKING lock.
         const available = remaining - (lockedByVariant.get(snap.id) ?? 0);
         variants.push({ variantId: snap.id, available });
       }
@@ -186,6 +204,7 @@ export async function runAllocationInFirestore(
       ordersRaw,
       oldSetReserved,
       recomputeMode,
+      batchesEnabled,
     );
 
     await runRef.update({
@@ -283,6 +302,7 @@ async function commitDecisions(
   ordersRaw: Order[],
   oldSetReserved: Map<string, number>,
   recomputeMode: "delta" | "full",
+  batchesEnabled: boolean,
 ): Promise<string[]> {
   const db = adminDb();
   const decisionByOrderId = new Map(decisions.map((d) => [d.orderId, d]));
@@ -387,10 +407,9 @@ async function commitDecisions(
   }
 
   // --- Release Charge assignments for orders flipped back to STOP ---
-  // Normally a SHIP order isn't printed until PICKING (which the run never
-  // touches), but external inventory drift can force a printed SHIP order to
-  // STOP. Give its assigned batch stock back so it's assignable again.
-  if (stopOrderIds.length > 0) {
+  // Only relevant when Chargen tracking is on — without it there are no
+  // batch assignments to restore.
+  if (batchesEnabled && stopOrderIds.length > 0) {
     await releaseAssignmentsForStoppedOrders(bulk, stopOrderIds);
   }
 

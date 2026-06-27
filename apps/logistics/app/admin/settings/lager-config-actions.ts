@@ -7,6 +7,7 @@ import { updateShopLagerSettings } from "@/server/tenant/shop";
 import { log } from "@/lib/logger";
 
 const InputSchema = z.object({
+  batches_enabled: z.coerce.boolean(),
   batch_min_days_before_expiry: z.coerce.number().int().min(0).max(365),
 });
 
@@ -25,6 +26,7 @@ export async function saveLagerConfigAction(
   }
 
   const parsed = InputSchema.safeParse({
+    batches_enabled: formData.get("batches_enabled") === "1",
     batch_min_days_before_expiry: formData.get(
       "batch_min_days_before_expiry",
     ),
@@ -35,6 +37,7 @@ export async function saveLagerConfigAction(
 
   const shopId = await requireActiveShopId(user);
   await updateShopLagerSettings(shopId, {
+    batches_enabled: parsed.data.batches_enabled,
     batch_min_days_before_expiry: parsed.data.batch_min_days_before_expiry,
     updated_by_uid: user.uid,
   });
@@ -42,9 +45,12 @@ export async function saveLagerConfigAction(
   log.info("lager_config_saved", {
     uid: user.uid,
     shopId,
+    batches_enabled: parsed.data.batches_enabled,
     batch_min_days_before_expiry: parsed.data.batch_min_days_before_expiry,
   });
 
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings/chargen");
+  revalidatePath("/admin/batches");
   return { ok: true };
 }

@@ -196,7 +196,11 @@ async function loadProductRows(shopId: string): Promise<ProductRow[]> {
 
 export default async function BatchesPage() {
   const { shopId } = await requireTenantPageContext("/admin/batches");
-  const rows = await loadProductRows(shopId);
+  const { loadLagerConfig } = await import("@/server/lager/config");
+  const [rows, lagerCfg] = await Promise.all([
+    loadProductRows(shopId),
+    loadLagerConfig(shopId),
+  ]);
   const t = await getTranslations("batches");
   const totals = {
     products: rows.length,
@@ -211,6 +215,20 @@ export default async function BatchesPage() {
         <h1 className="h-display mt-1 text-3xl">{t("title")}</h1>
         <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
       </div>
+
+      {!lagerCfg.batches_enabled ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Chargen-Tracking ist deaktiviert. Die Zuordnung beim Lieferschein-Druck
+          ist aus — du kannst Chargen weiter pflegen, sie beeinflussen aber
+          Allocation und Versand nicht.{" "}
+          <a
+            href="/admin/settings/chargen"
+            className="font-semibold text-brand-burgundy underline"
+          >
+            In den Einstellungen aktivieren
+          </a>
+        </div>
+      ) : null}
 
       <dl className="grid gap-3 sm:grid-cols-3 text-sm">
         <Stat label={t("stats.products")} value={totals.products} />

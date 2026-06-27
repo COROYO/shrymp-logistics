@@ -23,8 +23,10 @@ import { maybeStopOrderForUnassignableBatches } from "./stop-for-unshippable-bat
 export async function releaseUnshippableBatchAssignments(
   orderId: string,
 ): Promise<number> {
-  const db = adminDb();
   const lagerCfg = await loadLagerConfig();
+  if (!lagerCfg.batches_enabled) return 0;
+
+  const db = adminDb();
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
 
