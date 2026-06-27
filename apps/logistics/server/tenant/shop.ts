@@ -1,5 +1,5 @@
 import "server-only";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
@@ -37,29 +37,56 @@ export async function listActiveShops(): Promise<Shop[]> {
 
 export async function upsertShopOAuth(
   shopDomain: string,
-  accessToken: string,
-  scope: string,
+  tokens: ShopOAuthTokenBundle,
 ): Promise<string> {
   const shopId = normalizeShopId(shopDomain);
+  await saveShopOAuthTokens(shopId, tokens, { isInstall: true });
+  return shopId;
+}
+
+export type ShopOAuthTokenBundle = {
+  accessToken: string;
+  scope: string;
+  refreshToken?: string;
+  accessTokenExpiresAtMs?: number;
+  refreshTokenExpiresAtMs?: number;
+};
+
+export async function saveShopOAuthTokens(
+  shopId: string,
+  tokens: ShopOAuthTokenBundle,
+  opts: { isInstall?: boolean } = {},
+): Promise<void> {
   const ref = shopRef(shopId);
   const existing = await ref.get();
-  await ref.set(
-    {
-      id: shopId,
-      shop_domain: shopId,
-      status: "ACTIVE",
-      access_token: accessToken,
-      scope,
-      installed_at: FieldValue.serverTimestamp(),
-      updated_at: FieldValue.serverTimestamp(),
-      ...(existing.exists
-        ? {}
-        : { created_at: FieldValue.serverTimestamp(), api_version: "2026-04" }),
-    },
-    { merge: true },
-  );
-  log.info("shop_oauth_persisted", { shopId, scope });
-  return shopId;
+  const patch: Record<string, unknown> = {
+    id: shopId,
+    shop_domain: shopId,
+    status: "ACTIVE",
+    access_token: tokens.accessToken,
+    scope: tokens.scope,
+    updated_at: FieldValue.serverTimestamp(),
+  };
+  if (tokens.refreshToken) patch.refresh_token = tokens.refreshToken;
+  if (tokens.accessTokenExpiresAtMs !== undefined) {
+    patch.access_token_expires_at = Timestamp.fromMillis(
+      tokens.accessTokenExpiresAtMs,
+    );
+  }
+  if (tokens.refreshTokenExpiresAtMs !== undefined) {
+    patch.refresh_token_expires_at = Timestamp.fromMillis(
+      tokens.refreshTokenExpiresAtMs,
+    );
+  }
+  if (opts.isInstall) {
+    patch.installed_at = FieldValue.serverTimestamp();
+    if (!existing.exists) {
+      patch.created_at = FieldValue.serverTimestamp();
+      patch.api_version = "2026-04";
+    }
+  }
+  await ref.set(patch, { merge: true });
+  log.info("shop_oauth_persisted", { shopId, scope: tokens.scope });
 }
 
 /** One-time: bind migrated legacy shop to the oldest ADMIN account. */
@@ -95,6 +122,9 @@ export async function markShopUninstalled(shopId: string): Promise<void> {
     {
       status: "UNINSTALLED",
       access_token: FieldValue.delete(),
+      refresh_token: FieldValue.delete(),
+      access_token_expires_at: FieldValue.delete(),
+      refresh_token_expires_at: FieldValue.delete(),
       updated_at: FieldValue.serverTimestamp(),
     },
     { merge: true },
@@ -223,17 +253,16 @@ export type ShopCredentials = {
   shop_domain: string;
   access_token: string;
   scope: string;
+  refresh_token?: string;
+  access_token_expires_at_ms?: number;
 };
 
 export async function loadShopCredentials(
   shopId: string,
 ): Promise<ShopCredentials | null> {
   await migrateLegacyShopIfNeeded();
-  const shop = await getShop(shopId);
-  if (!shop?.access_token) return null;
-  return {
-    shop_domain: shop.shop_domain,
-    access_token: shop.access_token,
-    scope: shop.scope ?? "",
-  };
+  const { ensureValidShopCredentials } = await import(
+    "@/server/shopify/token"
+  );
+  return ensureValidShopCredentials(shopId);
 }

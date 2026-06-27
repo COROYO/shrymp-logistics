@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkShopifyHealth } from "@/server/shopify/health";
+import { ensureShopifyTokensForAllShops } from "@/server/shopify/token";
+import { listActiveShops } from "@/server/tenant/shop";
 import { checkCronAuth } from "@/lib/auth/cron";
 import { log } from "@/lib/logger";
 
@@ -7,10 +9,8 @@ import { log } from "@/lib/logger";
  * Scheduled health check — keeps the Shopify connection alive.
  *
  * Trigger this every 15 min from Cloud Scheduler / Vercel Cron / GitHub
- * Actions / etc. Auto-heals missing webhook subscriptions (the most common
- * source of "the app stopped working"). Token revocation can't be self-
- * healed — only a fresh OAuth install fixes it — but it gets logged so the
- * admin knows to act.
+ * Actions / etc. Migrates legacy tokens, refreshes expiring tokens, and
+ * auto-heals missing webhook subscriptions.
  *
  * Authentication: set `CRON_SECRET` in env and pass it as
  * `?secret=...` or `Authorization: Bearer ...`.
@@ -24,17 +24,27 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await checkShopifyHealth({ autoHeal: true });
-    if (!result.ok) {
-      log.warn("shopify_health_unhealthy", {
-        tokenValid: result.tokenValid,
-        missingWebhooks: result.webhooks
-          .filter((w) => !w.present)
-          .map((w) => w.topic),
-        errors: result.errors,
+    const tokenResults = await ensureShopifyTokensForAllShops();
+    const shops = await listActiveShops();
+    const healthResults = [];
+    for (const shop of shops) {
+      const result = await checkShopifyHealth({
+        autoHeal: true,
+        shopId: shop.id,
       });
+      healthResults.push({ shopId: shop.id, ...result });
+      if (!result.ok) {
+        log.warn("shopify_health_unhealthy", {
+          shopId: shop.id,
+          tokenValid: result.tokenValid,
+          missingWebhooks: result.webhooks
+            .filter((w) => !w.present)
+            .map((w) => w.topic),
+          errors: result.errors,
+        });
+      }
     }
-    return NextResponse.json(result);
+    return NextResponse.json({ tokenResults, healthResults });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log.error("shopify_health_check_crashed", { error: msg });

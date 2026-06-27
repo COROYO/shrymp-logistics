@@ -2,11 +2,11 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { log } from "@/lib/logger";
 import {
-  loadShopCredentials,
   upsertShopOAuth,
   type ShopCredentials,
+  type ShopOAuthTokenBundle,
 } from "@/server/tenant/shop";
-import { normalizeShopId } from "@/server/tenant/id";
+import { ensureValidShopCredentials } from "./token";
 
 /**
  * Minimal Shopify install/auth helpers for a Custom Distribution App.
@@ -16,9 +16,11 @@ import { normalizeShopId } from "@/server/tenant/id";
  *      Dashboard (`https://<shop>/admin/oauth/install_custom_app?...`).
  *   2. Shopify shows the consent screen, then redirects to our callback URL
  *      configured in the Partner Dashboard ("Allowed redirection URLs").
- *   3. We verify the HMAC, POST the code to /admin/oauth/access_token,
- *      receive the offline access token, persist to `shops/{shopId}`.
- *   4. Subsequent API calls read credentials from the shop doc.
+ *   3. We verify the HMAC, POST the code to /admin/oauth/access_token with
+ *      `expiring=1`, receive an offline access + refresh token pair, persist
+ *      to `shops/{shopId}`.
+ *   4. Subsequent API calls migrate legacy tokens, refresh when needed, then
+ *      read credentials from the shop doc.
  */
 
 export function isValidShopDomain(shop: string | null | undefined): boolean {
@@ -63,79 +65,23 @@ export function verifyInstallHmac(
   }
 }
 
-export async function exchangeCodeForToken(
-  shop: string,
-  code: string,
-): Promise<{ accessToken: string; scope: string }> {
-  const { apiKey, apiSecret } = getAppCreds();
-  const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      client_id: apiKey,
-      client_secret: apiSecret,
-      code,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(
-      `Shopify token exchange failed: ${res.status} ${text.slice(0, 200)}`,
-    );
-  }
-  const data = (await res.json()) as {
-    access_token?: string;
-    scope?: string;
-  };
-  if (!data.access_token) {
-    throw new Error("Shopify token exchange returned no access_token");
-  }
-  return { accessToken: data.access_token, scope: data.scope ?? "" };
-}
-
 export type StoredToken = ShopCredentials;
-
-const tokenCache = new Map<
-  string,
-  { token: StoredToken; loadedAtMs: number }
->();
-const TOKEN_CACHE_TTL_MS = 60_000;
 
 export async function loadStoredToken(
   shopId?: string,
 ): Promise<StoredToken | null> {
-  const id = shopId ? normalizeShopId(shopId) : null;
-  if (!id) return null;
-
-  const cached = tokenCache.get(id);
-  if (cached && Date.now() - cached.loadedAtMs < TOKEN_CACHE_TTL_MS) {
-    return cached.token;
-  }
-
-  const token = await loadShopCredentials(id);
-  if (!token) {
-    tokenCache.delete(id);
-    return null;
-  }
-  tokenCache.set(id, { token, loadedAtMs: Date.now() });
-  return token;
-}
-
-export function invalidateTokenCache(shopId?: string): void {
-  if (shopId) tokenCache.delete(normalizeShopId(shopId));
-  else tokenCache.clear();
+  return ensureValidShopCredentials(shopId);
 }
 
 export async function persistToken(
   shopDomain: string,
-  accessToken: string,
-  scope: string,
+  tokens: ShopOAuthTokenBundle,
 ): Promise<string> {
-  const shopId = await upsertShopOAuth(shopDomain, accessToken, scope);
-  invalidateTokenCache(shopId);
-  log.info("shopify_token_persisted", { shopId: shopId, scope });
+  const shopId = await upsertShopOAuth(shopDomain, tokens);
+  const { invalidateShopTokenCache } = await import("./token");
+  invalidateShopTokenCache(shopId);
+  log.info("shopify_token_persisted", { shopId: shopId, scope: tokens.scope });
   return shopId;
 }
+
+export type { ShopOAuthTokenBundle };

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import {
-  exchangeCodeForToken,
   getAppCreds,
   isValidShopDomain,
   persistToken,
   verifyInstallHmac,
 } from "@/server/shopify/auth";
+import { exchangeCodeForExpiringToken } from "@/server/shopify/token";
 import {
   OAUTH_STATE_TTL_MS,
   signOAuthState,
@@ -128,7 +128,7 @@ async function handle(req: Request): Promise<Response> {
   // ----- Case (B): OAuth callback with code — exchange + persist ---------
   let tokenResult;
   try {
-    tokenResult = await exchangeCodeForToken(shop, code);
+    tokenResult = await exchangeCodeForExpiringToken(shop, code);
   } catch (e) {
     throw new Error(
       `token_exchange_failed (code abgelaufen / schon eingelöst / API_KEY+SECRET passen nicht): ${
@@ -137,11 +137,7 @@ async function handle(req: Request): Promise<Response> {
     );
   }
 
-  const shopId = await persistToken(
-    shop,
-    tokenResult.accessToken,
-    tokenResult.scope,
-  );
+  const shopId = await persistToken(shop, tokenResult);
 
   let linkUid: string | undefined;
   if (stateParam && stateParam !== "install") {
