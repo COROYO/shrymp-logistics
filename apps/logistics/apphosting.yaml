@@ -46,8 +46,6 @@ env:
     secret: SHOPIFY_API_SECRET
   - variable: SHOPIFY_API_VERSION
     value: "2026-04"
-  - variable: SHOPIFY_SCOPES
-    value: read_products,write_products,read_orders,write_orders,read_inventory,write_inventory,read_fulfillments,write_fulfillments,read_locations,write_locations
 
   # ---------- Cloud Tasks (allocation queue) ----------
   # The Cloud Tasks consumer is the Next.js route /api/internal/allocation/run

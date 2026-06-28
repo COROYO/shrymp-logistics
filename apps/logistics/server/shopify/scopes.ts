@@ -1,9 +1,8 @@
 /**
  * OAuth scopes requested on install / reconnect.
  * Must match the Custom App configuration in the Shopify Partner Dashboard.
- * Override via SHOPIFY_SCOPES (comma- or space-separated).
  */
-const DEFAULT_OAUTH_SCOPES = [
+export const OAUTH_SCOPES = [
   "read_products",
   "write_products",
   "read_orders",
@@ -23,28 +22,24 @@ export function parseOAuthScopeList(raw: string): string[] {
     .filter(Boolean);
 }
 
-/** Scopes this deployment requests during OAuth. */
-export function getConfiguredOAuthScopes(): string[] {
-  const env = process.env.SHOPIFY_SCOPES?.trim();
-  if (env) return parseOAuthScopeList(env);
-  return [...DEFAULT_OAUTH_SCOPES];
+export function getConfiguredOAuthScopes(): readonly string[] {
+  return OAUTH_SCOPES;
 }
 
 export function getRequiredOAuthScopeString(): string {
-  return getConfiguredOAuthScopes().join(",");
+  return OAUTH_SCOPES.join(",");
 }
 
-/** @deprecated use getRequiredOAuthScopeString — kept for imports that expect a string constant shape */
+/** Used by OAuth authorize URLs. */
 export const REQUIRED_OAUTH_SCOPE_STRING = getRequiredOAuthScopeString();
 
 export function getMissingOAuthScopes(
   granted: string | null | undefined,
 ): string[] {
-  const required = getConfiguredOAuthScopes();
   if (!granted?.trim()) {
     // Shopify sometimes omits scope on refresh; empty means "unknown" — don't nag.
     return [];
   }
   const grantedSet = new Set(parseOAuthScopeList(granted));
-  return required.filter((s) => !grantedSet.has(s));
+  return OAUTH_SCOPES.filter((s) => !grantedSet.has(s));
 }
