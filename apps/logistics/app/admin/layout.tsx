@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { merchantNeedsShopifyConnect } from "@/lib/auth/merchant";
+import { merchantNeedsOnboarding } from "@/server/onboarding/state";
 import { BrandMark } from "@/app/_components/brand-mark";
 import {
   Sidebar,
@@ -23,12 +24,14 @@ export default async function AdminLayout({
   if (!user) redirect("/login?next=/admin");
   if (user.role !== "ADMIN") redirect("/lager");
 
-  const [needsConnect, t, shopId] = await Promise.all([
+  const [needsConnect, needsOnboarding, t, shopId] = await Promise.all([
     merchantNeedsShopifyConnect(user),
+    merchantNeedsOnboarding(user),
     getTranslations("nav"),
     requireActiveShopId(user),
   ]);
   if (needsConnect) redirect("/onboarding");
+  if (needsOnboarding) redirect("/onboarding/setup");
 
   const stockItems = [
     {

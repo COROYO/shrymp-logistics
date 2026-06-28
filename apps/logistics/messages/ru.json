@@ -294,7 +294,7 @@
         "configNotConfigured": "DHL не настроен. Пожалуйста, укажите расчётный номер и адрес отправителя в админ-настройках.",
         "configBillingMissing": "В конфигурации DHL отсутствует расчётный номер (EKP).",
         "configCredentialsMissing": "В конфигурации отсутствуют логин/пароль бизнес-портала DHL.",
-        "configClientCredsMissing": "В переменных окружения отсутствуют DHL_API_KEY/SECRET.",
+        "configClientCredsMissing": "В настройках DHL отсутствуют API-ключ или секрет.",
         "address": "Адрес доставки неполный ({field}).",
         "validationFailed": "DHL отклонил отправление. Проверьте адрес / вес (подробности в логах).",
         "noLabel": "DHL ответил, но не вернул этикетку.",

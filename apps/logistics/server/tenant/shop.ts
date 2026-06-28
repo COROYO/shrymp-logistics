@@ -63,12 +63,16 @@ export async function saveShopOAuthTokens(
 ): Promise<void> {
   const ref = shopRef(shopId);
   const existing = await ref.get();
+  const existingScope =
+    existing.exists && typeof existing.data()?.scope === "string"
+      ? existing.data()!.scope
+      : undefined;
   const patch: Record<string, unknown> = {
     id: shopId,
     shop_domain: shopId,
     status: "ACTIVE",
     access_token: tokens.accessToken,
-    scope: tokens.scope,
+    scope: tokens.scope?.trim() ? tokens.scope : (existingScope ?? ""),
     updated_at: FieldValue.serverTimestamp(),
   };
   if (tokens.refreshToken) patch.refresh_token = tokens.refreshToken;

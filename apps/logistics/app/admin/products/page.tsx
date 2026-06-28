@@ -1,11 +1,9 @@
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import { requireTenantPageContext } from "@/lib/auth/tenant-page";
-import { ProductsDataLoader } from "./products-data-loader";
-
-export const dynamic = "force-dynamic";
+import { PageLoadingShell } from "@/app/_components/page-loading-shell";
+import { ProductsContent } from "./products-content";
 
 export default async function ProductsPage() {
-  await requireTenantPageContext("/admin/products");
   const t = await getTranslations("products");
 
   return (
@@ -16,7 +14,9 @@ export default async function ProductsPage() {
         <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
       </div>
 
-      <ProductsDataLoader />
+      <Suspense fallback={<PageLoadingShell stats={3} rows={8} cols={4} />}>
+        <ProductsContent />
+      </Suspense>
     </div>
   );
 }

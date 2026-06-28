@@ -14,8 +14,8 @@ export function BackfillOrdersButton() {
       const res = await backfillOrdersAction();
       if (res.ok) {
         dispatchAdminJobSuccess({
-          title: "Orders",
-          message: `Backfill OK · ${res.mirroredCount} Orders gespiegelt (${res.pages} Page${res.pages === 1 ? "" : "s"}). Allocation gestartet.`,
+          title: "Aufträge",
+          message: `${res.mirroredCount} Aufträge importiert. Verfügbarkeit wird geprüft.`,
         });
       } else {
         dispatchAdminJobError({ title: "Orders", message: res.error });
@@ -30,7 +30,7 @@ export function BackfillOrdersButton() {
       disabled={pending}
       className="btn-secondary"
     >
-      {pending ? "Pulle Orders…" : "Existierende Orders nachladen"}
+      {pending ? "Importiere…" : "Bestehende Aufträge importieren"}
     </button>
   );
 }

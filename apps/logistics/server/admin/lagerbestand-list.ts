@@ -13,12 +13,15 @@ import type { LagerbestandRow } from "@/app/admin/lagerbestand/lagerbestand-tabl
 
 export async function loadLagerbestandRows(shopId: string): Promise<LagerbestandRow[]> {
   const db = adminDb();
-  const [productsSnap, variantsSnap, reservedByVariant, locationsSnap] =
+  const [productsSnap, variantsSnap, reservedByVariant, locationsSnap, lagerCfg] =
     await Promise.all([
       productsForShop(db, shopId).get(),
       variantsForShop(db, shopId).get(),
       loadOrderDemandByVariant(shopId),
       locationsForShop(db, shopId).where("active", "==", true).get(),
+      import("@/server/lager/config").then(({ loadLagerConfig }) =>
+        loadLagerConfig(shopId),
+      ),
     ]);
 
   const locationNameById: Record<string, string> = {};
@@ -29,7 +32,9 @@ export async function loadLagerbestandRows(shopId: string): Promise<Lagerbestand
 
   const variantIds = variantsSnap.docs.map((d) => d.id);
   const [shippableByVariant, stockByVariant] = await Promise.all([
-    loadShippableQtyByVariant(variantIds, shopId),
+    lagerCfg.batches_enabled
+      ? loadShippableQtyByVariant(variantIds, shopId, lagerCfg)
+      : Promise.resolve(null as Map<string, number> | null),
     loadLocationStockForVariants(variantIds),
   ]);
 
@@ -46,7 +51,9 @@ export async function loadLagerbestandRows(shopId: string): Promise<Lagerbestand
     if (product.status === "ARCHIVED" || product.is_bundle === true) continue;
 
     const reserved = reservedByVariant.get(variant.id) ?? 0;
-    const variantOnHand = shippableByVariant.get(variant.id) ?? 0;
+    const variantOnHand = lagerCfg.batches_enabled
+      ? (shippableByVariant?.get(variant.id) ?? 0)
+      : (variant.on_hand_total ?? 0);
     const locationRows = stockByVariant.get(variant.id) ?? [];
 
     if (locationRows.length === 0) {

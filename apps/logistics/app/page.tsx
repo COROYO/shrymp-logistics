@@ -3,6 +3,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getSessionUser } from "@/lib/auth/session";
 import { hasAnyAdmin } from "@/lib/auth/bootstrap";
 import { merchantNeedsShopifyConnect } from "@/lib/auth/merchant";
+import { merchantNeedsOnboarding } from "@/server/onboarding/state";
 import { ServerConfigError } from "@/app/_components/server-config-error";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export default async function RootRedirect() {
     if (!user) redirect("/login");
     if (user.role === "ADMIN") {
       if (await merchantNeedsShopifyConnect(user)) redirect("/onboarding");
+      if (await merchantNeedsOnboarding(user)) redirect("/onboarding/setup");
       redirect("/admin");
     }
     if (user.role === "LAGER") redirect("/lager");

@@ -196,7 +196,7 @@ async function handle(req: Request): Promise<Response> {
   });
 
   const res = NextResponse.redirect(
-    new URL("/admin/settings?installed=1", url.origin),
+    new URL("/onboarding/setup?installed=1", url.origin),
   );
   res.cookies.set(SHOP_COOKIE, shopId, {
     httpOnly: true,

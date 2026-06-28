@@ -119,11 +119,16 @@ export async function loadLocationStockForVariants(
     chunks.push(variantIds.slice(i, i + 30));
   }
 
-  for (const chunk of chunks) {
-    const snap = await db
-      .collection(Collections.VariantLocationStock)
-      .where("variant_id", "in", chunk)
-      .get();
+  const snaps = await Promise.all(
+    chunks.map((chunk) =>
+      db
+        .collection(Collections.VariantLocationStock)
+        .where("variant_id", "in", chunk)
+        .get(),
+    ),
+  );
+
+  for (const snap of snaps) {
     for (const doc of snap.docs) {
       const data = doc.data();
       const variantId = data.variant_id as string;

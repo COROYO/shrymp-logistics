@@ -25,6 +25,9 @@
     "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["firebase"]
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

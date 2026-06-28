@@ -2,14 +2,14 @@ import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import { adminDb } from "@/server/firestore/admin";
 import { getShop } from "@/server/tenant/shop";
 import { productsForShop, variantsForShop } from "@/server/tenant/queries";
+import { getLastCompletedProductSyncFinishedAtMs } from "@/server/shopify/product-sync-run";
 import { getTranslations } from "next-intl/server";
 import { ShopifyConnectForm } from "@/app/_components/shopify-connect-form";
 import { ProductSyncButton } from "@/app/admin/products/sync-button";
-import { RegisterWebhooksButton } from "../register-webhooks-button";
 import { HealthPanel, type HealthSnapshot } from "../health-panel";
 import { readLastHealth } from "@/server/shopify/health";
 import { getMissingOAuthScopes } from "@/server/shopify/scopes";
-import { Badge, DefItem, getEnvHealth } from "../_shared";
+import { Badge, DefItem } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ async function getShopStatus(shopId: string) {
 
 async function getProductSyncStats(shopId: string) {
   const db = adminDb();
-  const [prodCount, varCount, shop] = await Promise.all([
+  const [prodCount, varCount, lastSyncAtMs] = await Promise.all([
     productsForShop(db, shopId)
       .count()
       .get()
@@ -37,24 +37,21 @@ async function getProductSyncStats(shopId: string) {
       .get()
       .then((s) => s.data().count)
       .catch(() => 0),
-    getShop(shopId),
+    getLastCompletedProductSyncFinishedAtMs(shopId),
   ]);
 
-  const updatedAt = shop?.updated_at;
-  let updatedAtIso: string | null = null;
-  const ts = updatedAt as unknown as { toDate?: () => Date };
-  if (ts && typeof ts.toDate === "function") {
-    updatedAtIso = ts.toDate().toISOString();
-  }
-
-  return { productCount: prodCount, variantCount: varCount, updatedAtIso };
+  return {
+    productCount: prodCount,
+    variantCount: varCount,
+    lastSyncAtIso:
+      lastSyncAtMs != null ? new Date(lastSyncAtMs).toISOString() : null,
+  };
 }
 
 export default async function ShopifySettingsPage() {
   const { shopId } = await requireTenantPageContext("/admin/settings/shopify");
-  const [status, env, lastHealth, syncStats, t] = await Promise.all([
+  const [status, lastHealth, syncStats, t] = await Promise.all([
     getShopStatus(shopId),
-    Promise.resolve(getEnvHealth()),
     readLastHealth(shopId),
     getProductSyncStats(shopId),
     getTranslations("products"),
@@ -83,26 +80,17 @@ export default async function ShopifySettingsPage() {
           Dein Shopify-Shop
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Die Verbindung läuft über OAuth — du musst keine API-Keys eintragen.
+          Verbinde deinen Shop über die normale Shopify-Freigabe — du musst
+          nichts manuell eintragen.
         </p>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
-          <DefItem label="App installiert">
+          <DefItem label="Verbunden">
             <Badge ok={status.token_installed} />
           </DefItem>
           <DefItem label="Shop">
             <span className="font-mono text-xs">
               {status.token_shop_domain ?? "—"}
-            </span>
-          </DefItem>
-          <DefItem label="Gewährte Scopes">
-            <span className="font-mono text-xs break-all">
-              {status.token_scope ?? "—"}
-            </span>
-          </DefItem>
-          <DefItem label="API Version">
-            <span className="font-mono">
-              {status.api_version ?? env.apiVersion ?? "—"}
             </span>
           </DefItem>
         </dl>
@@ -129,23 +117,22 @@ export default async function ShopifySettingsPage() {
                   Neue Berechtigungen erforderlich
                 </p>
                 <p className="mt-1 text-xs">
-                  Fehlende Scopes:{" "}
-                  <span className="font-mono">{missingScopes.join(", ")}</span>
+                  Bitte Shopify unten erneut verbinden, damit alle Funktionen
+                  weiterlaufen.
                 </p>
               </div>
             ) : null}
             {!healthSnap?.tokenValid ? (
               <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-4 py-3 text-sm text-brand-burgundy-dark">
-                <p className="font-semibold">Token ungültig oder abgelaufen</p>
+                <p className="font-semibold">Verbindung ungültig oder abgelaufen</p>
                 <p className="mt-1 text-xs">
-                  Bitte Shopify erneut freigeben, um einen neuen Access Token zu
-                  erhalten.
+                  Bitte Shopify erneut freigeben.
                 </p>
               </div>
             ) : null}
             <p className="text-xs text-brand-navy/60">
               Nach App-Updates oder neuen Berechtigungen Shopify einmal neu
-              verbinden — du wirst nur zur Freigabe weitergeleitet.
+              verbinden.
             </p>
             {reconnectHref ? (
               <a
@@ -168,28 +155,14 @@ export default async function ShopifySettingsPage() {
       <section className="card p-6">
         <p className="eyebrow">Verbindung</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          Health-Check & Auto-Heal
+          Verbindungsstatus
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Prüft Access-Token und alle Webhook-Subscriptions. Fehlende Webhooks
-          werden automatisch nachregistriert.
+          Prüft, ob Bestellungen und Bestände zuverlässig synchronisiert
+          werden. Fehlende Verknüpfungen werden automatisch repariert.
         </p>
         <div className="mt-5">
           <HealthPanel initial={healthSnap} />
-        </div>
-      </section>
-
-      <section className="card p-6">
-        <p className="eyebrow">Webhooks</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          Subscriptions registrieren (manuell)
-        </h2>
-        <p className="mt-1 text-xs text-brand-navy/60">
-          Registriert Webhook-Subscriptions bei Shopify. Idempotent — wird durch
-          den Health-Check ohnehin automatisch ausgeführt.
-        </p>
-        <div className="mt-5">
-          <RegisterWebhooksButton baseUrl={env.appUrl} />
         </div>
       </section>
 
@@ -232,8 +205,8 @@ export default async function ShopifySettingsPage() {
               </DefItem>
               <DefItem label={t("stats.lastSync")}>
                 <span className="font-mono text-xs">
-                  {syncStats.updatedAtIso
-                    ? new Date(syncStats.updatedAtIso).toLocaleString("de-DE")
+                  {syncStats.lastSyncAtIso
+                    ? new Date(syncStats.lastSyncAtIso).toLocaleString("de-DE")
                     : t("stats.never")}
                 </span>
               </DefItem>

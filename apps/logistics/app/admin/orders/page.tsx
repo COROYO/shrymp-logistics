@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+import { TableSkeleton } from "@/app/_components/table-skeleton";
 import { SyncOrdersButton } from "./sync-orders-button";
 import {
   ORDERS_LIST_FILTERS,
   type OrdersListFilter,
 } from "./filters";
-import { OrdersDataLoader } from "./orders-data-loader";
+import { OrdersContent } from "./orders-content";
 
 type Filter = OrdersListFilter;
 const FILTERS = ORDERS_LIST_FILTERS;
@@ -66,7 +68,16 @@ export default async function OrdersPage({
       </nav>
 
       <div className="card overflow-hidden">
-        <OrdersDataLoader filter={filter} />
+        <Suspense
+          key={filter}
+          fallback={
+            <div className="relative">
+              <TableSkeleton rows={10} cols={4} />
+            </div>
+          }
+        >
+          <OrdersContent filter={filter} />
+        </Suspense>
       </div>
     </div>
   );

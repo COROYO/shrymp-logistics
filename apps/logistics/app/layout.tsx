@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { Montserrat, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { pickClientMessages } from "@/i18n/client-messages";
 import "./globals.css";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -27,7 +28,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
-  const messages = await getMessages();
+  const messages = pickClientMessages(
+    (await getMessages()) as Record<string, unknown>,
+  );
   return (
     <html
       lang={locale}

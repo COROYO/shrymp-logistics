@@ -1,4 +1,5 @@
 import "server-only";
+import type { DocumentSnapshot } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import { ordersForShop } from "@/server/tenant/queries";
 import {
@@ -81,33 +82,42 @@ export async function loadOrderRows(
   const orders = snap.docs.map((d) => d.data() as Order);
   if (orders.length === 0) return [];
 
-  const { loadReservedByVariant } = await import("@/server/inventory/reserved");
-  const { loadShippableQtyByVariant } = await import(
-    "@/server/inventory/shippable-stock"
-  );
-  const reservedByVariant = await loadReservedByVariant(shopId);
-
   const variantIds = Array.from(
     new Set(orders.flatMap((o) => o.line_items.map((li) => li.variant_id))),
   ).filter(Boolean);
 
-  const [variantById, shippableByVariant] = await (async () => {
-    const byId = new Map<string, Variant>();
-    if (variantIds.length === 0) {
-      return [byId, new Map<string, number>()] as const;
-    }
-    const variantRefs = variantIds.map((id) =>
-      db.collection(Collections.Variants).doc(id),
-    );
-    const [variantSnaps, shippable] = await Promise.all([
-      db.getAll(...variantRefs),
-      loadShippableQtyByVariant(variantIds, shopId),
-    ]);
-    for (const v of variantSnaps) {
-      if (v.exists) byId.set(v.id, v.data() as Variant);
-    }
-    return [byId, shippable] as const;
-  })();
+  const orderIdChunks = chunkIds(
+    orders.map((o) => o.id),
+    30,
+  );
+
+  const variantRefs = variantIds.map((id) =>
+    db.collection(Collections.Variants).doc(id),
+  );
+
+  const [lagerCfg, variantSnaps, allocSnaps] = await Promise.all([
+    import("@/server/lager/config").then(({ loadLagerConfig }) =>
+      loadLagerConfig(shopId),
+    ),
+    variantIds.length > 0
+      ? db.getAll(...variantRefs)
+      : Promise.resolve([] as DocumentSnapshot[]),
+    orderIdChunks.length > 0
+      ? Promise.all(
+          orderIdChunks.map((c) =>
+            db
+              .collection(Collections.Allocations)
+              .where("order_id", "in", c)
+              .get(),
+          ),
+        )
+      : Promise.resolve([]),
+  ]);
+
+  const variantById = new Map<string, Variant>();
+  for (const v of variantSnaps) {
+    if (v.exists) variantById.set(v.id, v.data() as Variant);
+  }
 
   const productIds = Array.from(
     new Set(
@@ -116,50 +126,54 @@ export async function loadOrderRows(
         .filter(Boolean),
     ),
   );
+
+  const [productSnaps, shippableByVariant] = await Promise.all([
+    productIds.length > 0
+      ? db.getAll(
+          ...productIds.map((id) =>
+            db.collection(Collections.Products).doc(id),
+          ),
+        )
+      : Promise.resolve([] as DocumentSnapshot[]),
+    lagerCfg.batches_enabled
+      ? import("@/server/inventory/shippable-stock").then(
+          ({ loadShippableQtyByVariant }) =>
+            loadShippableQtyByVariant(variantIds, shopId, lagerCfg),
+        )
+      : Promise.resolve(null as Map<string, number> | null),
+  ]);
+
   const productById = new Map<string, Product>();
-  if (productIds.length > 0) {
-    const productRefs = productIds.map((id) =>
-      db.collection(Collections.Products).doc(id),
-    );
-    const productSnaps = await db.getAll(...productRefs);
-    for (const p of productSnaps) {
-      if (p.exists) productById.set(p.id, p.data() as Product);
-    }
+  for (const p of productSnaps) {
+    if (p.exists) productById.set(p.id, p.data() as Product);
   }
 
   const chargesByOrderLine = new Map<string, Map<string, ChargeRow[]>>();
-  {
-    const allocSnaps = await Promise.all(
-      chunkIds(orders.map((o) => o.id), 30).map((c) =>
-        db.collection(Collections.Allocations).where("order_id", "in", c).get(),
-      ),
+  const allocs = allocSnaps
+    .flatMap((s) => s.docs.map((d) => d.data() as Allocation))
+    .filter((a) => !a.released);
+  if (allocs.length > 0) {
+    const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
+    const batchSnaps = await db.getAll(
+      ...batchIds.map((id) => db.collection(Collections.Batches).doc(id)),
     );
-    const allocs = allocSnaps
-      .flatMap((s) => s.docs.map((d) => d.data() as Allocation))
-      .filter((a) => !a.released);
-    if (allocs.length > 0) {
-      const batchIds = Array.from(new Set(allocs.map((a) => a.batch_id)));
-      const batchById = new Map<string, Batch>();
-      const batchSnaps = await db.getAll(
-        ...batchIds.map((id) => db.collection(Collections.Batches).doc(id)),
-      );
-      for (const b of batchSnaps) {
-        if (b.exists) batchById.set(b.id, b.data() as Batch);
-      }
-      for (const a of allocs) {
-        const b = batchById.get(a.batch_id);
-        if (!b) continue;
-        const byLine =
-          chargesByOrderLine.get(a.order_id) ?? new Map<string, ChargeRow[]>();
-        const list = byLine.get(a.line_item_id) ?? [];
-        list.push({
-          chargeNumber: b.charge_number,
-          expiryIso: tsToIso(b.expiry_date) || null,
-          qty: a.qty,
-        });
-        byLine.set(a.line_item_id, list);
-        chargesByOrderLine.set(a.order_id, byLine);
-      }
+    const batchById = new Map<string, Batch>();
+    for (const b of batchSnaps) {
+      if (b.exists) batchById.set(b.id, b.data() as Batch);
+    }
+    for (const a of allocs) {
+      const b = batchById.get(a.batch_id);
+      if (!b) continue;
+      const byLine =
+        chargesByOrderLine.get(a.order_id) ?? new Map<string, ChargeRow[]>();
+      const list = byLine.get(a.line_item_id) ?? [];
+      list.push({
+        chargeNumber: b.charge_number,
+        expiryIso: tsToIso(b.expiry_date) || null,
+        qty: a.qty,
+      });
+      byLine.set(a.line_item_id, list);
+      chargesByOrderLine.set(a.order_id, byLine);
     }
   }
 
@@ -177,6 +191,10 @@ export async function loadOrderRows(
           : !product
             ? "no_product"
             : "no_image";
+      const onHand = lagerCfg.batches_enabled
+        ? (shippableByVariant?.get(li.variant_id) ?? 0)
+        : (variant?.on_hand_total ?? 0);
+      const reserved = variant?.reserved_total ?? 0;
       return {
         id: li.id,
         title: product?.title ?? li.title,
@@ -186,11 +204,9 @@ export async function loadOrderRows(
         imageUrl,
         imageMissingReason,
         variantId: li.variant_id,
-        onHand: shippableByVariant.get(li.variant_id) ?? 0,
-        reserved: reservedByVariant.get(li.variant_id) ?? 0,
-        available:
-          (shippableByVariant.get(li.variant_id) ?? 0) -
-          (reservedByVariant.get(li.variant_id) ?? 0),
+        onHand,
+        reserved,
+        available: onHand - reserved,
         charges: chargesByLine?.get(li.id) ?? [],
         mergedFromIds: [li.id],
         bundle: li.bundle

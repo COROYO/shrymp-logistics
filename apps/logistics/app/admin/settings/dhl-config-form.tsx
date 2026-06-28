@@ -32,6 +32,8 @@ export type DhlConfigFormValue = {
     width: number;
     height: number;
   };
+  api_key: string | null;
+  api_secret_set: boolean;
   gkp_username: string | null;
   gkp_password_set: boolean;
   cod_account_reference: string | null;
@@ -54,7 +56,7 @@ export function DhlConfigForm({
       if (res.ok) {
         dispatchAdminJobSuccess({
           title: "DHL",
-          message: "DHL-Konfiguration gespeichert.",
+          message: "DHL-Einstellungen gespeichert.",
         });
         router.refresh();
       } else {
@@ -70,36 +72,73 @@ export function DhlConfigForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <input
+        type="hidden"
+        name="profile"
+        value={current?.profile ?? "STANDARD_GRUPPENPROFIL"}
+      />
+
+      <div>
         <Field
-          label="Abrechnungsnummer (EKP, 14-stellig)"
+          label="Abrechnungsnummer (14-stellig)"
           name="billing_number"
           defaultValue={current?.billing_number ?? ""}
           required
           mono
           placeholder="33333333330102"
         />
-        <Field
-          label="Profile"
-          name="profile"
-          defaultValue={current?.profile ?? "STANDARD_GRUPPENPROFIL"}
-          mono
-        />
+        <p className="mt-1 text-[11px] text-brand-navy/60">
+          Findest du im DHL Geschäftskundenportal unter deinen
+          Versandeinstellungen.
+        </p>
       </div>
 
       <div>
-        <p className="eyebrow">Geschäftskundenportal-Zugang (OAuth2)</p>
+        <p className="eyebrow">DHL App-Zugang</p>
+        <p className="mt-1 text-xs text-brand-navy/60">
+          Zugangsdaten aus dem DHL Entwicklerportal — nicht dein
+          Portal-Passwort.
+        </p>
         <div className="mt-2 grid gap-4 sm:grid-cols-2">
           <Field
-            label="GKP Username"
+            label="App-ID"
+            name="api_key"
+            defaultValue={current?.api_key ?? ""}
+            mono
+          />
+          <Field
+            label={
+              current?.api_secret_set
+                ? "App-Geheimnis (leer = unverändert)"
+                : "App-Geheimnis"
+            }
+            name="api_secret"
+            type="password"
+            defaultValue=""
+            placeholder={
+              current?.api_secret_set ? "•••••••• gespeichert" : ""
+            }
+          />
+        </div>
+      </div>
+
+      <div>
+        <p className="eyebrow">Geschäftskundenportal</p>
+        <p className="mt-1 text-xs text-brand-navy/60">
+          Dein normaler Login für{" "}
+          <strong>geschaeftskunden.dhl.de</strong>.
+        </p>
+        <div className="mt-2 grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Benutzername"
             name="gkp_username"
             defaultValue={current?.gkp_username ?? ""}
           />
           <Field
             label={
               current?.gkp_password_set
-                ? "GKP Passwort (leer = unverändert)"
-                : "GKP Passwort"
+                ? "Passwort (leer = unverändert)"
+                : "Passwort"
             }
             name="gkp_password"
             type="password"
@@ -115,12 +154,12 @@ export function DhlConfigForm({
             name="sandbox"
             defaultChecked={current?.sandbox ?? true}
           />
-          Sandbox-Endpunkt verwenden (api-sandbox.dhl.com)
+          Testmodus (für erste Einrichtung und Probeläufe)
         </label>
       </div>
 
       <div>
-        <p className="eyebrow">Nachnahme (Cash on Delivery)</p>
+        <p className="eyebrow">Nachnahme</p>
         <p className="mt-1 text-xs text-brand-navy/60">
           Kontoreferenz aus dem DHL Geschäftskundenportal (
           <strong>Versenden → Einstellungen → Nachnahme</strong>). Wird
@@ -129,17 +168,17 @@ export function DhlConfigForm({
         </p>
         <div className="mt-2">
           <Field
-            label="COD Account Reference"
+            label="Kontoreferenz"
             name="cod_account_reference"
             defaultValue={current?.cod_account_reference ?? ""}
             mono
-            placeholder="Referenz aus dem GKP"
+            placeholder="Referenz aus dem Geschäftskundenportal"
           />
         </div>
       </div>
 
       <div>
-        <p className="eyebrow">Absenderadresse (Shipper)</p>
+        <p className="eyebrow">Absenderadresse</p>
         <div className="mt-2 grid gap-4 sm:grid-cols-2">
           <Field
             label="Firmenname"
@@ -177,7 +216,7 @@ export function DhlConfigForm({
             required
           />
           <Field
-            label="Land (ISO-3 alpha-3)"
+            label="Land"
             name="shipper_country"
             defaultValue={current?.shipper.country ?? "DEU"}
             required
@@ -202,7 +241,7 @@ export function DhlConfigForm({
         <p className="eyebrow">Standard-Paket</p>
         <div className="mt-2 grid gap-4 sm:grid-cols-4">
           <Field
-            label="Gewicht (g)"
+            label="Gewicht (Gramm)"
             name="default_weight_g"
             type="number"
             defaultValue={String(current?.default_weight_g ?? 1000)}
@@ -244,8 +283,7 @@ export function DhlConfigForm({
           />
         </div>
         <p className="mt-1 text-[11px] text-brand-navy/60">
-          Maße sind optional — DHL akzeptiert Versandaufträge auch ohne. Wenn
-          angegeben, müssen alle drei gesetzt sein.
+          Maße sind optional. Wenn angegeben, müssen alle drei gesetzt sein.
         </p>
       </div>
 

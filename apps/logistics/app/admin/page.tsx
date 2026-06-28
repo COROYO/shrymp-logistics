@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import { getSessionUser } from "@/lib/auth/session";
-import { requireActiveShopId } from "@/lib/auth/tenant";
+import { StatSkeleton } from "@/app/_components/table-skeleton";
+import { resolveTenantShopId } from "@/server/tenant/context";
 import {
   loadDashboardStats,
   type DashboardDayPoint,
@@ -376,20 +377,37 @@ function Metric({
   );
 }
 
+async function DashboardLoader() {
+  const td = await getTranslations("dashboard");
+  try {
+    const shopId = await resolveTenantShopId();
+    const stats = await loadDashboardStats(shopId);
+    return <Dashboard stats={stats} />;
+  } catch {
+    return (
+      <div className="card p-6 text-sm text-brand-navy/60">
+        {td("unavailable")}
+      </div>
+    );
+  }
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <StatSkeleton count={5} />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="card h-64 animate-pulse bg-zinc-100" />
+        <div className="card h-64 animate-pulse bg-zinc-100" />
+        <div className="card h-64 animate-pulse bg-zinc-100" />
+      </div>
+    </div>
+  );
+}
+
 export default async function AdminHome() {
   const t = await getTranslations("adminHome");
   const td = await getTranslations("dashboard");
-
-  const user = await getSessionUser();
-  let stats: DashboardStats | null = null;
-  if (user) {
-    try {
-      const shopId = await requireActiveShopId(user);
-      stats = await loadDashboardStats(shopId);
-    } catch {
-      stats = null;
-    }
-  }
 
   return (
     <div className="space-y-8">
@@ -399,13 +417,9 @@ export default async function AdminHome() {
         <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
       </div>
 
-      {stats ? (
-        <Dashboard stats={stats} />
-      ) : (
-        <div className="card p-6 text-sm text-brand-navy/60">
-          {td("unavailable")}
-        </div>
-      )}
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardLoader />
+      </Suspense>
 
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">

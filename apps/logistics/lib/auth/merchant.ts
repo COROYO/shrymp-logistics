@@ -24,11 +24,8 @@ async function merchantNeedsShopifyConnectUncached(
   if (role !== "ADMIN") return false;
   const shopIds = await loadUserShopIds(uid);
   if (!shopIds || shopIds.length === 0) return true;
-  for (const id of shopIds) {
-    const shop = await getShop(id);
-    if (shop?.status === "ACTIVE" && shop.access_token) return false;
-  }
-  return true;
+  const shops = await Promise.all(shopIds.map((id) => getShop(id)));
+  return !shops.some((shop) => shop?.status === "ACTIVE" && shop.access_token);
 }
 
 /** True when an ADMIN has no shop with a valid OAuth token yet. */

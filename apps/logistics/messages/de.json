@@ -67,7 +67,7 @@
   "adminHome": {
     "eyebrow": "Übersicht",
     "title": "Shrymp Logistics Backoffice",
-    "intro": "Wareneingang, Bestände, Orders, Allocation-Runs. Wähle einen Bereich aus.",
+    "intro": "Wareneingang, Bestände, Aufträge und Verfügbarkeit. Wähle einen Bereich aus.",
     "open": "Öffnen →",
     "tiles": {
       "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW Übersicht" },
@@ -82,7 +82,7 @@
       "users": { "title": "Benutzer", "desc": "Lager + Admins verwalten" },
       "settings": {
         "title": "Einstellungen",
-        "desc": "Shopify-Verbindung, Webhooks, Allocation"
+        "desc": "Shopify, DHL und Lager-Optionen"
       },
       "lager": { "title": "Lager", "desc": "Picking & Packing-Ansicht öffnen" }
     }
@@ -163,7 +163,7 @@
     "backfill": {
       "eyebrow": "Initial-Import",
       "title": "Bestehende Kundenhistorie aus Shopify holen",
-      "intro": "Lädt <b>alle</b> Orders (inkl. bereits fulfillter) aus Shopify nach — inklusive Kunde, E-Mail, Notiz und Bestellwert. Idempotent: bestehende Orders werden gemerged, der interne Status (PACKED / SHIP …) bleibt erhalten. Neue Orders ab jetzt brauchen das nicht mehr — der Webhook liefert die Kunden-Info automatisch mit.",
+      "intro": "Lädt <b>alle</b> Bestellungen (inkl. bereits versendeter) aus Shopify — mit Kunde, E-Mail, Notiz und Bestellwert. Bereits vorhandene Aufträge werden aktualisiert, der interne Status bleibt erhalten. Neue Bestellungen kommen danach automatisch.",
       "button": "Kundenhistorie aus Shopify nachladen",
       "loading": "Lade…",
       "success": "{count} Orders aus {pages} Seiten synchronisiert."
@@ -269,48 +269,48 @@
     "dhl": {
       "eyebrow": "Versandetikett",
       "title": "DHL-Etikett erzeugen",
-      "intro": "Erzeugt ein DHL-Paket-Etikett (DE) direkt über die API. Sobald das Etikett erstellt ist, wird die Order automatisch als <b>verpackt + versendet</b> markiert (Bestand abgebucht, Fulfillment an Shopify gemeldet).",
+      "intro": "Erzeugt ein DHL-Paket-Etikett für den Inlandversand. Sobald das Etikett erstellt ist, wird die Bestellung automatisch als <b>verpackt und versendet</b> markiert — Bestand wird abgebucht und Shopify informiert.",
       "weightLabel": "Paketgewicht (Gramm)",
       "codAmountLabel": "Nachnahme-Betrag (EUR)",
       "codAmountPlaceholder": "49,90",
       "createButton": "DHL-Etikett erstellen",
       "creating": "Erzeuge Etikett…",
-      "domestic": "Inland DE — DHL Paket (V01PAK)",
+      "domestic": "Inland — DHL Paket",
       "internationalNotice": "Auslandsversand ({country}) — DHL Express",
       "internationalButton": "DHL Express Etikett",
       "existingNumber": "DHL Sendungsnummer",
-      "existingSandbox": "SANDBOX",
+      "existingSandbox": "Test",
       "existingWeight": "Gewicht: {weight} g",
       "openPdf": "Etikett-PDF öffnen",
       "tracking": "Tracking",
       "recreate": "Etikett neu erstellen",
       "recreating": "Erzeuge…",
       "recreateConfirm": "Wirklich neu? Nochmal klicken",
-      "notConfiguredHint": "DHL ist noch nicht konfiguriert. <link>In den Admin-Einstellungen</link> EKP-Nummer + Absenderadresse pflegen.",
+      "notConfiguredHint": "DHL ist noch nicht konfiguriert. <link>In den Admin-Einstellungen</link> Abrechnungsnummer und Absenderadresse pflegen.",
       "errors": {
         "weightRange": "Gewicht in Gramm muss zwischen 1 und 31500 liegen.",
         "codMissing": "Nachnahme-Betrag fehlt. Bitte den offenen Bruttobetrag in EUR eintragen (z. B. 49,90).",
         "codOverLimit": "Nachnahme-Betrag überschreitet DHL-Limit von 3.500,00 EUR.",
         "configNotConfigured": "DHL ist noch nicht konfiguriert. Bitte in den Admin-Einstellungen Abrechnungsnummer + Absenderadresse pflegen.",
-        "configBillingMissing": "Abrechnungsnummer (EKP) fehlt in der DHL-Konfiguration.",
-        "configCredentialsMissing": "Geschäftskundenportal-Username/Passwort fehlen in der DHL-Konfiguration.",
-        "configClientCredsMissing": "DHL_API_KEY/SECRET fehlen in den ENV-Variablen.",
+        "configBillingMissing": "Abrechnungsnummer fehlt in den DHL-Einstellungen.",
+        "configCredentialsMissing": "Benutzername oder Passwort für das Geschäftskundenportal fehlen.",
+        "configClientCredsMissing": "App-ID oder App-Geheimnis fehlen in den DHL-Einstellungen.",
         "address": "Lieferadresse unvollständig ({field}).",
-        "validationFailed": "DHL hat den Versandauftrag abgelehnt. Bitte Adresse / Gewicht prüfen (Details siehe Logs).",
+        "validationFailed": "DHL hat den Versandauftrag abgelehnt. Bitte Adresse und Gewicht prüfen.",
         "noLabel": "DHL hat zwar geantwortet, aber kein Etikett zurückgegeben.",
         "codMissingAmount": "Nachnahme-Tag gesetzt, aber kein offener Betrag in der Order. Order in Shopify prüfen oder neu synchronisieren.",
         "codMissingAccountRef": "Nachnahme-Kontoreferenz fehlt — bitte in den Admin-Einstellungen unter DHL pflegen.",
         "codCurrency": "Nachnahme ist nur in EUR möglich.",
         "servicesGeneric": "DHL-Sonderleistung: {sub}",
-        "auth": "DHL-Authentifizierung fehlgeschlagen ({status}). Credentials prüfen.",
-        "api": "DHL-API-Fehler (HTTP {status}).",
+        "auth": "DHL-Anmeldung fehlgeschlagen — Zugangsdaten in den Einstellungen prüfen.",
+        "api": "DHL hat einen Fehler gemeldet — bitte später erneut versuchen.",
         "generic": "Fehler: {code}"
       }
     },
     "finish": {
       "eyebrow": "Abschluss",
       "title": "Verpackt + versendet",
-      "intro": "Bucht den Bestand atomar ab, meldet Fulfillment und Inventory an Shopify zurück und schließt die Order."
+      "intro": "Bucht den Bestand ab, meldet den Versand an Shopify und schließt die Bestellung ab."
     },
     "alerts": {
       "packed": "Order ist gepackt und gebucht.",
@@ -597,8 +597,8 @@
       "components": "Komponenten",
       "mergedFrom": "Aus {count} Positionen zusammengeführt: {ids}",
       "imageMissing": {
-        "noVariant": "Variant nicht in Firestore — Produkt-Sync ausführen",
-        "noProduct": "Produkt nicht in Firestore — Produkt-Sync ausführen",
+        "noVariant": "Variante nicht synchronisiert — bitte Produkte syncen",
+        "noProduct": "Produkt nicht synchronisiert — bitte Produkte syncen",
         "noImage": "Produkt hat in Shopify kein featuredMedia",
         "noVariantShort": "Variant fehlt",
         "noProductShort": "Produkt fehlt",
@@ -618,7 +618,7 @@
       "allocationsReleased": "Reservierte Chargen wurden zurück in den Bestand gebucht. Lagerbestand wurde an Shopify gemeldet."
     },
     "metaOrderId": "Order-ID",
-    "metaShopifyGid": "Shopify-GID",
+    "metaShopifyGid": "Shopify-ID",
     "metaCreated": "Erstellt",
     "comments": {
       "title": "Kommentare",
@@ -630,7 +630,7 @@
     "financial": "Financial",
     "fulfillment": "Fulfillment",
     "stopReason": "Stop-Grund",
-    "allocationRun": "Allocation-Run",
+    "allocationRun": "Verfügbarkeitsprüfung",
     "allocationsEyebrow": "Allokationen",
     "lineItemsTitle": "{count, plural, one {# Line Item} other {# Line Items}} ({allocs, plural, one {# Reservierung} other {# Reservierungen}})",
     "table": {
@@ -671,7 +671,7 @@
     "sync": {
       "eyebrow": "Synchronisation",
       "title": "Voll-Sync",
-      "intro": "Lädt alle Produkte und Varianten aus Shopify nach Firestore. Bestehende Bestände werden standardmäßig nicht überschrieben.",
+      "intro": "Lädt alle Produkte und Varianten aus Shopify. Bestehende Bestände werden standardmäßig nicht überschrieben.",
       "inventoryCheckbox": "Bestand aus Shopify übernehmen",
       "inventoryCheckboxHint": "Spiegelt die verkaufbare Menge von Shopify in unsere Datenbank. Reservierungen bleiben erhalten. Nur aktivieren, wenn du Shopify-Bestände importieren willst.",
       "button": "Aus Shopify synchronisieren",
@@ -989,7 +989,7 @@
     "qty": "Menge",
     "charge": "Charge · MHD",
     "chargeOnly": "Charge",
-    "noAllocation": "— keine Allokation —",
+    "noAllocation": "— keine Zuordnung —",
     "expiry": "MHD",
     "qtyUnit": "Stk",
     "footerOrderId": "Order-ID:",

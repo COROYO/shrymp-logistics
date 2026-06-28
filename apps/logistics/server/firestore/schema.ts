@@ -643,7 +643,10 @@ export const DhlConfigSchema = z.object({
       height: z.number().int().positive(),
     })
     .optional(),
-  /** Geschäftskundenportal username + password for OAuth2 ROPC. */
+  /** DHL developer portal app credentials (client_id / client_secret). */
+  api_key: z.string().nullable().default(null),
+  api_secret: z.string().nullable().default(null),
+  /** Geschäftskundenportal login for label creation. */
   gkp_username: z.string().nullable().default(null),
   gkp_password: z.string().nullable().default(null),
   /**
@@ -708,6 +711,10 @@ export const ShopSchema = z.object({
   slip_branding: SlipBrandingSchema.optional(),
   /** Firebase Auth uid of the merchant who connected this shop. */
   owner_uid: z.string().optional(),
+  /** Last completed onboarding wizard step (0-based). */
+  onboarding_step: z.number().int().nonnegative().optional(),
+  /** Set when the merchant finishes the first-run setup wizard. */
+  onboarding_completed_at: FirestoreTimestamp.optional(),
   created_at: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });

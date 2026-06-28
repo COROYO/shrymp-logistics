@@ -1,8 +1,8 @@
 import { getSessionUser } from "@/lib/auth/session";
 import { listAccessibleShopIds } from "@/lib/auth/tenant";
 import { listUsersForShops } from "@/server/users/management";
-import { NewUserForm } from "./new-user-form";
 import { UserRow } from "./user-row";
+import { UsersHeaderActions } from "./users-header-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,15 +24,18 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="eyebrow">Team</p>
-        <h1 className="h-display mt-1 text-3xl">Benutzer</h1>
-        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
-          Mitarbeiter:innen anlegen und Rollen verwalten. Nur Admins können
-          hier ändern. Du selbst (
-          <span className="font-mono">{me?.email}</span>) kannst dich nicht
-          versehentlich aussperren.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow">Team</p>
+          <h1 className="h-display mt-1 text-3xl">Benutzer</h1>
+          <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
+            Mitarbeiter:innen anlegen und Rollen verwalten. Nur Admins können
+            hier ändern. Du selbst (
+            <span className="font-mono">{me?.email}</span>) kannst dich nicht
+            versehentlich aussperren.
+          </p>
+        </div>
+        <UsersHeaderActions />
       </div>
 
       <dl className="grid gap-3 sm:grid-cols-4 text-sm">
@@ -45,22 +48,6 @@ export default async function UsersPage() {
           tone={noRoleCount > 0 ? "warn" : undefined}
         />
       </dl>
-
-      <section className="card p-6">
-        <p className="eyebrow">Neuer Account</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          Mitarbeiter:in anlegen
-        </h2>
-        <p className="mt-1 text-xs text-brand-navy/60">
-          Email + Initial-Passwort (min. 8 Zeichen). Die Person sollte beim
-          ersten Login das Passwort ändern (Self-Service kommt später —
-          aktuell musst du als Admin per &quot;Passwort zurücksetzen&quot; ein
-          neues setzen).
-        </p>
-        <div className="mt-5">
-          <NewUserForm />
-        </div>
-      </section>
 
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">

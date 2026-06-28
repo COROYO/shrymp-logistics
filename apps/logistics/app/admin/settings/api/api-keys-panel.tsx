@@ -37,13 +37,13 @@ export function ApiKeysPanel({
       if (res.ok) {
         setRevealedKey(res.key);
         dispatchAdminJobSuccess({
-          title: "API-Schlüssel",
+          title: "Zugangsschlüssel",
           message: `Schlüssel „${res.label}" erstellt — kopiere ihn jetzt, er wird nicht erneut angezeigt.`,
         });
         e.currentTarget.reset();
         router.refresh();
       } else {
-        dispatchAdminJobError({ title: "API-Schlüssel", message: res.error });
+        dispatchAdminJobError({ title: "Zugangsschlüssel", message: res.error });
       }
     });
   }
@@ -51,7 +51,7 @@ export function ApiKeysPanel({
   function onRevoke(id: string, label: string) {
     if (
       !window.confirm(
-        `API-Schlüssel „${label}" wirklich widerrufen? Externe Integrationen mit diesem Schlüssel funktionieren danach nicht mehr.`,
+        `Zugangsschlüssel „${label}" wirklich widerrufen? Externe Anbindungen mit diesem Schlüssel funktionieren danach nicht mehr.`,
       )
     ) {
       return;
@@ -62,12 +62,12 @@ export function ApiKeysPanel({
       const res = await revokeApiKeyAction(fd);
       if (res.ok) {
         dispatchAdminJobSuccess({
-          title: "API-Schlüssel",
+          title: "Zugangsschlüssel",
           message: "Schlüssel widerrufen.",
         });
         router.refresh();
       } else {
-        dispatchAdminJobError({ title: "API-Schlüssel", message: res.error });
+        dispatchAdminJobError({ title: "Zugangsschlüssel", message: res.error });
       }
     });
   }
@@ -77,12 +77,12 @@ export function ApiKeysPanel({
     try {
       await navigator.clipboard.writeText(revealedKey);
       dispatchAdminJobSuccess({
-        title: "API-Schlüssel",
+        title: "Zugangsschlüssel",
         message: "Schlüssel in Zwischenablage kopiert.",
       });
     } catch {
       dispatchAdminJobError({
-        title: "API-Schlüssel",
+        title: "Zugangsschlüssel",
         message: "Kopieren fehlgeschlagen — markiere den Schlüssel manuell.",
       });
     }
@@ -93,10 +93,10 @@ export function ApiKeysPanel({
       <section className="card p-6">
         <p className="eyebrow">Neuer Schlüssel</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          API-Schlüssel erstellen
+          Zugangsschlüssel erstellen
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Für n8n, Scripts oder Partner-Integrationen. Der Rohschlüssel wird nur
+          Für n8n, eigene Tools oder Partner-Anbindungen. Der Schlüssel wird nur
           einmal nach dem Erstellen angezeigt.
         </p>
 
@@ -138,9 +138,6 @@ export function ApiKeysPanel({
                 <span>
                   <span className="block text-sm font-semibold text-brand-navy">
                     {opt.label}
-                  </span>
-                  <span className="mt-0.5 block font-mono text-xs text-brand-navy/50">
-                    {opt.endpoint}
                   </span>
                 </span>
               </label>
@@ -189,7 +186,7 @@ export function ApiKeysPanel({
 
         {keys.length === 0 ? (
           <div className="px-6 py-10 text-center text-sm text-brand-navy/50">
-            Keine API-Schlüssel
+            Keine Zugangsschlüssel
           </div>
         ) : (
           <ul className="divide-y divide-zinc-100">
@@ -232,14 +229,14 @@ export function ApiKeysPanel({
       </section>
 
       <section className="card p-6">
-        <p className="eyebrow">Referenz</p>
+        <p className="eyebrow">Anbindung</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          REST API v1
+          Basis-URL für externe Tools
         </h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
-              Basis-URL
+              Adresse
             </dt>
             <dd className="mt-1 font-mono text-xs">{baseUrl}/api/v1</dd>
           </div>
@@ -247,19 +244,11 @@ export function ApiKeysPanel({
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
               Authentifizierung
             </dt>
-            <dd className="mt-1 font-mono text-xs">
-              Authorization: Bearer sk_live_…
+            <dd className="mt-1 text-xs text-brand-navy/70">
+              Bearer-Token mit dem erstellten Schlüssel
             </dd>
           </div>
         </dl>
-        <pre className="mt-4 overflow-x-auto rounded-md bg-zinc-900 px-4 py-3 text-xs text-zinc-100">
-{`curl -s "${baseUrl}/api/v1/orders?status=SHIP" \\
-  -H "Authorization: Bearer sk_live_…"`}
-        </pre>
-        <p className="mt-3 text-xs text-brand-navy/60">
-          Antwortformat:{" "}
-          <code className="font-mono">{`{ "data": { … }, "meta": { "shop_id": "…" } }`}</code>
-        </p>
       </section>
     </div>
   );

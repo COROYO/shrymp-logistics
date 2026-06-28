@@ -12,7 +12,7 @@ export function PushInventoryButton() {
   function handleClick() {
     if (
       !confirm(
-        "Alle Bestände aus Firestore an Shopify schicken? Überschreibt eventuelle manuelle Inventory-Änderungen in Shopify.",
+        "Alle Bestände an Shopify übertragen? Überschreibt eventuelle manuelle Bestandsänderungen in Shopify.",
       )
     )
       return;
@@ -21,7 +21,7 @@ export function PushInventoryButton() {
       if (res.ok) {
         dispatchAdminJobSuccess({
           title: "Bestand",
-          message: `Push OK · ${res.variantCount} Varianten in ${res.queuedChunks} Chunks (skipped ${res.skipped}). Outbox: ${res.drained.done} done · ${res.drained.failed} failed.`,
+          message: `${res.variantCount} Varianten übertragen.`,
         });
       } else {
         dispatchAdminJobError({ title: "Bestand", message: res.error });

@@ -41,7 +41,7 @@ export default async function SettingsOverviewPage({
                 href="/admin/settings/auftraege"
                 className="text-brand-burgundy underline"
               >
-                Aufträge & Allocation
+                Aufträge
               </Link>
             </li>
             <li>

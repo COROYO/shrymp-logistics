@@ -14,17 +14,17 @@ export function RunAllocationButton() {
       const res = await runAllocationAction();
       if (res.ok) {
         dispatchAdminJobSuccess({
-          title: "Allocation",
-          message: `Run ${res.runId.slice(0, 8)}… · SHIP=${res.shipCount} · STOP=${res.stopCount} · Tags gepusht=${res.tagsPushed}`,
+          title: "Verfügbarkeit",
+          message: `${res.shipCount} versandbereit · ${res.stopCount} warten auf Bestand`,
         });
         if (res.tagsFailed > 0) {
           dispatchAdminJobSuccess({
-            title: "Allocation",
-            message: `${res.tagsFailed} Tag-Push${res.tagsFailed === 1 ? "" : "es"} fehlgeschlagen — in der Outbox zur Wiederholung.`,
+            title: "Verfügbarkeit",
+            message: `${res.tagsFailed} Shopify-Tag${res.tagsFailed === 1 ? "" : "s"} konnten nicht gesetzt werden — wird erneut versucht.`,
           });
         }
       } else {
-        dispatchAdminJobError({ title: "Allocation", message: res.error });
+        dispatchAdminJobError({ title: "Verfügbarkeit", message: res.error });
       }
     });
   }
@@ -36,7 +36,7 @@ export function RunAllocationButton() {
       disabled={pending}
       className="btn-secondary"
     >
-      {pending ? "Läuft…" : "Allocation manuell starten"}
+      {pending ? "Prüfe…" : "Verfügbarkeit manuell prüfen"}
     </button>
   );
 }

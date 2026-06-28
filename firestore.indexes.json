@@ -97,6 +97,30 @@
       "collectionGroup": "batches",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "variant_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "allocations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "variant_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "allocations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "batch_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "batches",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "variant_id", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "expiry_date", "order": "ASCENDING" }

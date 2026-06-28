@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { DownloadIcon, UploadIcon } from "@/app/_components/icons";
+import { Modal } from "@/app/_components/modal";
 import {
   importLagerbestandAction,
   type ImportActionState,
@@ -12,7 +13,50 @@ import {
   dispatchAdminJobSuccess,
 } from "@/app/admin/_components/admin-jobs-events";
 
+const actionBtn =
+  "inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/80 transition hover:border-brand-navy hover:text-brand-navy";
+
 export function ImportExportBar() {
+  const t = useTranslations("lagerbestand.io");
+  const [importOpen, setImportOpen] = useState(false);
+
+  return (
+    <>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        <a href="/admin/lagerbestand/export" className={actionBtn}>
+          <DownloadIcon className="h-4 w-4" />
+          {t("export")}
+        </a>
+
+        <a href="/admin/lagerbestand/export?charges=0" className={actionBtn}>
+          <DownloadIcon className="h-4 w-4" />
+          {t("exportNoCharges")}
+        </a>
+
+        <button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90"
+        >
+          <UploadIcon className="h-4 w-4" />
+          {t("import")}
+        </button>
+      </div>
+
+      <Modal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title={t("title")}
+        description={t("hint")}
+        size="lg"
+      >
+        <ImportForm onDone={() => setImportOpen(false)} />
+      </Modal>
+    </>
+  );
+}
+
+function ImportForm({ onDone }: { onDone?: () => void }) {
   const t = useTranslations("lagerbestand.io");
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
@@ -35,6 +79,7 @@ export function ImportExportBar() {
           title: t("import"),
           message: `${s.created} neu · ${s.updated} aktualisiert · ${s.skipped} übersprungen${s.errors > 0 ? ` · ${s.errors} Fehler` : ""}`,
         });
+        if (s.errors === 0) onDone?.();
       } else {
         dispatchAdminJobError({ title: t("import"), message: res.error });
       }
@@ -43,60 +88,32 @@ export function ImportExportBar() {
   }
 
   return (
-    <section className="card p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="max-w-xl">
-          <p className="eyebrow">{t("eyebrow")}</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-            {t("title")}
-          </h2>
-          <p className="mt-1 text-xs text-brand-navy/60">{t("hint")}</p>
-        </div>
-
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <a
-            href="/admin/lagerbestand/export"
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/80 transition hover:border-brand-navy hover:text-brand-navy"
-          >
-            <DownloadIcon className="h-4 w-4" />
-            {t("export")}
-          </a>
-
-          <a
-            href="/admin/lagerbestand/export?charges=0"
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/80 transition hover:border-brand-navy hover:text-brand-navy"
-          >
-            <DownloadIcon className="h-4 w-4" />
-            {t("exportNoCharges")}
-          </a>
-
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => fileRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90 disabled:opacity-50"
-          >
-            <UploadIcon className="h-4 w-4" />
-            {pending ? t("importing") : t("import")}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={onFileChange}
-          />
-        </div>
-      </div>
+    <div className="space-y-4">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => fileRef.current?.click()}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-burgundy px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90 disabled:opacity-50"
+      >
+        <UploadIcon className="h-4 w-4" />
+        {pending ? t("importing") : t("import")}
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={onFileChange}
+      />
 
       {fileName && (
-        <p className="mt-3 text-xs text-brand-navy/50">
+        <p className="text-xs text-brand-navy/50">
           {t("file")}: <span className="font-mono">{fileName}</span>
         </p>
       )}
 
       {result && <ImportResult result={result} />}
-    </section>
+    </div>
   );
 }
 
@@ -111,7 +128,7 @@ function ImportResult({ result }: { result: ImportActionState }) {
   );
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="space-y-3">
       <div className="flex flex-wrap gap-2 text-xs">
         <Pill label={t("created")} value={s.created} tone="emerald" />
         <Pill label={t("updated")} value={s.updated} tone="navy" />

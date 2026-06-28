@@ -17,9 +17,8 @@ export default async function ChargenSettingsPage() {
       </h2>
       <p className="mt-1 text-xs text-brand-navy/60">
         Steuert, ob Chargen beim Lieferschein-Druck zugeordnet werden und wie
-        die MHD-Sperre greift. Bei deaktiviertem Chargen-Tracking läuft
-        Allocation rein über Varianten-Bestand — ohne Chargen-Reads oder
-        Charge-Freigaben.
+        die MHD-Sperre greift. Ohne Chargen-Tracking arbeitet die App nur mit
+        dem Gesamtbestand pro Variante.
       </p>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">

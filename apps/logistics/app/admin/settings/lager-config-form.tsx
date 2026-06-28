@@ -61,11 +61,10 @@ export function LagerConfigForm({
               Chargen-Tracking aktiv
             </span>
             <span className="mt-1 block text-xs text-brand-navy/70">
-              Wenn aktiv, werden beim Lieferschein-Druck Chargen per FEFO
-              zugeordnet und die MHD-Sperre greift — Allocation nutzt dann den
-              Chargen-Pool. Wenn deaktiviert, arbeitet Allocation und Versand
-              nur mit Varianten-Bestand (<code>on_hand − reserved</code>), ohne
-              Chargen auf dem Lieferschein.
+              Wenn aktiv, werden beim Lieferschein-Druck Chargen nach
+              Restlaufzeit (FEFO) zugeordnet und die MHD-Sperre greift. Wenn
+              deaktiviert, arbeitet die App nur mit dem Gesamtbestand pro
+              Variante — ohne Chargen auf dem Lieferschein.
             </span>
           </span>
         </label>

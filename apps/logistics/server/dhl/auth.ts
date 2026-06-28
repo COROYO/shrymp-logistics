@@ -29,7 +29,7 @@ function keyFor(
 
 /** Drop the cached token for a given config — used after a 401 response. */
 export function invalidateDhlAccessToken(cfg: DhlConfig): void {
-  const clientId = process.env.DHL_API_KEY ?? "";
+  const clientId = cfg.api_key ?? "";
   cache.delete(keyFor(cfg, clientId));
 }
 
@@ -44,8 +44,8 @@ export class DhlAuthError extends Error {
 }
 
 export async function getDhlAccessToken(cfg: DhlConfig): Promise<string> {
-  const clientId = process.env.DHL_API_KEY ?? "";
-  const clientSecret = process.env.DHL_API_SECRET ?? "";
+  const clientId = cfg.api_key ?? "";
+  const clientSecret = cfg.api_secret ?? "";
   const username = cfg.gkp_username ?? "";
   const password = cfg.gkp_password ?? "";
 

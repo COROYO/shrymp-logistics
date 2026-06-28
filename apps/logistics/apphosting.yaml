@@ -7,18 +7,37 @@ env:
       - RUNTIME
 
   # ---------- Firebase (client, public) ----------
+  # BUILD is required — Next.js inlines NEXT_PUBLIC_* at build time only.
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: AIzaSyDQlU_eDgL7h568U8pPlaWYKtq1fRSuqwo
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     value: shrymp-logistics.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
     value: shrymp-logistics
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
     value: shrymp-logistics.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
     value: "308132633024"
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:308132633024:web:69952d85ad26f1995c9025
+    value: 1:308132633024:web:3ce5ec332a6803885c9025
+    availability:
+      - BUILD
+      - RUNTIME
 
   # ---------- Shopify ----------
   - variable: SHOPIFY_API_KEY
@@ -28,13 +47,7 @@ env:
   - variable: SHOPIFY_API_VERSION
     value: "2026-04"
   - variable: SHOPIFY_SCOPES
-    value: read_products,read_orders,write_orders,read_inventory,write_inventory,read_fulfillments,write_fulfillments,read_locations
-
-  # ---------- DHL ----------
-  - variable: DHL_API_KEY
-    secret: DHL_API_KEY
-  - variable: DHL_API_SECRET
-    secret: DHL_API_SECRET
+    value: read_products,write_products,read_orders,write_orders,read_inventory,write_inventory,read_fulfillments,write_fulfillments,read_locations,write_locations
 
   # ---------- Cloud Tasks (allocation queue) ----------
   # The Cloud Tasks consumer is the Next.js route /api/internal/allocation/run

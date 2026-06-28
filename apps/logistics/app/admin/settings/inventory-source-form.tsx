@@ -21,13 +21,13 @@ const OPTIONS: Array<{
     value: "APP",
     title: "Lager-App",
     description:
-      "Wareneingänge, Chargen und Packing aktualisieren unseren Bestand. Änderungen werden automatisch nach Shopify gepusht. Manuelle Inventory-Anpassungen in Shopify werden als Drift protokolliert.",
+      "Wareneingänge, Chargen und Verpacken aktualisieren den Bestand hier. Änderungen werden automatisch nach Shopify übertragen. Manuelle Anpassungen in Shopify werden protokolliert.",
   },
   {
     value: "SHOPIFY",
     title: "Shopify",
     description:
-      "Shopify ist führend für verkaufbare Mengen. Der Webhook inventory_levels/update spiegelt Änderungen in unsere Datenbank. Wir pushen keinen Bestand zurück nach Shopify.",
+      "Shopify führt die verkaufbare Menge. Änderungen in Shopify übernimmt die Lager-App automatisch — es wird kein Bestand zurückgeschrieben.",
   },
 ];
 

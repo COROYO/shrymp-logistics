@@ -33,31 +33,28 @@ async function loadDemandDetailByVariant(
 ): Promise<Map<string, ReservedDetail>> {
   const db = adminDb();
   const reserved = new Map<string, ReservedDetail>();
+  if (statuses.length === 0) return reserved;
+
   const normalizedShop = shopId ? normalizeShopId(shopId) : null;
+  const base = normalizedShop
+    ? ordersForShop(db, normalizedShop)
+    : db.collection(Collections.Orders);
 
-  // Status queries are independent — run them in parallel instead of serially.
-  const snaps = await Promise.all(
-    statuses.map((status) => {
-      const base = normalizedShop
-        ? ordersForShop(db, normalizedShop)
-        : db.collection(Collections.Orders);
-      return base.where("internal_status", "==", status).get();
-    }),
-  );
+  const snap = await base
+    .where("internal_status", "in", [...statuses])
+    .get();
 
-  for (const snap of snaps) {
-    for (const d of snap.docs) {
-      const o = d.data() as Order;
-      if (normalizedShop && o.shop_id && o.shop_id !== normalizedShop) continue;
-      for (const li of o.line_items ?? []) {
-        const cur = reserved.get(li.variant_id) ?? {
-          qty: 0,
-          orderIds: new Set<string>(),
-        };
-        cur.qty += li.qty;
-        cur.orderIds.add(o.id);
-        reserved.set(li.variant_id, cur);
-      }
+  for (const d of snap.docs) {
+    const o = d.data() as Order;
+    if (normalizedShop && o.shop_id && o.shop_id !== normalizedShop) continue;
+    for (const li of o.line_items ?? []) {
+      const cur = reserved.get(li.variant_id) ?? {
+        qty: 0,
+        orderIds: new Set<string>(),
+      };
+      cur.qty += li.qty;
+      cur.orderIds.add(o.id);
+      reserved.set(li.variant_id, cur);
     }
   }
 

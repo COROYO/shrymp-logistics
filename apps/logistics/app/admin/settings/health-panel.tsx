@@ -17,10 +17,22 @@ export type HealthSnapshot = {
   checkedAt: string | null;
 };
 
+const WEBHOOK_LABELS: Record<string, string> = {
+  "orders/create": "Neue Bestellungen",
+  "orders/updated": "Bestellungsänderungen",
+  "orders/edited": "Bearbeitete Bestellungen",
+  "orders/cancelled": "Stornierungen",
+  "inventory_levels/update": "Bestandsänderungen",
+  "app/uninstalled": "App deinstalliert",
+};
+
+function webhookLabel(topic: string): string {
+  return WEBHOOK_LABELS[topic] ?? topic;
+}
+
 /**
- * Live "Verbindungs-Gesundheit" widget. Shows the last persisted health
- * snapshot from `config/shopify_health` and offers a manual "jetzt prüfen +
- * reparieren" button that re-runs the check with auto-heal enabled.
+ * Live connection health widget. Shows the last persisted health snapshot
+ * and offers a manual check + repair button.
  */
 export function HealthPanel({ initial }: { initial: HealthSnapshot | null }) {
   const router = useRouter();
@@ -101,25 +113,25 @@ export function HealthPanel({ initial }: { initial: HealthSnapshot | null }) {
       {snap ? (
         <div className="rounded-md border border-zinc-200 bg-white">
           <Row
-            label="Access-Token"
+            label="Shopify-Verbindung"
             ok={snap.tokenValid}
             hint={
               snap.tokenValid
                 ? snap.shop ?? null
-                : "Token ist ungültig oder die App wurde deinstalliert. Re-OAuth erforderlich (Install-Link aus dem Partner Dashboard erneut öffnen)."
+                : "Verbindung ungültig oder App deinstalliert — bitte Shopify erneut freigeben."
             }
           />
           {snap.webhooks.map((w) => (
             <Row
               key={w.topic}
-              label={`Webhook · ${w.topic}`}
+              label={webhookLabel(w.topic)}
               ok={w.present}
               hint={
                 w.present
                   ? justRepaired.includes(w.topic)
-                    ? "Automatisch neu registriert."
+                    ? "Automatisch repariert."
                     : null
-                  : "Fehlt — wird beim nächsten Auto-Heal-Lauf nachregistriert."
+                  : "Fehlt — wird im Hintergrund nachregistriert."
               }
               repaired={justRepaired.includes(w.topic)}
             />
@@ -128,7 +140,7 @@ export function HealthPanel({ initial }: { initial: HealthSnapshot | null }) {
       ) : null}
 
       {snap?.errors && snap.errors.length > 0 ? (
-        <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-3 py-2 text-xs font-mono text-brand-burgundy-dark">
+        <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-3 py-2 text-xs text-brand-burgundy-dark">
           <ul className="space-y-1">
             {snap.errors.map((e, i) => (
               <li key={i}>{e}</li>
@@ -144,9 +156,7 @@ export function HealthPanel({ initial }: { initial: HealthSnapshot | null }) {
       ) : null}
 
       <p className="text-[11px] text-brand-navy/60">
-        Diese Prüfung läuft automatisch alle 15 Minuten via{" "}
-        <code className="font-mono">/api/cron/shopify-health</code> und
-        registriert fehlende Webhooks im Hintergrund nach.
+        Diese Prüfung läuft automatisch alle 15 Minuten im Hintergrund.
       </p>
     </div>
   );

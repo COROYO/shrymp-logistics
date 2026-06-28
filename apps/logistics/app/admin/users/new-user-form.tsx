@@ -13,7 +13,7 @@ const inputClass =
 const labelClass =
   "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70";
 
-export function NewUserForm() {
+export function NewUserForm({ onSuccess }: { onSuccess?: () => void }) {
   const [state, formAction, pending] = useActionState<
     CreateUserActionState,
     FormData
@@ -30,10 +30,11 @@ export function NewUserForm() {
         message: `Angelegt (uid ${state.uid.slice(0, 8)}…). Initial-Passwort dem Mitarbeiter mitteilen.`,
       });
       if (!pending) formRef.current?.reset();
+      onSuccess?.();
     } else {
       dispatchAdminJobError({ title: "Benutzer", message: state.error });
     }
-  }, [state, pending]);
+  }, [state, pending, onSuccess]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5">

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { PlusIcon } from "@/app/_components/icons";
+import { Modal } from "@/app/_components/modal";
 import {
   dispatchAdminJobError,
   dispatchAdminJobSuccess,
@@ -17,11 +19,20 @@ import {
 } from "./actions";
 import type { AssignableVariant, BinRow } from "@/server/warehouse/bins";
 
-export function BinsManager() {
+export function BinsManager({
+  initialBins,
+  initialVariants,
+}: {
+  initialBins?: BinRow[];
+  initialVariants?: AssignableVariant[];
+} = {}) {
   const t = useTranslations("bins");
-  const [bins, setBins] = useState<BinRow[] | null>(null);
-  const [variants, setVariants] = useState<AssignableVariant[] | null>(null);
+  const [bins, setBins] = useState<BinRow[] | null>(initialBins ?? null);
+  const [variants, setVariants] = useState<AssignableVariant[] | null>(
+    initialVariants ?? null,
+  );
   const [pending, startTransition] = useTransition();
+  const [createOpen, setCreateOpen] = useState(false);
 
   function transErr(code: string): string {
     return t.has(`errors.${code}`) ? t(`errors.${code}`) : code;
@@ -38,13 +49,30 @@ export function BinsManager() {
   }
 
   useEffect(() => {
+    if (initialBins !== undefined && initialVariants !== undefined) return;
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="space-y-6">
-      <CreateBins t={t} pending={pending} startTransition={startTransition} onDone={reload} transErr={transErr} />
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title={t("create.title")}
+        size="md"
+      >
+        <CreateBinsForm
+          t={t}
+          pending={pending}
+          startTransition={startTransition}
+          onDone={() => {
+            reload();
+            setCreateOpen(false);
+          }}
+          transErr={transErr}
+        />
+      </Modal>
       <BinList
         t={t}
         bins={bins}
@@ -52,6 +80,7 @@ export function BinsManager() {
         startTransition={startTransition}
         onDone={reload}
         transErr={transErr}
+        onCreateClick={() => setCreateOpen(true)}
       />
       <AssignSection
         t={t}
@@ -74,7 +103,7 @@ type Common = {
   transErr: (code: string) => string;
 };
 
-function CreateBins({ t, pending, startTransition, onDone, transErr }: Common) {
+function CreateBinsForm({ t, pending, startTransition, onDone, transErr }: Common) {
   const [mode, setMode] = useState<"single" | "bulk">("single");
 
   function handleSingle(e: React.FormEvent<HTMLFormElement>) {
@@ -124,14 +153,8 @@ function CreateBins({ t, pending, startTransition, onDone, transErr }: Common) {
   }
 
   return (
-    <section className="card p-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="eyebrow">{t("create.eyebrow")}</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-            {t("create.title")}
-          </h2>
-        </div>
+    <>
+      <div className="flex items-center justify-end gap-3">
         <div className="flex gap-1 rounded-md bg-zinc-100 p-1 text-xs">
           <button
             type="button"
@@ -179,7 +202,7 @@ function CreateBins({ t, pending, startTransition, onDone, transErr }: Common) {
           </button>
         </form>
       )}
-    </section>
+    </>
   );
 }
 
@@ -190,7 +213,8 @@ function BinList({
   startTransition,
   onDone,
   transErr,
-}: Common & { bins: BinRow[] | null }) {
+  onCreateClick,
+}: Common & { bins: BinRow[] | null; onCreateClick: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);
 
   if (bins === null) {
@@ -235,6 +259,14 @@ function BinList({
         <h2 className="text-sm font-semibold text-brand-navy">
           {t("list.title", { count: bins.length })}
         </h2>
+        <button
+          type="button"
+          onClick={onCreateClick}
+          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90"
+        >
+          <PlusIcon className="h-4 w-4" />
+          {t("create.add")}
+        </button>
       </div>
       {bins.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-brand-navy/60">

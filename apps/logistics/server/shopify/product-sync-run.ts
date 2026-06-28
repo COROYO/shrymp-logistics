@@ -445,6 +445,27 @@ export async function getLatestProductSyncStatus(
   return jobs[0] ?? null;
 }
 
+/** Latest successful full sync timestamp for admin UI (ms since epoch). */
+export async function getLastCompletedProductSyncFinishedAtMs(
+  shopId: string,
+): Promise<number | null> {
+  const normalizedShopId = normalizeShopId(shopId);
+  const snap = await adminDb()
+    .collection(Collections.ProductSyncRuns)
+    .where("shop_id", "==", normalizedShopId)
+    .orderBy("started_at", "desc")
+    .limit(25)
+    .get();
+
+  for (const doc of snap.docs) {
+    const data = doc.data();
+    if (data.status !== "COMPLETED") continue;
+    const ms = timestampToMs(data.finished_at);
+    if (ms != null) return ms;
+  }
+  return null;
+}
+
 function serializeRun(
   id: string,
   data: FirebaseFirestore.DocumentData,

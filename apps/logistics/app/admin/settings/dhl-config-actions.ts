@@ -35,6 +35,8 @@ const InputSchema = z.object({
     .optional(),
   gkp_username: z.string().trim().min(1).nullable().optional(),
   gkp_password: z.string().min(1).nullable().optional(),
+  api_key: z.string().trim().min(1).nullable().optional(),
+  api_secret: z.string().min(1).nullable().optional(),
   cod_account_reference: z.string().trim().max(35).nullable().optional(),
   sandbox: z.boolean(),
 });
@@ -73,6 +75,8 @@ export async function saveDhlConfigAction(
       | { length: unknown; width: unknown; height: unknown },
     gkp_username: emptyToNull(formData.get("gkp_username")),
     gkp_password: emptyToNull(formData.get("gkp_password")),
+    api_key: emptyToNull(formData.get("api_key")),
+    api_secret: emptyToNull(formData.get("api_secret")),
     cod_account_reference: emptyToNull(formData.get("cod_account_reference")),
     sandbox: formData.get("sandbox") === "on",
   };
@@ -97,19 +101,23 @@ export async function saveDhlConfigAction(
   // When user leaves the password field empty during edit, keep the
   // previously stored value (don't overwrite with null).
   let prevPassword: string | null = null;
+  let prevApiSecret: string | null = null;
   try {
     const shopId = await requireActiveShopId(user);
     const { getShop } = await import("@/server/tenant/shop");
     const shop = await getShop(shopId);
     prevPassword = shop?.dhl_config?.gkp_password ?? null;
+    prevApiSecret = shop?.dhl_config?.api_secret ?? null;
   } catch {
     // ignore — first-time write
   }
   const effectivePassword = data.gkp_password ?? prevPassword;
+  const effectiveApiSecret = data.api_secret ?? prevApiSecret;
 
   const docPayload = DhlConfigSchema.parse({
     ...data,
     gkp_password: effectivePassword,
+    api_secret: effectiveApiSecret,
     updated_at: new Date(),
     updated_by_uid: user.uid,
   });

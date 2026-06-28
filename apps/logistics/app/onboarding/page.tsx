@@ -19,27 +19,18 @@ export default async function OnboardingPage({
   if (user.role !== "ADMIN") redirect("/lager");
 
   const needsConnect = await merchantNeedsShopifyConnect(user);
-  if (!needsConnect) redirect("/admin/settings?installed=1");
+  if (!needsConnect) redirect("/onboarding/setup");
 
   const pendingShop = await loadPendingShopDomain(user.uid);
   const sp = await searchParams;
 
   return (
-    <div className="relative flex flex-1 items-center justify-center px-4 py-16">
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-cream via-brand-cream to-brand-stone"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-brand-navy"
-      />
-
+    <div className="flex flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-zinc-200 bg-white p-10 shadow-xl shadow-brand-navy/5">
         <div className="flex flex-col items-start gap-6">
           <BrandMark variant="dark" />
           <div>
-            <p className="eyebrow">Schritt 2</p>
+            <p className="eyebrow">Schritt 1</p>
             <h1 className="h-display mt-1 text-2xl">Shopify verbinden</h1>
             <p className="mt-1 text-sm text-brand-navy/60">
               Gib deine Shop-Domain ein und klicke auf Verbinden — Shopify
@@ -64,9 +55,9 @@ export default async function OnboardingPage({
         <div className="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-brand-navy">
           <p className="font-semibold">Nach der Verbindung:</p>
           <ol className="mt-2 list-decimal list-inside space-y-1 text-xs text-brand-navy/70">
-            <li>Produkte unter Admin → Produkte syncen</li>
-            <li>Offene Orders in den Einstellungen nachladen</li>
-            <li>Health-Check für Webhooks ausführen</li>
+            <li>Einrichtungs-Assistent startet automatisch</li>
+            <li>Produkte, Aufträge & Kunden werden importiert</li>
+            <li>Chargen, Lieferschein & DHL konfigurieren</li>
           </ol>
         </div>
       </div>

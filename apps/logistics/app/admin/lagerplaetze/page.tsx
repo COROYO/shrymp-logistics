@@ -1,12 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import { requireTenantPageContext } from "@/lib/auth/tenant-page";
-import { BinsManager } from "./bins-manager";
-
-export const dynamic = "force-dynamic";
+import { PageLoadingShell } from "@/app/_components/page-loading-shell";
+import { BinsContent } from "./bins-content";
 
 export default async function LagerplaetzePage() {
-  await requireTenantPageContext("/admin/lagerplaetze");
   const t = await getTranslations("bins");
 
   return (
@@ -24,7 +22,9 @@ export default async function LagerplaetzePage() {
         </Link>
       </div>
 
-      <BinsManager />
+      <Suspense fallback={<PageLoadingShell stats={0} rows={6} cols={4} />}>
+        <BinsContent />
+      </Suspense>
     </div>
   );
 }

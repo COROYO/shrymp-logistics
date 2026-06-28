@@ -103,12 +103,11 @@ export function LocationsSection() {
       <section className="card p-6">
         <p className="eyebrow">Standorte</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">
-          Shopify Locations
+          Lagerstandorte
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Bestand wird pro Standort geführt (<code>variant_location_stock</code>
-          ). Chargen und Wareneingänge werden einem Standort zugeordnet. Push
-          und Webhooks laufen pro Location.
+          Bestand wird pro Standort geführt. Chargen und Wareneingänge werden
+          einem Standort zugeordnet.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-3">

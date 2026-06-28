@@ -10,6 +10,7 @@ import { loadLagerConfig } from "@/server/lager/config";
 import { isBatchAssignableForShipping } from "@/server/picking/batch-assignability";
 import { allocationsForShop, batchesForShop } from "@/server/tenant/queries";
 import { normalizeShopId } from "@/server/tenant/id";
+import type { LagerConfig } from "@/server/firestore/schema";
 
 /**
  * Versandfähiger Bestand pro Variante: Summe aus `remaining_qty` plus offenen
@@ -60,17 +61,24 @@ async function loadBatchesForVariants(
   shopId?: string,
 ): Promise<Batch[]> {
   const db = adminDb();
-  const variantSet = new Set(variantIds);
-  if (variantSet.size === 0) return [];
-
-  if (shopId) {
-    const snap = await batchesForShop(db, shopId).get();
-    return snap.docs
-      .map((d) => ({ ...(d.data() as Batch), id: d.id }))
-      .filter((b) => variantSet.has(b.variant_id));
-  }
+  if (variantIds.length === 0) return [];
 
   const batches: Batch[] = [];
+  if (shopId) {
+    const scoped = batchesForShop(db, shopId);
+    const snaps = await Promise.all(
+      chunk(variantIds, 30).map((c) =>
+        scoped.where("variant_id", "in", c).get(),
+      ),
+    );
+    for (const snap of snaps) {
+      for (const d of snap.docs) {
+        batches.push({ ...(d.data() as Batch), id: d.id });
+      }
+    }
+    return batches;
+  }
+
   for (const c of chunk(variantIds, 30)) {
     const snap = await db
       .collection(Collections.Batches)
@@ -129,40 +137,49 @@ export async function loadAssignableRemainingByVariant(
 export async function loadShippableQtyByVariant(
   variantIds: string[],
   shopId?: string,
+  lagerCfg?: LagerConfig,
 ): Promise<Map<string, number>> {
   if (variantIds.length === 0) return new Map();
 
-  const lagerCfg = await loadLagerConfig(shopId);
-  if (!lagerCfg.batches_enabled) {
+  const cfg = lagerCfg ?? (await loadLagerConfig(shopId));
+  if (!cfg.batches_enabled) {
     return loadVariantAvailableById(variantIds);
   }
 
-  const minDays = lagerCfg.batch_min_days_before_expiry;
+  const minDays = cfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
-  const batches = await loadBatchesForVariants(variantIds, shopId);
+  const [batches, openAllocQtyByBatch] = await Promise.all([
+    loadBatchesForVariants(variantIds, shopId),
+    loadOpenAllocQtyByBatch(variantIds, shopId),
+  ]);
 
+  return computeShippableQtyByVariant(
+    batches,
+    openAllocQtyByBatch,
+    minDays,
+    referenceDate,
+  );
+}
+
+async function loadOpenAllocQtyByBatch(
+  variantIds: string[],
+  shopId?: string,
+): Promise<Map<string, number>> {
   const openAllocQtyByBatch = new Map<string, number>();
+  if (variantIds.length === 0) return openAllocQtyByBatch;
+
   const db = adminDb();
   const normalizedShop = shopId ? normalizeShopId(shopId) : null;
 
   if (normalizedShop) {
-    const allocSnap = await allocationsForShop(db, normalizedShop).get();
-    const variantSet = new Set(variantIds);
-    for (const d of allocSnap.docs) {
-      const a = d.data() as Allocation;
-      if (!variantSet.has(a.variant_id)) continue;
-      if (a.consumed_at || a.released) continue;
-      openAllocQtyByBatch.set(
-        a.batch_id,
-        (openAllocQtyByBatch.get(a.batch_id) ?? 0) + a.qty,
-      );
-    }
-  } else {
-    for (const c of chunk(variantIds, 30)) {
-      const allocSnap = await db
-        .collection(Collections.Allocations)
-        .where("variant_id", "in", c)
-        .get();
+    const snaps = await Promise.all(
+      chunk(variantIds, 30).map((c) =>
+        allocationsForShop(db, normalizedShop)
+          .where("variant_id", "in", c)
+          .get(),
+      ),
+    );
+    for (const allocSnap of snaps) {
       for (const d of allocSnap.docs) {
         const a = d.data() as Allocation;
         if (a.consumed_at || a.released) continue;
@@ -172,14 +189,24 @@ export async function loadShippableQtyByVariant(
         );
       }
     }
+    return openAllocQtyByBatch;
   }
 
-  return computeShippableQtyByVariant(
-    batches,
-    openAllocQtyByBatch,
-    minDays,
-    referenceDate,
-  );
+  for (const c of chunk(variantIds, 30)) {
+    const allocSnap = await db
+      .collection(Collections.Allocations)
+      .where("variant_id", "in", c)
+      .get();
+    for (const d of allocSnap.docs) {
+      const a = d.data() as Allocation;
+      if (a.consumed_at || a.released) continue;
+      openAllocQtyByBatch.set(
+        a.batch_id,
+        (openAllocQtyByBatch.get(a.batch_id) ?? 0) + a.qty,
+      );
+    }
+  }
+  return openAllocQtyByBatch;
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {

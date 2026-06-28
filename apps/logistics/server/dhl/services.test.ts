@@ -25,6 +25,8 @@ const baseConfig: DhlConfig = {
   default_weight_g: 1000,
   gkp_username: "u",
   gkp_password: "p",
+  api_key: "test-api-key",
+  api_secret: "test-api-secret",
   cod_account_reference: "REF-1",
   sandbox: true,
   updated_at: new Date(),

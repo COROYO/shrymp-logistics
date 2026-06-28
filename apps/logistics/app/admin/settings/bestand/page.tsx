@@ -36,11 +36,9 @@ export default async function BestandSettingsPage() {
             Bestände nach Shopify pushen
           </h2>
           <p className="mt-1 text-xs text-brand-navy/60">
-            Schreibt für jede Variante den aktuellen{" "}
-            <code>available</code>-Wert (={" "}
-            <code>on_hand_total − reserved_total</code>) per{" "}
-            <code>inventorySetOnHandQuantities</code> nach Shopify. Nötig nach
-            dem ersten Wareneingang oder bei manuellem Drift.
+            Schreibt den aktuellen verfügbaren Bestand jeder Variante nach
+            Shopify. Nötig nach dem ersten Wareneingang oder wenn sich die
+            Mengen in Shopify und der Lager-App unterscheiden.
           </p>
           <div className="mt-5">
             <PushInventoryButton />
@@ -53,9 +51,8 @@ export default async function BestandSettingsPage() {
             Push deaktiviert
           </h2>
           <p className="mt-1 text-xs text-brand-navy/60">
-            Shopify ist führend — Bestandsänderungen kommen über den Webhook{" "}
-            <code>inventory_levels/update</code>. Passe Mengen in Shopify Admin
-            an; die Lager-App übernimmt sie automatisch.
+            Shopify führt den Bestand — passe Mengen im Shopify Admin an, die
+            Lager-App übernimmt sie automatisch.
           </p>
         </section>
       )}

@@ -19,7 +19,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { href: "/admin/settings/shopify", label: "Shopify" },
       { href: "/admin/settings/dhl", label: "DHL Versand" },
-      { href: "/admin/settings/api", label: "REST API" },
+      { href: "/admin/settings/api", label: "Externe Anbindung" },
     ],
   },
   {
@@ -33,7 +33,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
     label: "Betrieb",
     items: [
-      { href: "/admin/settings/auftraege", label: "Aufträge & Allocation" },
+      { href: "/admin/settings/auftraege", label: "Aufträge" },
     ],
   },
   {

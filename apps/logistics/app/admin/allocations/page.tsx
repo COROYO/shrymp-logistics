@@ -214,23 +214,20 @@ export default async function AllocationsPage({
     : "ALL";
 
   const { shopId } = await requireTenantPageContext("/admin/allocations");
-  const rows = await loadAllocationRows({
-    status: filter,
-    orderId: order_id,
-    batchId: batch_id,
-    shopId,
-  });
+  const [rows, reservedSummary] = await Promise.all([
+    loadAllocationRows({
+      status: filter,
+      orderId: order_id,
+      batchId: batch_id,
+      shopId,
+    }),
+    loadReservedSummary(shopId),
+  ]);
 
   const openCount = rows.filter((r) => !r.consumedIso).length;
   const consumedCount = rows.filter((r) => r.consumedIso).length;
   const orderCount = new Set(rows.map((r) => r.orderId)).size;
   const batchCount = new Set(rows.map((r) => r.batchId)).size;
-
-  // Reserved goods — the authoritative figure, computed from SHIP/PICKING
-  // order demand (NOT from charge-allocation docs, which only exist after a
-  // slip is printed). This is what's actually committed and unavailable to
-  // new orders.
-  const reservedSummary = await loadReservedSummary(shopId);
   const reservedTotal = reservedSummary.reduce((s, r) => s + r.qty, 0);
 
   return (
@@ -240,8 +237,7 @@ export default async function AllocationsPage({
         <h1 className="h-display mt-1 text-3xl">Charge ↔ Order</h1>
         <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
           Welche Charge ist welcher Bestellung zugeordnet? Jede Zeile ist eine
-          Allokation aus dem Allocation-Run — reserviert bis zum Packing
-          (Konsum).
+          Reservierung bis zum Verpacken.
         </p>
         {(order_id || batch_id) && (
           <p className="mt-2 text-xs text-brand-navy/60">

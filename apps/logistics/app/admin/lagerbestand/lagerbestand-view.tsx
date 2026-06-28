@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
-import { StatSkeleton, TableSkeleton } from "@/app/_components/table-skeleton";
 import {
   LagerbestandTable,
   type LagerbestandRow,
@@ -15,32 +14,14 @@ async function fetchInventoryRows(): Promise<LagerbestandRow[]> {
   return payload.data.rows;
 }
 
-export function LagerbestandDataLoader() {
+export function LagerbestandView({
+  initialRows,
+}: {
+  initialRows: LagerbestandRow[];
+}) {
   const t = useTranslations("lagerbestand");
-  const tCommon = useTranslations("common");
-  const [rows, setRows] = useState<LagerbestandRow[] | null>(null);
-  const [error, setError] = useState(false);
+  const [rows, setRows] = useState(initialRows);
 
-  useEffect(() => {
-    let cancelled = false;
-    setError(false);
-    setRows(null);
-
-    fetchInventoryRows()
-      .then((next) => {
-        if (!cancelled) setRows(next);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Re-fetch authoritative numbers after an inline edit without flashing the
-  // skeleton (keeps the current rows visible until fresh data arrives).
   const reload = useCallback(async () => {
     try {
       setRows(await fetchInventoryRows());
@@ -48,28 +29,6 @@ export function LagerbestandDataLoader() {
       /* keep current rows on a transient refetch error */
     }
   }, []);
-
-  if (error) {
-    return (
-      <div className="card px-6 py-10 text-center text-sm text-red-700">
-        Daten konnten nicht geladen werden.
-      </div>
-    );
-  }
-
-  if (!rows) {
-    return (
-      <div className="space-y-8">
-        <StatSkeleton count={4} />
-        <div className="card overflow-hidden relative">
-          <div className="absolute inset-x-0 top-3 z-10 text-center text-xs text-brand-navy/50">
-            {tCommon("loading")}
-          </div>
-          <TableSkeleton rows={12} cols={5} />
-        </div>
-      </div>
-    );
-  }
 
   const totals = rows.reduce(
     (acc, r) => ({

@@ -1,77 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { StatSkeleton, TableSkeleton } from "@/app/_components/table-skeleton";
 import { ProductAccordion, type ProductRow } from "./product-accordion";
 
-type ProductsPayload = {
+export type ProductsViewData = {
   rows: ProductRow[];
   batchesEnabled: boolean;
   locations: Array<{ id: string; name: string; isPrimary: boolean }>;
   defaultLocationId: string | null;
 };
 
-export function ProductsDataLoader() {
+export function ProductsView({ initialData }: { initialData: ProductsViewData }) {
   const t = useTranslations("products");
-  const tCommon = useTranslations("common");
-  const [data, setData] = useState<ProductsPayload | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setError(false);
-    setData(null);
-
-    fetch("/api/v1/batches")
-      .then((r) => {
-        if (!r.ok) throw new Error("fetch_failed");
-        return r.json() as Promise<{
-          data: ProductsPayload;
-        }>;
-      })
-      .then((payload) => {
-        if (!cancelled) {
-          setData({
-            rows: payload.data.rows,
-            batchesEnabled: payload.data.batchesEnabled,
-            locations: payload.data.locations,
-            defaultLocationId: payload.data.defaultLocationId,
-          });
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (error) {
-    return (
-      <div className="card px-6 py-10 text-center text-sm text-red-700">
-        Daten konnten nicht geladen werden.
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="space-y-8">
-        <StatSkeleton count={3} />
-        <div className="card overflow-hidden relative">
-          <div className="absolute inset-x-0 top-3 z-10 text-center text-xs text-brand-navy/50">
-            {tCommon("loading")}
-          </div>
-          <TableSkeleton rows={8} cols={4} />
-        </div>
-      </div>
-    );
-  }
-
-  const { rows, batchesEnabled, locations, defaultLocationId } = data;
+  const { rows, batchesEnabled, locations, defaultLocationId } = initialData;
   const totals = {
     products: rows.length,
     activeBatches: rows.reduce((s, r) => s + r.batchCount, 0),
@@ -85,7 +26,10 @@ export function ProductsDataLoader() {
         {batchesEnabled ? (
           <Stat label={t("stats.activeBatches")} value={totals.activeBatches} />
         ) : (
-          <Stat label={t("stats.variants")} value={rows.reduce((s, r) => s + r.variants.length, 0)} />
+          <Stat
+            label={t("stats.variants")}
+            value={rows.reduce((s, r) => s + r.variants.length, 0)}
+          />
         )}
         <Stat label={t("stats.onHandTotal")} value={totals.onHand} />
       </dl>

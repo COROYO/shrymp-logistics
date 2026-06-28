@@ -58,7 +58,7 @@ export function assertDhlReady(cfg: DhlConfig | null): asserts cfg is DhlConfig 
   if (!cfg.gkp_username || !cfg.gkp_password) {
     throw new DhlConfigError("credentials_missing");
   }
-  if (!process.env.DHL_API_KEY || !process.env.DHL_API_SECRET) {
+  if (!cfg.api_key || !cfg.api_secret) {
     throw new DhlConfigError("client_credentials_missing");
   }
 }

@@ -31,7 +31,5 @@ export function getEnvHealth() {
     allocationQueue: !!process.env.ALLOCATION_QUEUE,
     allocationTargetUrl: process.env.ALLOCATION_TARGET_URL ?? null,
     appUrl: process.env.APP_BASE_URL ?? null,
-    dhlApiKey: !!process.env.DHL_API_KEY,
-    dhlApiSecret: !!process.env.DHL_API_SECRET,
   };
 }

@@ -206,3 +206,19 @@ export function UploadIcon({ className }: IconProps) {
     </Svg>
   );
 }
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M10 4v12M4 10h12" />
+    </Svg>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="m5 5 10 10M15 5 5 15" />
+    </Svg>
+  );
+}
