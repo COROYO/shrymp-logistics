@@ -34,6 +34,11 @@ export default async function LagerLayout({
           label: t("packedOrders"),
           icon: "packed",
         },
+        {
+          href: "/lager/einstellungen",
+          label: t("settings"),
+          icon: "settings",
+        },
       ],
     },
   ];

@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   CheckCircle2,
+  Circle,
   Package,
   Sparkles,
 } from "lucide-react";
@@ -12,7 +13,15 @@ const stats = [
   { value: "1-Klick", label: "Shopify-Sync" },
 ] as const;
 
-function DashboardPreview() {
+const previewLines = [
+  { name: "Bio Haferflocken 500g", qty: 2, picked: true, slot: "A-12" },
+  { name: "Olivenöl extra virgin 750ml", qty: 1, picked: true, slot: "B-04" },
+  { name: "Protein-Riegel Schoko", qty: 3, picked: false, slot: "C-07" },
+] as const;
+
+function AppPreview() {
+  const pickedCount = previewLines.filter((line) => line.picked).length;
+
   return (
     <div className="glass-panel-dark relative overflow-hidden p-5 sm:p-6">
       <div
@@ -23,9 +32,12 @@ function DashboardPreview() {
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
-              Picking Queue
+              Picking · Order #1042
             </p>
-            <p className="mt-0.5 font-mono text-sm text-stone-200">#1042 · SHIP</p>
+            <p className="mt-0.5 text-sm text-stone-200">
+              3 Artikel ·{" "}
+              <span className="font-mono text-brand-burgundy">SHIP</span>
+            </p>
           </div>
           <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-300">
             Express
@@ -33,28 +45,44 @@ function DashboardPreview() {
         </div>
 
         <div className="space-y-2">
-          {[
-            { sku: "Black Cod 250g", batch: "Charge 0001", mhd: "12.08.26" },
-            { sku: "Dorschrogen 100g", batch: "Charge 0003", mhd: "05.09.26" },
-          ].map((line) => (
+          {previewLines.map((line) => (
             <div
-              key={line.sku}
-              className="flex items-center justify-between rounded-xl border border-white/8 bg-white/5 px-3 py-2.5"
+              key={line.name}
+              className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/5 px-3 py-2.5"
             >
-              <div>
-                <p className="text-sm font-medium text-white">{line.sku}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">
+                  {line.name}
+                </p>
                 <p className="mt-0.5 font-mono text-xs text-stone-400">
-                  {line.batch} · MHD {line.mhd}
+                  ×{line.qty} · Lagerplatz {line.slot}
                 </p>
               </div>
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-burgundy" aria-hidden />
+              {line.picked ? (
+                <CheckCircle2
+                  className="h-4 w-4 shrink-0 text-emerald-400"
+                  aria-hidden
+                />
+              ) : (
+                <Circle className="h-4 w-4 shrink-0 text-stone-500" aria-hidden />
+              )}
             </div>
           ))}
         </div>
 
+        <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-stone-300">
+          <span>
+            Gescannt{" "}
+            <span className="font-mono text-white">
+              {pickedCount}/{previewLines.length}
+            </span>
+          </span>
+          <span className="text-stone-400">Multi-Pick · Slot 2/4</span>
+        </div>
+
         <div className="flex items-center gap-2 rounded-xl bg-brand-burgundy/15 px-3 py-2 text-xs text-stone-200">
           <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>Allocation: 4 von 6 Orders optimal fulfillbar</span>
+          <span>Allocation: 4 von 6 Orders optimal erfüllbar</span>
         </div>
       </div>
     </div>
@@ -63,8 +91,8 @@ function DashboardPreview() {
 
 export function HeroSection() {
   return (
-    <section className="hero-glow relative overflow-hidden pt-28 sm:pt-32">
-      <div className="container-narrow section-pad">
+    <section className="hero-glow relative overflow-hidden">
+      <div className="container-narrow px-5 pb-20 pt-20 sm:px-6 sm:pb-24 lg:pb-28">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <p className="eyebrow inline-flex items-center gap-2">
@@ -111,7 +139,7 @@ export function HeroSection() {
               className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-brand-burgundy/10 via-transparent to-brand-navy/10 blur-2xl"
               aria-hidden
             />
-            <DashboardPreview />
+            <AppPreview />
           </div>
         </div>
       </div>

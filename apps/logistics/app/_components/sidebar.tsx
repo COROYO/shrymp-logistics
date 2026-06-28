@@ -18,7 +18,6 @@ import {
   UsersIcon,
 } from "./icons";
 import { LogoutButton } from "./logout-button";
-import { LocaleSwitcher } from "./locale-switcher";
 import { useTranslations } from "next-intl";
 
 /**
@@ -132,9 +131,6 @@ export function Sidebar({
       ))}
       {footer ? (
         <div className="mt-auto border-t border-white/10 px-3 pt-4">
-          <div className="px-3 pb-3">
-            <LocaleSwitcher />
-          </div>
           {footer.crossLink ? (
             <Link
               href={footer.crossLink.href}

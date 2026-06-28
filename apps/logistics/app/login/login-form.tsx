@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase/client";
+import { formatFirebaseAuthError } from "@/lib/firebase/auth-errors";
 import { safeNextPath } from "@/lib/safe-redirect";
 
 const inputClass =
@@ -47,8 +48,7 @@ export function LoginForm({ nextPath }: { nextPath: string | null }) {
         router.refresh();
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "unknown";
-      setError(msg);
+      setError(formatFirebaseAuthError(e));
     }
   }
 

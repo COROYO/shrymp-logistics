@@ -912,6 +912,11 @@
   "settings": {
     "eyebrow": "System",
     "title": "Settings",
+    "language": {
+      "eyebrow": "User",
+      "title": "Language",
+      "intro": "UI language for your account in this browser. The selection applies immediately."
+    },
     "installed": "Shopify app installed successfully. Access token stored in Firestore.",
     "shopify": {
       "eyebrow": "Shopify connection",

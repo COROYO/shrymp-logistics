@@ -11,6 +11,10 @@ export type SettingsNavGroup = {
 
 export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
+    label: "Benutzer",
+    items: [{ href: "/admin/settings/sprache", label: "Sprache" }],
+  },
+  {
     label: "Integrationen",
     items: [
       { href: "/admin/settings/shopify", label: "Shopify" },

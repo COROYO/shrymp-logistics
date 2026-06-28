@@ -912,6 +912,11 @@
   "settings": {
     "eyebrow": "System",
     "title": "Einstellungen",
+    "language": {
+      "eyebrow": "Benutzer",
+      "title": "Sprache",
+      "intro": "Oberflächensprache für dein Konto in diesem Browser. Die Auswahl wird sofort übernommen."
+    },
     "installed": "Shopify-App erfolgreich installiert. Access-Token in Firestore gespeichert.",
     "shopify": {
       "eyebrow": "Shopify-Verbindung",

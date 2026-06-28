@@ -4,7 +4,7 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "./locale";
 
 /**
  * next-intl entry — runs on every server request. We read the locale from a
- * cookie (set by the LocaleSwitcher client component) and fall back to the
+ * cookie (set by LocaleSettings) and fall back to the
  * default locale otherwise. Messages are dynamically imported so unused
  * locales don't ship to the client.
  */

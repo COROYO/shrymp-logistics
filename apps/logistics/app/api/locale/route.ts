@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { LOCALE_COOKIE, isLocale } from "@/i18n/locale";
 
 /**
- * Persist the user's chosen UI locale in a cookie. Called by the LocaleSwitcher
+ * Persist the user's chosen UI locale in a cookie. Called by LocaleSettings
  * client component. Cookie is HTTP-only:false so a future client-side switch
  * could read it; not security-sensitive.
  */
