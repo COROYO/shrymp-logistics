@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { BrandMark } from "@/app/_components/brand-mark";
 import { logisticsUrl } from "@/lib/config";
 
 const navLinks = [
@@ -41,9 +42,9 @@ export function SiteHeader() {
       <div className="container-narrow flex h-16 items-center justify-between px-5 sm:px-6">
         <Link
           href="/"
-          className="display-heading text-xl text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2"
         >
-          Monolith
+          <BrandMark />
         </Link>
 
         <nav
@@ -62,7 +63,7 @@ export function SiteHeader() {
 
         <button
           type="button"
-          className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface text-primary md:hidden"
+          className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface text-brand-navy md:hidden"
           aria-expanded={menuOpen}
           aria-controls="mobile-nav"
           aria-label={menuOpen ? "Menü schließen" : "Menü öffnen"}
@@ -83,7 +84,7 @@ export function SiteHeader() {
               <li key={link.href}>
                 <a
                   href={link.href}
-                  className="block min-h-11 rounded-lg px-3 py-2.5 text-base font-medium text-secondary hover:bg-muted/60 hover:text-primary"
+                  className="block min-h-11 rounded-lg px-3 py-2.5 text-base font-medium text-secondary hover:bg-brand-navy-50 hover:text-brand-navy"
                   onClick={() => setMenuOpen(false)}
                 >
                   {link.label}

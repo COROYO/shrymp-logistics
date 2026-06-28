@@ -30,10 +30,10 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section id="ablauf" className="section-pad bg-primary text-on-primary">
+    <section id="ablauf" className="section-pad bg-brand-navy text-white">
       <div className="container-narrow">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
+          <p className="eyebrow text-brand-burgundy">
             In vier Schritten
           </p>
           <h2 className="display-heading mt-3 text-3xl text-white sm:text-4xl">
@@ -57,7 +57,7 @@ export function HowItWorksSection() {
                 />
               ) : null}
               <div className="flex items-center justify-between">
-                <span className="font-mono text-sm text-accent">{item.step}</span>
+                <span className="font-mono text-sm text-brand-burgundy">{item.step}</span>
                 <item.icon className="h-5 w-5 text-stone-400" aria-hidden />
               </div>
               <h3 className="mt-4 text-lg font-semibold text-white">{item.title}</h3>
@@ -69,10 +69,7 @@ export function HowItWorksSection() {
         </ol>
 
         <div className="mt-12 text-center">
-          <a
-            href={logisticsUrl}
-            className="btn-primary inline-flex bg-accent hover:bg-accent-hover"
-          >
+          <a href={logisticsUrl} className="btn-primary inline-flex">
             Jetzt verbinden
             <ArrowRight className="h-4 w-4" aria-hidden />
           </a>

@@ -15,7 +15,7 @@ const testimonials = [
   },
   {
     quote:
-      "Shopify bleibt unser Shop. Monolith ist die Schicht dazwischen, die wir vorher mit Workarounds gebaut haben.",
+      "Shopify bleibt unser Shop. Shrymp Logistics ist die Schicht dazwischen, die wir vorher mit Workarounds gebaut haben.",
     name: "Gründer",
     role: "D2C Food Brand",
   },
@@ -23,7 +23,7 @@ const testimonials = [
 
 export function TestimonialsSection() {
   return (
-    <section className="section-pad bg-muted/40" aria-labelledby="testimonials-heading">
+    <section className="section-pad bg-brand-stone/50" aria-labelledby="testimonials-heading">
       <div className="container-narrow">
         <div className="mx-auto max-w-2xl text-center">
           <p className="eyebrow">Stimmen aus der Beta</p>
@@ -42,14 +42,14 @@ export function TestimonialsSection() {
               className="glass-panel flex flex-col p-6"
             >
               <Quote
-                className="h-8 w-8 text-accent/40"
+                className="h-8 w-8 text-brand-burgundy/40"
                 aria-hidden
               />
               <blockquote className="mt-4 flex-1 text-base leading-relaxed text-secondary">
                 &ldquo;{item.quote}&rdquo;
               </blockquote>
               <figcaption className="mt-6 border-t border-border pt-4">
-                <p className="font-semibold text-primary">{item.name}</p>
+                <p className="font-semibold text-brand-navy">{item.name}</p>
                 <p className="mt-0.5 text-sm text-secondary">{item.role}</p>
               </figcaption>
             </figure>

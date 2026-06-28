@@ -50,7 +50,7 @@ export function FeaturesSection() {
             Alles, was dein Lager braucht
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-secondary">
-            Von der Bestellung bis zum Versand: Monolith entscheidet, reserviert
+            Von der Bestellung bis zum Versand: Shrymp Logistics entscheidet, reserviert
             und weist Chargen zu — Shopify bleibt dein Shop-Frontend.
           </p>
         </div>
@@ -59,12 +59,12 @@ export function FeaturesSection() {
           {features.map((feature) => (
             <article
               key={feature.title}
-              className="rounded-2xl border border-border bg-surface p-6 transition duration-200 hover:border-accent/30 hover:shadow-[0_8px_30px_rgba(28,25,23,0.06)]"
+              className="rounded-2xl border border-border bg-surface p-6 transition duration-200 hover:border-brand-burgundy/30 hover:shadow-[0_8px_30px_rgba(15,27,51,0.06)]"
             >
-              <div className="inline-flex rounded-xl bg-primary/5 p-3 text-primary">
+              <div className="inline-flex rounded-xl bg-brand-navy-50 p-3 text-brand-navy">
                 <feature.icon className="h-5 w-5" aria-hidden />
               </div>
-              <h3 className="mt-5 text-lg font-semibold text-primary">
+              <h3 className="mt-5 text-lg font-semibold text-brand-navy">
                 {feature.title}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-secondary">

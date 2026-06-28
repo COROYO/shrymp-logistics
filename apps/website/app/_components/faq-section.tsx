@@ -5,19 +5,19 @@ import { useState } from "react";
 
 const faqs = [
   {
-    q: "Für wen ist Monolith gedacht?",
+    q: "Für wen ist Shrymp Logistics gedacht?",
     a: "Für Shopify-Händler mit MHD-pflichtigen oder chargenrelevanten Produkten — Lebensmittel, Kaviar, Tiefkühlware und ähnliche Sortimente.",
   },
   {
-    q: "Ersetzt Monolith mein Warenwirtschaftssystem?",
-    a: "Nein. Monolith ergänzt Shopify um Chargenführung, Allocation und Lagerprozesse. Dein Shop bleibt der Verkaufskanal.",
+    q: "Ersetzt Shrymp Logistics mein Warenwirtschaftssystem?",
+    a: "Nein. Shrymp Logistics ergänzt Shopify um Chargenführung, Allocation und Lagerprozesse. Dein Shop bleibt der Verkaufskanal.",
   },
   {
     q: "Wie läuft die Beta?",
     a: "Du verbindest deinen Shop, richtest Chargen ein und nutzt Picking & Packing im echten Betrieb. Wir begleiten dich eng und sammeln Feedback.",
   },
   {
-    q: "Was kostet Monolith?",
+    q: "Was kostet Shrymp Logistics?",
     a: "In der Beta-Phase ist die Nutzung kostenlos. Preise für den Launch kommunizieren wir rechtzeitig — transparent und ohne versteckte Kosten.",
   },
   {
@@ -51,7 +51,7 @@ export function FaqSection() {
                   <button
                     id={buttonId}
                     type="button"
-                    className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left font-semibold text-primary transition hover:bg-muted/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                    className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left font-semibold text-brand-navy transition hover:bg-brand-navy-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-burgundy/30"
                     aria-expanded={isOpen}
                     aria-controls={panelId}
                     onClick={() => setOpenIndex(isOpen ? null : index)}

@@ -66,7 +66,8 @@ export async function editBatch(
   const batchRef = db.collection(Collections.Batches).doc(batchId);
   const movRef = db.collection(Collections.InventoryMovements).doc();
 
-  const { variantId, delta, shopId } = await db.runTransaction(async (tx) => {
+  const { variantId, delta, shopId, batchLocationId } =
+    await db.runTransaction(async (tx) => {
     const snap = await tx.get(batchRef);
     if (!snap.exists) throw new BatchEditError("batch_not_found");
     const before = snap.data() as Batch;
@@ -130,7 +131,12 @@ export async function editBatch(
     }
 
     if (Object.keys(update).length === 0) {
-      return { variantId: before.variant_id, delta: 0, shopId: before.shop_id };
+      return {
+        variantId: before.variant_id,
+        delta: 0,
+        shopId: before.shop_id,
+        batchLocationId: before.location_id ?? null,
+      };
     }
 
     // NOTE: We intentionally do NOT block reductions that take on_hand below
@@ -172,7 +178,12 @@ export async function editBatch(
       });
     }
 
-    return { variantId: before.variant_id, delta, shopId: before.shop_id };
+    return {
+      variantId: before.variant_id,
+      delta,
+      shopId: before.shop_id,
+      batchLocationId: before.location_id ?? null,
+    };
   });
 
   log.info("batch_edited", { batchId, patch, delta, userId });
@@ -187,15 +198,10 @@ export async function editBatch(
     const { applyDeltaToLocation, getDefaultLocationId } = await import(
       "@/server/locations/stock"
     );
-    const batchLocationId =
-      before.location_id ?? (await getDefaultLocationId(before.shop_id));
-    if (batchLocationId) {
-      await applyDeltaToLocation(
-        shopId,
-        variantId,
-        batchLocationId,
-        delta,
-      );
+    const locId =
+      batchLocationId ?? (await getDefaultLocationId(shopId));
+    if (locId) {
+      await applyDeltaToLocation(shopId, variantId, locId, delta);
     }
     // Drain BEFORE returning so the serverless container doesn't kill the
     // background promise. User waits ~1-2s but Shopify is synced when the

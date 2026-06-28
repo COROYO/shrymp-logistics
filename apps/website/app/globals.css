@@ -1,26 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-calistoga), ui-serif, Georgia, serif;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
-  --color-primary: #1c1917;
+  --color-brand-navy: #0f1b33;
+  --color-brand-navy-soft: #1a2848;
+  --color-brand-navy-50: #f3f5f9;
+  --color-brand-burgundy: #9b1b30;
+  --color-brand-burgundy-dark: #7e1426;
+  --color-brand-burgundy-soft: #fdecef;
+  --color-brand-cream: #faf7f1;
+  --color-brand-stone: #ececec;
+  --color-brand-ink: #1c1c1c;
+
+  --color-primary: #0f1b33;
   --color-on-primary: #ffffff;
-  --color-secondary: #44403c;
-  --color-accent: #a16207;
-  --color-accent-hover: #854d0e;
-  --color-accent-soft: #fef3c7;
-  --color-background: #fafaf9;
-  --color-foreground: #0c0a09;
-  --color-muted: #e8ecf0;
+  --color-secondary: #4a5568;
+  --color-accent: #9b1b30;
+  --color-accent-hover: #7e1426;
+  --color-accent-soft: #fdecef;
+  --color-background: #faf7f1;
+  --color-foreground: #1c1c1c;
+  --color-muted: #ececec;
   --color-border: #d6d3d1;
   --color-surface: #ffffff;
   --color-surface-glass: rgb(255 255 255 / 0.72);
-
-  /* Brand bridge to logistics app */
-  --color-brand-burgundy: #9b1b30;
-  --color-brand-navy: #0f1b33;
 }
 
 html {
@@ -45,50 +50,49 @@ html {
 
 body {
   font-family: var(--font-sans);
+  letter-spacing: -0.005em;
   color: var(--color-foreground);
   background-color: var(--color-background);
 }
 
 @layer components {
   .glass-panel {
-    @apply rounded-2xl border border-white/60 bg-surface-glass shadow-[0_8px_32px_rgba(28,25,23,0.06)] backdrop-blur-xl;
+    @apply rounded-2xl border border-white/60 bg-surface-glass shadow-[0_8px_32px_rgba(15,27,51,0.06)] backdrop-blur-xl;
   }
 
   .glass-panel-dark {
-    @apply rounded-2xl border border-white/10 bg-primary/90 text-on-primary shadow-[0_16px_48px_rgba(0,0,0,0.24)] backdrop-blur-xl;
+    @apply rounded-2xl border border-white/10 bg-brand-navy/95 text-on-primary shadow-[0_16px_48px_rgba(15,27,51,0.32)] backdrop-blur-xl;
   }
 
   .btn-primary {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl
-           bg-accent px-6 py-2.5 text-sm font-semibold text-on-primary
-           shadow-[0_4px_14px_rgba(161,98,7,0.28)]
-           transition duration-200 ease-out
-           hover:bg-accent-hover hover:shadow-[0_6px_20px_rgba(161,98,7,0.34)]
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md
+           bg-brand-burgundy px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-white
+           shadow-sm transition duration-200 ease-out
+           hover:bg-brand-burgundy-dark
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl
-           border border-border bg-surface px-6 py-2.5 text-sm font-semibold text-primary
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md
+           border border-brand-navy bg-white px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-brand-navy
            transition duration-200 ease-out
-           hover:border-primary/30 hover:bg-muted/50
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2;
+           hover:bg-brand-navy hover:text-white
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30 focus-visible:ring-offset-2;
   }
 
   .btn-ghost {
     @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2
            text-sm font-medium text-secondary transition duration-200
-           hover:text-primary
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2;
+           hover:text-brand-navy
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/20 focus-visible:ring-offset-2;
   }
 
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.16em] text-accent;
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy;
   }
 
   .display-heading {
-    font-family: var(--font-display);
-    @apply text-balance tracking-tight text-primary;
+    @apply text-balance font-semibold tracking-tight text-brand-navy;
   }
 
   .section-pad {
@@ -100,10 +104,9 @@ body {
   }
 }
 
-/* Ambient hero glow */
 .hero-glow {
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgb(254 243 199 / 0.55), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgb(253 236 239 / 0.7), transparent 55%),
     radial-gradient(ellipse 50% 40% at 90% 20%, rgb(155 27 48 / 0.08), transparent 50%),
     radial-gradient(ellipse 40% 35% at 10% 30%, rgb(15 27 51 / 0.06), transparent 50%);
 }

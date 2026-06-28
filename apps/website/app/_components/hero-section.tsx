@@ -16,7 +16,7 @@ function DashboardPreview() {
   return (
     <div className="glass-panel-dark relative overflow-hidden p-5 sm:p-6">
       <div
-        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/20 blur-3xl"
+        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-brand-burgundy/20 blur-3xl"
         aria-hidden
       />
       <div className="relative space-y-4">
@@ -47,12 +47,12 @@ function DashboardPreview() {
                   {line.batch} · MHD {line.mhd}
                 </p>
               </div>
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" aria-hidden />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-burgundy" aria-hidden />
             </div>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 rounded-xl bg-accent/15 px-3 py-2 text-xs text-accent-soft">
+        <div className="flex items-center gap-2 rounded-xl bg-brand-burgundy/15 px-3 py-2 text-xs text-stone-200">
           <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>Allocation: 4 von 6 Orders optimal fulfillbar</span>
         </div>
@@ -73,10 +73,10 @@ export function HeroSection() {
             </p>
             <h1 className="display-heading mt-5 text-4xl leading-[1.08] sm:text-5xl lg:text-[3.25rem]">
               Lagerlogistik,
-              <span className="block text-accent">die Chargen versteht</span>
+              <span className="block text-brand-burgundy">die Chargen versteht</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-secondary">
-              Monolith sitzt zwischen Shopify und deinem physischen Lager:
+              Shrymp Logistics sitzt zwischen Shopify und deinem physischen Lager:
               intelligente Allocation, FEFO-Picking und transparente
               Chargenzuweisung — für Produkte, bei denen MHD und
               Rückverfolgbarkeit zählen.
@@ -95,7 +95,7 @@ export function HeroSection() {
             <dl className="mt-12 grid grid-cols-3 gap-4 border-t border-border pt-8">
               {stats.map((stat) => (
                 <div key={stat.label}>
-                  <dt className="font-mono text-lg font-semibold text-primary sm:text-xl">
+                  <dt className="font-mono text-lg font-semibold text-brand-navy sm:text-xl">
                     {stat.value}
                   </dt>
                   <dd className="mt-1 text-xs leading-snug text-secondary sm:text-sm">
@@ -108,7 +108,7 @@ export function HeroSection() {
 
           <div className="relative lg:pl-4">
             <div
-              className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-accent/10 via-transparent to-brand-burgundy/10 blur-2xl"
+              className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-brand-burgundy/10 via-transparent to-brand-navy/10 blur-2xl"
               aria-hidden
             />
             <DashboardPreview />

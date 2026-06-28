@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { logisticsUrl } from "@/lib/config";
+import { BrandMark } from "@/app/_components/brand-mark";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-primary text-on-primary">
+    <footer className="border-t border-brand-navy-soft bg-brand-navy text-white">
       <div className="container-narrow section-pad !py-14">
         <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
           <div className="max-w-sm">
-            <p className="display-heading text-2xl">Monolith</p>
-            <p className="mt-3 text-sm leading-relaxed text-stone-300">
+            <BrandMark variant="dark" />
+            <p className="mt-4 text-sm leading-relaxed text-stone-300">
               Kommissionierung, Chargenführung und intelligente Allocation —
               gebaut für Shopify-Händler mit MHD-pflichtigen Produkten.
             </p>
@@ -65,7 +66,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-col gap-2 border-t border-white/10 pt-8 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Monolith. Alle Rechte vorbehalten.</p>
+          <p>© {new Date().getFullYear()} Shrymp Logistics. Alle Rechte vorbehalten.</p>
           <p>
             <Link href="/" className="transition hover:text-stone-300">
               shrymp.de
