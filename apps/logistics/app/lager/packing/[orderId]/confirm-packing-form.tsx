@@ -4,7 +4,13 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { confirmPackingAction } from "../actions";
 
-export function ConfirmPackingForm({ orderId }: { orderId: string }) {
+export function ConfirmPackingForm({
+  orderId,
+  returnHref = "/lager/picking",
+}: {
+  orderId: string;
+  returnHref?: string;
+}) {
   const router = useRouter();
   const t = useTranslations("confirmPacking");
   const [pending, startTransition] = useTransition();
@@ -26,7 +32,7 @@ export function ConfirmPackingForm({ orderId }: { orderId: string }) {
     startTransition(async () => {
       const res = await confirmPackingAction(orderId, tracking);
       if (res.ok) {
-        router.push("/lager/picking");
+        router.push(returnHref);
         router.refresh();
       } else {
         setErr(res.error);

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Order } from "@/server/firestore/schema";
@@ -5,6 +6,7 @@ import { QueueTable, type QueueRow } from "./queue-table";
 
 import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import { ordersForShop } from "@/server/tenant/queries";
+import { loadActivePickRuns } from "@/server/picking/pick-runs";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +54,12 @@ async function loadQueue(shopId: string): Promise<QueueRow[]> {
 
 export default async function PickingQueuePage() {
   const { shopId } = await requireTenantPageContext("/lager/picking");
-  const rows = await loadQueue(shopId);
+  const [rows, activeRuns] = await Promise.all([
+    loadQueue(shopId),
+    loadActivePickRuns(shopId),
+  ]);
   const t = await getTranslations("picking.queue");
+  const tRun = await getTranslations("pickRun");
   const shipCount = rows.filter((r) => r.internal_status === "SHIP").length;
   const pickingCount = rows.filter(
     (r) => r.internal_status === "PICKING",
@@ -78,6 +84,54 @@ export default async function PickingQueuePage() {
           />
         </div>
       </div>
+
+      {activeRuns.length > 0 ? (
+        <div className="space-y-2">
+          {activeRuns.map((run) => {
+            const href =
+              run.status === "PACKING"
+                ? `/lager/run/${run.id}/pack`
+                : `/lager/run/${run.id}`;
+            return (
+              <Link
+                key={run.id}
+                href={href}
+                className="card flex items-center justify-between gap-3 px-4 py-3 transition hover:border-brand-burgundy/40"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        run.status === "PACKING"
+                          ? "chip chip-violet"
+                          : "chip chip-emerald"
+                      }
+                    >
+                      {run.status === "PACKING"
+                        ? tRun("statusPacking")
+                        : tRun("statusPicking")}
+                    </span>
+                    <span className="text-sm font-semibold text-brand-navy">
+                      {tRun("activeRun", { count: run.orderCount })}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-xs text-brand-navy/60">
+                    {run.orderNames.join(" · ")}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="tabular-nums text-sm font-bold text-brand-navy">
+                    {run.pickedUnits}/{run.totalUnits}
+                  </span>
+                  <span className="text-sm font-semibold text-brand-burgundy">
+                    {tRun("resume")}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
 
       {rows.length === 0 ? (
         <div className="card px-6 py-10 text-center text-sm text-brand-navy/60">

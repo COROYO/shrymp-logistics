@@ -9,6 +9,7 @@ import {
 } from "@/server/firestore/schema";
 import { PrintTrigger } from "./print-trigger";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
+import { isBatchesEnabled } from "@/server/lager/config";
 
 export const dynamic = "force-dynamic";
 
@@ -141,7 +142,13 @@ async function load(orderId: string) {
     });
   }
 
-  return { order, mergedLines: mergeLines(order.line_items, allocsByLi) };
+  const batchesEnabled = await isBatchesEnabled(order.shop_id ?? undefined);
+
+  return {
+    order,
+    mergedLines: mergeLines(order.line_items, allocsByLi),
+    batchesEnabled,
+  };
 }
 
 export default async function PrintPicklist({
@@ -152,7 +159,7 @@ export default async function PrintPicklist({
   const { orderId } = await params;
   const data = await load(orderId);
   if (!data) notFound();
-  const { order, mergedLines } = data;
+  const { order, mergedLines, batchesEnabled } = data;
   const isExpress = order.tags.includes("EXPRESS_DHL");
   // Picklist always in German — internal warehouse document, locale-pinned
   // so a Russian/English warehouse user still gets the standard form.
@@ -248,9 +255,11 @@ export default async function PrintPicklist({
             <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.1em]">
               {t("qty")}
             </th>
-            <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
-              {t("chargeOnly")}
-            </th>
+            {batchesEnabled ? (
+              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
+                {t("chargeOnly")}
+              </th>
+            ) : null}
             <th className="w-8 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em]">
               ✓
             </th>
@@ -272,30 +281,32 @@ export default async function PrintPicklist({
                 <td className="px-3 py-3 pr-4 text-right text-lg font-bold text-brand-navy">
                   {li.qty}
                 </td>
-                <td className="px-3 py-3 pr-4">
-                  {allocs.length === 0 ? (
-                    <span className="text-xs italic text-brand-burgundy">
-                      {t("noAllocation")}
-                    </span>
-                  ) : (
-                    <div className="space-y-1">
-                      {allocs.map((a, idx) => (
-                        <div
-                          key={idx}
-                          className="font-mono text-xs leading-tight"
-                        >
-                          <span className="font-bold text-brand-navy">
-                            {a.chargeNumber}
-                          </span>
-                          {" · "}
-                          <span className="font-bold">
-                            {a.qty} {t("qtyUnit")}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </td>
+                {batchesEnabled ? (
+                  <td className="px-3 py-3 pr-4">
+                    {allocs.length === 0 ? (
+                      <span className="text-xs italic text-brand-burgundy">
+                        {t("noAllocation")}
+                      </span>
+                    ) : (
+                      <div className="space-y-1">
+                        {allocs.map((a, idx) => (
+                          <div
+                            key={idx}
+                            className="font-mono text-xs leading-tight"
+                          >
+                            <span className="font-bold text-brand-navy">
+                              {a.chargeNumber}
+                            </span>
+                            {" · "}
+                            <span className="font-bold">
+                              {a.qty} {t("qtyUnit")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                ) : null}
                 <td className="px-3 py-3 text-center">
                   <span className="inline-block h-5 w-5 border-2 border-brand-navy"></span>
                 </td>

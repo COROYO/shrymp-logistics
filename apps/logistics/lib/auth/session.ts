@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { adminAuth } from "@/server/firestore/admin";
 import type { UserRole } from "@/server/firestore/schema";
@@ -23,13 +24,15 @@ export type SessionUser = {
   role: UserRole | null;
 };
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+async function getSessionUserUncached(): Promise<SessionUser | null> {
   const jar = await cookies();
   const cookie = jar.get(SESSION_COOKIE)?.value;
   if (!cookie) return null;
 
   try {
-    const decoded = await adminAuth().verifySessionCookie(cookie, true);
+    // checkRevoked=false — avoids an extra Auth round-trip per request; role
+    // changes still apply on next token refresh / re-login.
+    const decoded = await adminAuth().verifySessionCookie(cookie, false);
     const role = (decoded.role ?? null) as UserRole | null;
     return {
       uid: decoded.uid,
@@ -40,6 +43,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     return null;
   }
 }
+
+/** Deduped within a single RSC request (layout + page share one verify). */
+export const getSessionUser = cache(getSessionUserUncached);
 
 export async function requireRole(
   ...allowed: UserRole[]

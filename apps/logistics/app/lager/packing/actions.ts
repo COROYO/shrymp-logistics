@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/tenant-guard";
 import { listAccessibleShopIds } from "@/lib/auth/tenant";
 import { normalizeShopId } from "@/server/tenant/id";
+import { runWithTenantAsync } from "@/server/tenant/context";
 import {
   confirmPacking,
   startPicking,
@@ -108,7 +109,9 @@ export async function bulkConfirmPackingAction(
         continue;
       }
 
-      await confirmPacking(orderId, user.uid, undefined);
+      await runWithTenantAsync(normalizeShopId(order.shop_id ?? ""), () =>
+        confirmPacking(orderId, user.uid, undefined),
+      );
       results.push({ orderId, ok: true });
     } catch (e) {
       const msg = e instanceof TransitionError ? e.message : String(e);
@@ -144,8 +147,10 @@ export async function confirmPackingAction(
   }
 
   try {
-    await assertOrderAccessible(orderId, user);
-    await confirmPacking(orderId, user.uid, parsedTracking.data);
+    const order = await assertOrderAccessible(orderId, user);
+    await runWithTenantAsync(normalizeShopId(order.shop_id ?? ""), () =>
+      confirmPacking(orderId, user.uid, parsedTracking.data),
+    );
     revalidatePath("/lager/picking");
     revalidatePath("/admin/orders");
     return { ok: true };
@@ -228,11 +233,13 @@ export async function createDhlLabelAction(
         if (order.internal_status === "SHIP" || order.internal_status === "NEW") {
           await startPicking(orderId, user.uid);
         }
-        await confirmPacking(orderId, user.uid, {
-          carrier: "DHL",
-          number: res.shipmentNo,
-          url: res.trackingUrl,
-        });
+        await runWithTenantAsync(normalizeShopId(order.shop_id ?? ""), () =>
+          confirmPacking(orderId, user.uid, {
+            carrier: "DHL",
+            number: res.shipmentNo,
+            url: res.trackingUrl,
+          }),
+        );
       }
     } catch (autoPackErr) {
       log.warn("auto_pack_after_label_failed", {

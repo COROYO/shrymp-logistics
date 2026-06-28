@@ -32,8 +32,13 @@ export default async function RootLayout({
     <html
       lang={locale}
       className={`${montserrat.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-brand-cream text-brand-ink">
+      {/* Extensions (e.g. ColorZilla) inject body attrs before hydration. */}
+      <body
+        className="min-h-full flex flex-col bg-brand-cream text-brand-ink"
+        suppressHydrationWarning
+      >
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

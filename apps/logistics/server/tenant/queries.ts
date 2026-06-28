@@ -22,9 +22,33 @@ export function variantsForShop(db: Firestore, shopId: string) {
     .where("shop_id", "==", normalizeShopId(shopId));
 }
 
+export function locationsForShop(db: Firestore, shopId: string) {
+  return db
+    .collection(Collections.Locations)
+    .where("shop_id", "==", normalizeShopId(shopId));
+}
+
+export function variantLocationStockForShop(db: Firestore, shopId: string) {
+  return db
+    .collection(Collections.VariantLocationStock)
+    .where("shop_id", "==", normalizeShopId(shopId));
+}
+
 export function batchesForShop(db: Firestore, shopId: string) {
   return db
     .collection(Collections.Batches)
+    .where("shop_id", "==", normalizeShopId(shopId));
+}
+
+export function storageBinsForShop(db: Firestore, shopId: string) {
+  return db
+    .collection(Collections.StorageBins)
+    .where("shop_id", "==", normalizeShopId(shopId));
+}
+
+export function variantBinsForShop(db: Firestore, shopId: string) {
+  return db
+    .collection(Collections.VariantBins)
     .where("shop_id", "==", normalizeShopId(shopId));
 }
 
@@ -37,5 +61,11 @@ export function allocationRunsForShop(db: Firestore, shopId: string) {
 export function allocationsForShop(db: Firestore, shopId: string) {
   return db
     .collection(Collections.Allocations)
+    .where("shop_id", "==", normalizeShopId(shopId));
+}
+
+export function pickRunsForShop(db: Firestore, shopId: string) {
+  return db
+    .collection(Collections.PickRuns)
     .where("shop_id", "==", normalizeShopId(shopId));
 }

@@ -1,6 +1,11 @@
 "use client";
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useActionState } from "react";
 import { createUserAction, type CreateUserActionState } from "./actions";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 const inputClass =
   "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
@@ -14,9 +19,20 @@ export function NewUserForm() {
     FormData
   >(createUserAction, null);
   const formRef = useRef<HTMLFormElement>(null);
+  const lastNotified = useRef<CreateUserActionState>(null);
 
   useEffect(() => {
-    if (state?.ok && !pending) formRef.current?.reset();
+    if (!state || state === lastNotified.current) return;
+    lastNotified.current = state;
+    if (state.ok) {
+      dispatchAdminJobSuccess({
+        title: "Benutzer",
+        message: `Angelegt (uid ${state.uid.slice(0, 8)}…). Initial-Passwort dem Mitarbeiter mitteilen.`,
+      });
+      if (!pending) formRef.current?.reset();
+    } else {
+      dispatchAdminJobError({ title: "Benutzer", message: state.error });
+    }
   }, [state, pending]);
 
   return (
@@ -68,22 +84,9 @@ export function NewUserForm() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <button type="submit" disabled={pending} className="btn-primary">
-          {pending ? "Lege an…" : "Mitarbeiter:in anlegen"}
-        </button>
-        {state?.ok ? (
-          <span className="text-sm text-emerald-700">
-            Angelegt (uid {state.uid.slice(0, 8)}…). Initial-Passwort dem
-            Mitarbeiter mitteilen.
-          </span>
-        ) : null}
-        {state && !state.ok ? (
-          <span className="text-sm text-brand-burgundy-dark">
-            Fehler: {state.error}
-          </span>
-        ) : null}
-      </div>
+      <button type="submit" disabled={pending} className="btn-primary">
+        {pending ? "Lege an…" : "Mitarbeiter:in anlegen"}
+      </button>
     </form>
   );
 }

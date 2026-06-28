@@ -1,0 +1,246 @@
+import "server-only";
+import { adminDb } from "@/server/firestore/admin";
+import {
+  Collections,
+  type Allocation,
+  type Batch,
+  type Product,
+  type User,
+  type Variant,
+} from "@/server/firestore/schema";
+import {
+  allocationsForShop,
+  batchesForShop,
+  locationsForShop,
+  productsForShop,
+  variantsForShop,
+} from "@/server/tenant/queries";
+import { isBatchExpired } from "@/server/picking/batch-assignability";
+import type { ProductRow } from "@/app/admin/products/product-accordion";
+import type { Location } from "@/server/firestore/schema";
+import {
+  listLocationOptions,
+  loadLocationStockForVariants,
+} from "@/server/locations/stock";
+
+function tsToIso(t: unknown): string | null {
+  if (!t) return null;
+  const o = t as { toDate?(): Date; seconds?: number };
+  if (typeof o.toDate === "function")
+    return o.toDate().toISOString().slice(0, 10);
+  if (typeof o.seconds === "number")
+    return new Date(o.seconds * 1000).toISOString().slice(0, 10);
+  return null;
+}
+
+function aggregateLocationStock(
+  rows: Array<{ locationId: string; onHand: number }>,
+  locationNameById: Record<string, string>,
+): Array<{ locationId: string; locationName: string; onHand: number }> {
+  const byLocation = new Map<string, number>();
+  for (const row of rows) {
+    byLocation.set(
+      row.locationId,
+      (byLocation.get(row.locationId) ?? 0) + row.onHand,
+    );
+  }
+  return Array.from(byLocation.entries())
+    .map(([locationId, onHand]) => ({
+      locationId,
+      locationName: locationNameById[locationId] ?? locationId,
+      onHand,
+    }))
+    .sort((a, b) => a.locationName.localeCompare(b.locationName));
+}
+
+export async function loadBatchesProductRows(shopId: string): Promise<{
+  rows: ProductRow[];
+  locations: Awaited<ReturnType<typeof listLocationOptions>>;
+  defaultLocationId: string | null;
+}> {
+  const db = adminDb();
+  const referenceDate = new Date();
+  const [productsSnap, variantsSnap, batchesSnap, allocationsSnap, locationsSnap] =
+    await Promise.all([
+      productsForShop(db, shopId).get(),
+      variantsForShop(db, shopId).get(),
+      batchesForShop(db, shopId).get(),
+      allocationsForShop(db, shopId).get(),
+      locationsForShop(db, shopId).where("active", "==", true).get(),
+    ]);
+
+  const locationNameById: Record<string, string> = {};
+  for (const doc of locationsSnap.docs) {
+    const loc = doc.data() as Location;
+    locationNameById[loc.id] = loc.name;
+  }
+
+  const products: Record<string, Product> = {};
+  for (const p of productsSnap.docs) products[p.id] = p.data() as Product;
+
+  const variantsByProduct: Record<string, Variant[]> = {};
+  const seenVariantIds = new Set<string>();
+  for (const v of variantsSnap.docs) {
+    const data = v.data() as Variant;
+    const variantId = data.id || v.id;
+    if (seenVariantIds.has(variantId)) continue;
+    seenVariantIds.add(variantId);
+    (variantsByProduct[data.product_id] ??= []).push({ ...data, id: variantId });
+  }
+
+  const stockByVariant = await loadLocationStockForVariants([...seenVariantIds]);
+  const [locations, defaultLocationId] = await Promise.all([
+    listLocationOptions(shopId),
+    import("@/server/locations/stock").then((m) => m.getDefaultLocationId(shopId)),
+  ]);
+
+  const receiverUids = Array.from(
+    new Set(
+      batchesSnap.docs
+        .map((d) => (d.data() as Batch).received_by_uid)
+        .filter((uid): uid is string => !!uid),
+    ),
+  );
+  const userNameByUid: Record<string, string> = {};
+  if (receiverUids.length > 0) {
+    const userSnaps = await db.getAll(
+      ...receiverUids.map((uid) => db.collection(Collections.Users).doc(uid)),
+    );
+    for (const u of userSnaps) {
+      if (!u.exists) continue;
+      const data = u.data() as User;
+      userNameByUid[u.id] = data.display_name || data.email || u.id;
+    }
+  }
+
+  const { loadReservedByVariant } = await import("@/server/inventory/reserved");
+  const reservedByVariant = await loadReservedByVariant(shopId);
+
+  const soldByBatch: Record<string, number> = {};
+  const openAllocQtyByBatch = new Map<string, number>();
+  for (const a of allocationsSnap.docs) {
+    const data = a.data() as Allocation;
+    if (data.released) continue;
+    if (data.consumed_at) {
+      soldByBatch[data.batch_id] = (soldByBatch[data.batch_id] ?? 0) + data.qty;
+      continue;
+    }
+    openAllocQtyByBatch.set(
+      data.batch_id,
+      (openAllocQtyByBatch.get(data.batch_id) ?? 0) + data.qty,
+    );
+  }
+
+  const { computeShippableQtyByVariant } = await import(
+    "@/server/inventory/shippable-stock"
+  );
+  const { loadLagerConfig } = await import("@/server/lager/config");
+  const lagerCfg = await loadLagerConfig(shopId);
+  const allBatches = batchesSnap.docs.map((d) => ({
+    ...(d.data() as Batch),
+    id: d.id,
+  }));
+  const shippableByVariant = computeShippableQtyByVariant(
+    allBatches,
+    openAllocQtyByBatch,
+    lagerCfg.batch_min_days_before_expiry,
+  );
+
+  const batchesByVariant: Record<string, Batch[]> = {};
+  for (const b of batchesSnap.docs) {
+    const data = b.data() as Batch;
+    (batchesByVariant[data.variant_id] ??= []).push(data);
+  }
+
+  return {
+    rows: Object.values(products)
+    .filter((p) => p.status !== "ARCHIVED" && p.is_bundle !== true)
+    .map((p) => {
+      const variants = (variantsByProduct[p.id] ?? [])
+        .map((v) => {
+          const batches = (batchesByVariant[v.id] ?? [])
+            .map((b) => ({
+              id: b.id,
+              chargeNumber: b.charge_number,
+              expiryDateIso: tsToIso(b.expiry_date) ?? "",
+              productionDateIso: tsToIso(b.production_date),
+              receivedAtIso: tsToIso(b.received_at),
+              receivedByUid: b.received_by_uid,
+              receivedByName:
+                userNameByUid[b.received_by_uid] ?? b.received_by_uid,
+              remainingQty: b.remaining_qty,
+              initialQty: b.initial_qty,
+              soldQty: soldByBatch[b.id] ?? 0,
+              status: b.status,
+              expired:
+                b.status === "EXPIRED" ||
+                isBatchExpired(b.expiry_date, referenceDate),
+              notes: b.notes ?? null,
+              locationId: b.location_id ?? null,
+              locationName: b.location_id
+                ? (locationNameById[b.location_id] ?? b.location_id)
+                : null,
+            }))
+            .sort((a, b) => {
+              if (a.expiryDateIso === b.expiryDateIso) {
+                return a.chargeNumber.localeCompare(b.chargeNumber);
+              }
+              if (!a.expiryDateIso) return 1;
+              if (!b.expiryDateIso) return -1;
+              return a.expiryDateIso.localeCompare(b.expiryDateIso);
+            });
+          const reserved = reservedByVariant.get(v.id) ?? 0;
+          const onHand = lagerCfg.batches_enabled
+            ? (shippableByVariant.get(v.id) ?? 0)
+            : (v.on_hand_total ?? 0);
+          const available = lagerCfg.batches_enabled
+            ? onHand - reserved
+            : Math.max(0, onHand - reserved);
+          const locationStock = aggregateLocationStock(
+            stockByVariant.get(v.id) ?? [],
+            locationNameById,
+          );
+          return {
+            id: v.id,
+            title: v.title,
+            sku: v.sku ?? null,
+            barcode: v.barcode ?? null,
+            priceCents: v.price_cents ?? null,
+            currency: v.currency ?? null,
+            imageUrl: v.image_url ?? null,
+            onHand,
+            reserved,
+            available,
+            locationStock,
+            batches,
+          };
+        })
+        .sort((a, b) => a.title.localeCompare(b.title));
+
+      const totalOnHand = variants.reduce((s, v) => s + v.onHand, 0);
+      const totalAvailable = variants.reduce((s, v) => s + v.available, 0);
+
+      return {
+        id: p.id,
+        title: p.title,
+        handle: p.handle,
+        imageUrl: p.image_url ?? null,
+        status: p.status,
+        variants,
+        totalOnHand,
+        totalAvailable,
+        batchCount: variants.reduce(
+          (s, v) =>
+            s +
+            v.batches.filter(
+              (b) => b.status === "ACTIVE" && b.remainingQty > 0 && !b.expired,
+            ).length,
+          0,
+        ),
+      };
+    })
+    .sort((a, b) => a.title.localeCompare(b.title)),
+    locations,
+    defaultLocationId,
+  };
+}

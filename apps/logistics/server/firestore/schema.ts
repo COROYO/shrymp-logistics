@@ -48,6 +48,8 @@ export const VariantSchema = z.object({
   shopify_gid: z.string(),
   inventory_item_gid: z.string(),
   sku: z.string().nullable().default(null),
+  /** Shopify `ProductVariant.barcode` (EAN/UPC/GTIN). Used for scan matching. */
+  barcode: z.string().nullable().default(null),
   title: z.string(),
   /** Variant-specific image, falls undefined fällt UI zurück auf product.image_url. */
   image_url: z.string().url().nullable().default(null),
@@ -61,6 +63,69 @@ export const VariantSchema = z.object({
   updated_at: FirestoreTimestamp,
 });
 
+// ---------- locations (Shopify fulfillment / warehouse sites) ----------
+
+export const LocationSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  shopify_gid: z.string(),
+  name: z.string(),
+  is_primary: z.boolean().default(false),
+  fulfills_online_orders: z.boolean().default(true),
+  /** False when removed/deactivated in Shopify. */
+  active: z.boolean().default(true),
+  synced_at: FirestoreTimestamp,
+  updated_at: FirestoreTimestamp,
+});
+
+/** Per-variant physical stock at a single Shopify location. */
+export const VariantLocationStockSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  variant_id: z.string(),
+  location_id: z.string(),
+  /** Physical units at this location (integer pieces). */
+  on_hand: z.number().int().nonnegative().default(0),
+  updated_at: FirestoreTimestamp,
+});
+
+// ---------- storage bins (intra-warehouse Lagerplätze) ----------
+// Merchant-defined physical storage places inside the warehouse. Distinct from
+// Shopify `Location` (a fulfillment site). The `code` is the scannable id and
+// doubles as the printed "Lagernummer". Variant↔bin links live in a separate
+// `variant_bins` collection so they survive Shopify catalog re-syncs.
+
+export const StorageBinSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  /** Scannable, human-readable code, e.g. "A-01-02". Unique per shop (uppercased). */
+  code: z.string().min(1).max(40),
+  /** Display label, e.g. "Regal A · Fach 1". */
+  name: z.string().min(1).max(80),
+  /** Optional grouping (aisle/zone/room) for warehouse layout. */
+  zone: z.string().max(40).nullable().default(null),
+  note: z.string().max(200).nullable().default(null),
+  active: z.boolean().default(true),
+  /** Manual ordering for lists/labels. */
+  sort_order: z.number().int().default(0),
+  created_at: FirestoreTimestamp,
+  updated_at: FirestoreTimestamp,
+  created_by_uid: z.string().nullable().default(null),
+});
+
+/** Variant → primary storage bin link. Doc id = variant id. */
+export const VariantBinSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  variant_id: z.string(),
+  bin_id: z.string(),
+  /** Denormalized for cheap picklist/label rendering without a bin join. */
+  bin_code: z.string(),
+  bin_name: z.string(),
+  updated_at: FirestoreTimestamp,
+  updated_by_uid: z.string().nullable().default(null),
+});
+
 // ---------- batches (Chargen) ----------
 
 export const BatchStatusSchema = z.enum(["ACTIVE", "DEPLETED", "EXPIRED"]);
@@ -69,6 +134,8 @@ export const BatchSchema = z.object({
   id: z.string(),
   shop_id: z.string(),
   variant_id: z.string(),
+  /** Firestore location doc id (Shopify location mirror). */
+  location_id: z.string().optional(),
   charge_number: z.string(),
   expiry_date: FirestoreTimestamp,
   /**
@@ -361,6 +428,112 @@ export const AllocationRunSchema = z.object({
   error: z.string().optional(),
 });
 
+// ---------- pick runs (multi-order cluster picking with a cart) ----------
+// A "Kommissionier-Lauf": one picker walks the warehouse once and fills
+// several orders into separate cart slots (totes). Sorting happens during the
+// pick (cluster picking), so packing afterwards is a clean per-order step.
+//
+// The run document is the single source of truth for pick progress — unlike
+// the legacy single-order verifier this survives reloads and is multi-device
+// safe. Each order maps to one slot; lines are aggregated per variant across
+// all orders and carry the per-slot target + picked counts.
+
+export const PickRunStatusSchema = z.enum([
+  "PICKING", // staff is actively picking into the cart
+  "PACKING", // all items picked — now packing order by order
+  "DONE", // every order in the run is packed
+  "CANCELLED", // aborted; orders returned to the SHIP queue
+]);
+
+/** One cart position (tote) = one order in the run. */
+export const PickRunSlotSchema = z.object({
+  /** 1-based tote position on the cart. */
+  slot: z.number().int().positive(),
+  order_id: z.string(),
+  order_name: z.string(),
+  express: z.boolean().default(false),
+});
+
+/** Per-order target + progress for a single aggregated pick line. */
+export const PickRunLineSlotSchema = z.object({
+  slot: z.number().int().positive(),
+  order_id: z.string(),
+  /** Units this order needs of the variant. */
+  qty: z.number().int().positive(),
+  /** Units already picked into this slot. */
+  picked: z.number().int().nonnegative().default(0),
+});
+
+/**
+ * One aggregated pick position: a variant collected once for the whole run,
+ * then distributed across the slots that need it. Sorted by `bin_code` so the
+ * picker walks an efficient path.
+ */
+export const PickRunLineSchema = z.object({
+  variant_id: z.string(),
+  title: z.string(),
+  variant_title: z.string(),
+  sku: z.string().nullable().default(null),
+  barcode: z.string().nullable().default(null),
+  bin_code: z.string().nullable().default(null),
+  bin_name: z.string().nullable().default(null),
+  total_qty: z.number().int().nonnegative(),
+  slots: z.array(PickRunLineSlotSchema),
+});
+
+export const PickRunSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  status: PickRunStatusSchema.default("PICKING"),
+  slots: z.array(PickRunSlotSchema),
+  lines: z.array(PickRunLineSchema),
+  /** Denormalized for cheap "is this order already in an active run" checks. */
+  order_ids: z.array(z.string()).default([]),
+  created_at: FirestoreTimestamp,
+  created_by_uid: z.string(),
+  updated_at: FirestoreTimestamp,
+  completed_picking_at: FirestoreTimestamp.optional(),
+  done_at: FirestoreTimestamp.optional(),
+});
+
+// ---------- product sync runs (background Shopify catalog pull) ----------
+
+export const ProductSyncRunStatusSchema = z.enum([
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+]);
+
+export const ProductSyncRunPhaseSchema = z.enum([
+  "starting",
+  "locations",
+  "catalog",
+  "inventory",
+  "applying_inventory",
+  "done",
+]);
+
+export const ProductSyncRunSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  sync_inventory: z.boolean().default(false),
+  status: ProductSyncRunStatusSchema.default("RUNNING"),
+  phase: ProductSyncRunPhaseSchema.default("starting"),
+  product_count: z.number().int().nonnegative().default(0),
+  variant_count: z.number().int().nonnegative().default(0),
+  inventory_updated: z.number().int().nonnegative().optional(),
+  /** Set by admin to cooperatively stop between chunks. */
+  cancel_requested: z.boolean().default(false),
+  locations_synced: z.boolean().default(false),
+  catalog_cursor: z.string().nullable().optional(),
+  catalog_has_next: z.boolean().default(true),
+  started_at: FirestoreTimestamp,
+  updated_at: FirestoreTimestamp,
+  finished_at: FirestoreTimestamp.optional(),
+  error: z.string().optional(),
+});
+
 // ---------- webhook dedup ----------
 
 export const WebhookEventSchema = z.object({
@@ -416,9 +589,18 @@ export const ShopifyTokenSchema = z.object({
 // ---------- warehouse / picking configuration ----------
 // `config/lager_config` — batch-assignment rules editable from Admin UI.
 
+/** Who owns sellable inventory: our warehouse app or Shopify Admin. */
+export const InventorySourceSchema = z.enum(["APP", "SHOPIFY"]);
+
 export const LagerConfigSchema = z.object({
   /** When false, skip Charge assignment, MHD checks, and batch-based stock caps. */
   batches_enabled: z.boolean().default(true),
+  /**
+   * APP: Firestore is source of truth; we push levels to Shopify and log
+   * external changes as drift. SHOPIFY: inventory_levels/update webhooks
+   * update our variant docs; we never push inventory to Shopify.
+   */
+  inventory_source: InventorySourceSchema.default("APP"),
   /**
    * Chargen mit MHD in ≤ N Kalendertagen (Europe/Berlin) werden bei der
    * Lieferschein-Zuordnung übersprungen. Bereits zugeordnete Chargen auf
@@ -512,9 +694,12 @@ export const ShopSchema = z.object({
   refresh_token_expires_at: FirestoreTimestamp.optional(),
   installed_at: FirestoreTimestamp.optional(),
   location_gid: z.string().optional(),
+  /** Default warehouse for inbound when UI does not pick a location. */
+  default_location_id: z.string().optional(),
   api_version: z.string().default("2026-04"),
   batches_enabled: z.boolean().default(true),
   batch_min_days_before_expiry: z.number().int().nonnegative().default(10),
+  inventory_source: InventorySourceSchema.default("APP"),
   lager_updated_at: FirestoreTimestamp.optional(),
   lager_updated_by_uid: z.string().nullable().optional(),
   /** Per-shop DHL Parcel DE config (same shape as legacy config/dhl_config). */
@@ -527,10 +712,34 @@ export const ShopSchema = z.object({
   updated_at: FirestoreTimestamp,
 });
 
+// ---------- API keys (external REST access) ----------
+// Doc id = SHA-256 hex of the raw key (never store plaintext).
+
+export const ApiScopeSchema = z.enum([
+  "orders:read",
+  "inventory:read",
+  "batches:read",
+]);
+
+export const ApiKeySchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  label: z.string().min(1).max(80),
+  scopes: z.array(ApiScopeSchema).min(1),
+  created_at: FirestoreTimestamp,
+  created_by_uid: z.string().nullable().default(null),
+  last_used_at: FirestoreTimestamp.optional(),
+  revoked_at: FirestoreTimestamp.optional(),
+});
+
 // ---------- exported types ----------
 
 export type Product = z.infer<typeof ProductSchema>;
 export type Variant = z.infer<typeof VariantSchema>;
+export type Location = z.infer<typeof LocationSchema>;
+export type VariantLocationStock = z.infer<typeof VariantLocationStockSchema>;
+export type StorageBin = z.infer<typeof StorageBinSchema>;
+export type VariantBin = z.infer<typeof VariantBinSchema>;
 export type Batch = z.infer<typeof BatchSchema>;
 export type BatchStatus = z.infer<typeof BatchStatusSchema>;
 export type Order = z.infer<typeof OrderSchema>;
@@ -547,6 +756,14 @@ export type UserRole = z.infer<typeof UserRoleSchema>;
 export type AllocationRun = z.infer<typeof AllocationRunSchema>;
 export type AllocationRunStatus = z.infer<typeof AllocationRunStatusSchema>;
 export type AllocationTrigger = z.infer<typeof AllocationTriggerSchema>;
+export type PickRun = z.infer<typeof PickRunSchema>;
+export type PickRunStatus = z.infer<typeof PickRunStatusSchema>;
+export type PickRunSlot = z.infer<typeof PickRunSlotSchema>;
+export type PickRunLine = z.infer<typeof PickRunLineSchema>;
+export type PickRunLineSlot = z.infer<typeof PickRunLineSlotSchema>;
+export type ProductSyncRun = z.infer<typeof ProductSyncRunSchema>;
+export type ProductSyncRunStatus = z.infer<typeof ProductSyncRunStatusSchema>;
+export type ProductSyncRunPhase = z.infer<typeof ProductSyncRunPhaseSchema>;
 export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 export type ShopifyOutbox = z.infer<typeof ShopifyOutboxSchema>;
 export type Shop = z.infer<typeof ShopSchema>;
@@ -555,9 +772,12 @@ export type ShopStatus = z.infer<typeof ShopStatusSchema>;
 export type ShopifyConfig = z.infer<typeof ShopifyConfigSchema>;
 export type ShopifyToken = z.infer<typeof ShopifyTokenSchema>;
 export type LagerConfig = z.infer<typeof LagerConfigSchema>;
+export type InventorySource = z.infer<typeof InventorySourceSchema>;
 export type DhlAddress = z.infer<typeof DhlAddressSchema>;
 export type DhlConfig = z.infer<typeof DhlConfigSchema>;
 export type OrderDhlShipment = z.infer<typeof OrderDhlShipmentSchema>;
+export type ApiScope = z.infer<typeof ApiScopeSchema>;
+export type ApiKey = z.infer<typeof ApiKeySchema>;
 
 // ---------- collection name constants ----------
 
@@ -565,15 +785,22 @@ export const Collections = {
   Shops: "shops",
   Products: "products",
   Variants: "variants",
+  Locations: "locations",
+  VariantLocationStock: "variant_location_stock",
+  StorageBins: "storage_bins",
+  VariantBins: "variant_bins",
   Batches: "batches",
   Orders: "orders",
   Allocations: "allocations",
   InventoryMovements: "inventory_movements",
   Users: "users",
   AllocationRuns: "allocation_runs",
+  PickRuns: "pick_runs",
+  ProductSyncRuns: "product_sync_runs",
   WebhookEvents: "webhook_events",
   ShopifyOutbox: "shopify_outbox",
   Config: "config",
+  ApiKeys: "api_keys",
 } as const;
 
 export const ConfigDocs = {

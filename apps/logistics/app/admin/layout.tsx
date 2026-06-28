@@ -10,7 +10,8 @@ import {
   type SidebarSection,
 } from "@/app/_components/sidebar";
 import { MobileNav } from "@/app/_components/mobile-nav";
-import { loadLagerConfig } from "@/server/lager/config";
+import { AdminJobsTray } from "@/app/admin/_components/admin-jobs-tray";
+import { runWithTenantAsync } from "@/server/tenant/context";
 import { requireActiveShopId } from "@/lib/auth/tenant";
 
 export default async function AdminLayout({
@@ -21,12 +22,13 @@ export default async function AdminLayout({
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/admin");
   if (user.role !== "ADMIN") redirect("/lager");
-  if (await merchantNeedsShopifyConnect(user)) redirect("/onboarding");
 
-  const t = await getTranslations("nav");
-  const shopId = await requireActiveShopId(user);
-  const lagerCfg = await loadLagerConfig(shopId);
-  const batchesEnabled = lagerCfg.batches_enabled;
+  const [needsConnect, t, shopId] = await Promise.all([
+    merchantNeedsShopifyConnect(user),
+    getTranslations("nav"),
+    requireActiveShopId(user),
+  ]);
+  if (needsConnect) redirect("/onboarding");
 
   const stockItems = [
     {
@@ -34,13 +36,20 @@ export default async function AdminLayout({
       label: t("allocations"),
       icon: "allocations" as const,
     },
-    ...(batchesEnabled
-      ? [{ href: "/admin/batches", label: t("batches"), icon: "batches" as const }]
-      : []),
+    {
+      href: "/admin/products",
+      label: t("products"),
+      icon: "products" as const,
+    },
     {
       href: "/admin/lagerbestand",
       label: t("lagerbestand"),
       icon: "batches" as const,
+    },
+    {
+      href: "/admin/lagerplaetze",
+      label: t("lagerplaetze"),
+      icon: "bins" as const,
     },
   ];
 
@@ -54,7 +63,6 @@ export default async function AdminLayout({
       items: [
         { href: "/admin/orders", label: t("orders"), icon: "orders" },
         { href: "/admin/customers", label: t("customers"), icon: "customers" },
-        { href: "/admin/products", label: t("products"), icon: "products" },
       ],
     },
     {
@@ -71,7 +79,7 @@ export default async function AdminLayout({
     userEmail: user.email,
   };
 
-  return (
+  return runWithTenantAsync(shopId, async () => (
     <div className="flex min-h-screen w-full">
       <MobileNav
         sections={SECTIONS}
@@ -92,7 +100,10 @@ export default async function AdminLayout({
           <Sidebar sections={SECTIONS} footer={footer} />
         </div>
       </aside>
-      <main className="flex-1 min-w-0 px-6 py-8 md:px-10">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main className="flex-1 px-6 py-8 md:px-10">{children}</main>
+        <AdminJobsTray />
+      </div>
     </div>
-  );
+  ));
 }

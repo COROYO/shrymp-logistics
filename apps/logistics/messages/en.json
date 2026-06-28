@@ -34,6 +34,14 @@
     "error": "Error",
     "success": "Success"
   },
+  "adminJobs": {
+    "title": "Background jobs",
+    "productSync": "Shopify full sync",
+    "cancelJob": "Cancel job",
+    "dismiss": "Dismiss",
+    "error": "Error",
+    "success": "Success"
+  },
   "nav": {
     "admin": "Admin",
     "lager": "Warehouse",
@@ -45,9 +53,11 @@
     "allocations": "Allocations",
     "batches": "Batches",
     "lagerbestand": "Stock levels",
+    "lagerplaetze": "Storage bins",
     "products": "Products",
     "users": "Users",
     "settings": "Settings",
+    "scan": "Scanner",
     "picking": "Picking",
     "packedOrders": "Completed",
     "openMenu": "Open menu",
@@ -56,16 +66,15 @@
   },
   "adminHome": {
     "eyebrow": "Overview",
-    "title": "Monolith Caviar Back Office",
+    "title": "Shrymp Logistics Back Office",
     "intro": "Inbound, stock, orders, allocation runs. Pick an area.",
     "open": "Open →",
     "tiles": {
       "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW overview" },
-      "batches": {
-        "title": "Stock & Batches",
-        "desc": "Inbound, best-before, FEFO list"
+      "products": {
+        "title": "Products & stock",
+        "desc": "Shopify sync, inbound, batches"
       },
-      "products": { "title": "Products", "desc": "Manage Shopify sync" },
       "customers": {
         "title": "Customers",
         "desc": "Customer list + order history"
@@ -76,6 +85,61 @@
         "desc": "Shopify connection, webhooks, allocation"
       },
       "lager": { "title": "Warehouse", "desc": "Open picking & packing view" }
+    }
+  },
+  "dashboard": {
+    "unavailable": "Metrics could not be loaded.",
+    "quickLinks": "Quick access",
+    "noData": "No data in range",
+    "naShort": "—",
+    "kpi": {
+      "openOrders": "Open orders",
+      "openOrdersSub": "{stop} blocked (STOP)",
+      "revenue30d": "Revenue (30 days)",
+      "aov": "Avg. order {value}",
+      "revenueToday": "Revenue today",
+      "ordersToday": "{count} orders today",
+      "packed": "Packed (today)",
+      "packed30d": "{count} in 30 days",
+      "cycleTime": "Avg. pick → pack",
+      "cycleP90": "P90 {value}"
+    },
+    "status": {
+      "title": "Order status",
+      "subtitle": "Open backlog across all time",
+      "new": "New",
+      "ship": "Ready to ship",
+      "picking": "In progress",
+      "stop": "Blocked",
+      "link": "Go to orders →"
+    },
+    "packedChart": {
+      "title": "Packed per day",
+      "subtitle": "Last {days} days",
+      "footer": "{week} in 7 days · {samples} timed with pick start"
+    },
+    "revenueChart": {
+      "title": "Revenue per day",
+      "subtitle": "Last {days} days",
+      "footer": "{value} in 7 days · {orders} orders"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "value": "Stock value",
+      "skus": "Variants (SKU)",
+      "onHand": "On hand (units)",
+      "reserved": "Reserved",
+      "outOfStock": "Out of stock",
+      "lowStock": "Low stock",
+      "link": "Open inventory →"
+    },
+    "batches": {
+      "title": "Batches / expiry",
+      "active": "Active",
+      "expiring": "Expiry ≤ {days}d",
+      "expired": "Expired",
+      "link": "Open batches →",
+      "disabled": "Batch tracking is disabled."
     }
   },
   "customers": {
@@ -163,7 +227,11 @@
         "confirmMark": "Really mark {count} orders as packed + shipped? Stock will be decremented, fulfillment reported to Shopify.",
         "successAll": "{count} orders completed successfully.",
         "successPartial": "{ok} succeeded, {fail} failed.",
-        "showErrors": "Show errors"
+        "showErrors": "Show errors",
+        "startRun": "🛒 Start pick run ({count})",
+        "starting": "Starting…",
+        "runError": "Could not start the pick run.",
+        "runNoEligible": "No eligible order in the selection (SHIP or picking, not yet in a run)."
       }
     }
   },
@@ -258,6 +326,7 @@
   },
   "packingPage": {
     "backToPicklist": "← Back to picklist",
+    "backToRun": "← Back to pick run",
     "notConfigured": "DHL is not configured yet. <link>In admin settings</link> add EKP number + sender address."
   },
   "pickingDetail": {
@@ -267,6 +336,8 @@
     "items": {
       "eyebrow": "Picklist · FEFO",
       "positions": "{count, plural, one {# position} other {# positions}}",
+      "bin": "Bin",
+      "noBin": "—",
       "product": "Product",
       "sku": "SKU",
       "qty": "Qty",
@@ -285,6 +356,153 @@
     },
     "wrongStatus": "Order is in status <b>{status}</b>, not pickable."
   },
+  "bins": {
+    "eyebrow": "Warehouse",
+    "title": "Storage bins",
+    "intro": "Create storage bins, assign products and print barcode labels — design your warehouse your way.",
+    "toLabels": "Print labels →",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "created": "Bin “{code}” created.",
+    "updated": "Bin “{code}” saved.",
+    "deleted": "Bin “{code}” deleted.",
+    "bulkDone": "{created} bins created, {skipped} skipped.",
+    "confirmDelete": "Really delete bin “{code}”? {count} assignment(s) will be removed.",
+    "fields": {
+      "code": "Bin number / code",
+      "name": "Name",
+      "zone": "Zone (optional)",
+      "note": "Note (optional)",
+      "prefix": "Prefix",
+      "suffix": "Suffix",
+      "start": "Start no.",
+      "count": "Count",
+      "padding": "Digits (zeros)",
+      "namePrefix": "Name prefix"
+    },
+    "create": {
+      "eyebrow": "New",
+      "title": "Create bin",
+      "single": "Single",
+      "bulk": "Bulk",
+      "add": "Create",
+      "generate": "Generate",
+      "bulkHint": "Generates sequential bins, e.g. prefix “A-”, start 1, count 20, 2 digits → A-01 … A-20.",
+      "bulkExample": "A-01 … A-20"
+    },
+    "list": {
+      "title": "{count, plural, one {# bin} other {# bins}}",
+      "empty": "No bins yet — create one or bulk-generate several.",
+      "variantCount": "{count, plural, one {# product} other {# products}}",
+      "inactive": "inactive"
+    },
+    "assign": {
+      "eyebrow": "Assignment",
+      "title": "Products to bins",
+      "intro": "Assign each variant its bin. The bin shows up on the picklist and when scanning.",
+      "search": "Product, SKU or barcode…",
+      "onlyUnassigned": "Only without bin",
+      "product": "Product",
+      "sku": "SKU / barcode",
+      "bin": "Bin",
+      "none": "— no bin —",
+      "empty": "No products found."
+    },
+    "errors": {
+      "invalid_code": "Invalid bin number.",
+      "invalid_name": "Name missing.",
+      "duplicate_code": "This bin number already exists.",
+      "not_found": "Bin not found.",
+      "bulk_too_large": "Count too large (max 500).",
+      "forbidden": "Not allowed."
+    }
+  },
+  "binLabels": {
+    "back": "← Storage bins",
+    "title": "Print labels",
+    "intro": "Pick the bins and column count, then print stickers with name, bin number and barcode (Code 128).",
+    "empty": "No bins yet. Create some first.",
+    "columns": "Columns",
+    "showName": "Show name",
+    "showZone": "Show zone",
+    "selectAll": "Select all",
+    "selectNone": "None",
+    "print": "Print {count} label(s)"
+  },
+  "productLabels": {
+    "back": "← Products",
+    "title": "Product labels",
+    "intro": "Print labels with title, price, SKU and barcode (EAN or SKU as Code 128) — scannable during picking.",
+    "empty": "No products yet. Sync from Shopify first.",
+    "columns": "Columns",
+    "copies": "Copies per product",
+    "showPrice": "Show price",
+    "showSku": "Show SKU",
+    "search": "Product, SKU or barcode…",
+    "selectAll": "Select all",
+    "selectNone": "None",
+    "print": "Print {count} label(s)",
+    "downloadBarcodes": "Barcodes ({count})",
+    "downloadBarcode": "Download barcode as PNG",
+    "downloadEmpty": "No barcodes in selection.",
+    "downloadDone": "{count} barcode(s) downloaded.",
+    "downloadFailed": "Download failed.",
+    "skuPlaceholder": "SKU…",
+    "skuSave": "OK",
+    "skuGenerate": "Generate random SKU",
+    "skuSaved": "SKU “{sku}” saved.",
+    "skuGenerated": "SKU “{sku}” generated.",
+    "skuErrors": {
+      "invalid_sku": "Invalid SKU.",
+      "duplicate_sku": "This SKU is already in use.",
+      "not_found": "Variant not found.",
+      "no_inventory_item": "No Shopify inventory link.",
+      "generate_failed": "Could not generate a unique SKU.",
+      "shopify_failed": "Shopify rejected the SKU.",
+      "forbidden": "Not allowed."
+    }
+  },
+  "scan": {
+    "eyebrow": "Warehouse",
+    "title": "Scanner",
+    "intro": "Scan a bin, product barcode/SKU or order number. Works with a USB/Bluetooth scanner or the camera.",
+    "placeholder": "Scan or type…",
+    "submit": "Search",
+    "hint": "Tip: handheld scanners type the code into the field and confirm with Enter.",
+    "cameraStart": "Camera",
+    "cameraStop": "Camera off",
+    "cameraUnsupported": "Camera scanning is not supported by this browser. Please use a handheld scanner.",
+    "cameraDenied": "No camera access. Allow permission or use a handheld scanner.",
+    "notFound": "Nothing found for “{code}”.",
+    "result": {
+      "product": "Product",
+      "bin": "Bin",
+      "onHand": "On hand",
+      "reserved": "Reserved",
+      "available": "Available",
+      "storedHere": "{count, plural, =0 {No products} one {# product} other {# products}} stored here",
+      "binEmpty": "No products assigned to this bin yet.",
+      "noBin": "No bin assigned.",
+      "assignBin": "Assign"
+    }
+  },
+  "pickScan": {
+    "eyebrow": "Verification",
+    "title": "Scan check",
+    "placeholder": "Scan item…",
+    "check": "Check",
+    "cameraStart": "Camera",
+    "cameraStop": "Camera off",
+    "errorsTitle": "Picking errors",
+    "clear": "Clear",
+    "errWrongItem": "Item is not part of this order.",
+    "errOverPick": "Too many scanned: {title}",
+    "noCode": "No barcode/SKU — check manually",
+    "allDone": "All positions verified. Continue to packing."
+  },
   "confirmPacking": {
     "tracking": "Tracking number (optional)",
     "trackingPlaceholder": "Leave blank if no number yet",
@@ -295,6 +513,47 @@
     "submitting": "Posting…",
     "confirm": "Sure? Click again to confirm",
     "errorPrefix": "Error:"
+  },
+  "pickRun": {
+    "eyebrow": "Multi-picking",
+    "title": "Pick run · {count} orders",
+    "cancel": "Cancel",
+    "cancelConfirm": "Really cancel this pick run? All orders return to the queue.",
+    "progress": "Progress",
+    "errorsTitle": "Scan errors",
+    "clearErrors": "Clear",
+    "errWrongItem": "Item doesn't belong to any order in this run.",
+    "errOverPick": "Too many scanned: {title}",
+    "errSync": "Could not be saved — please scan again.",
+    "binNone": "no bin",
+    "noCode": "No barcode/SKU",
+    "complete": "Finish picking → Packing",
+    "completeLocked": "Pick all items first",
+    "completeHint": "Scan each item and drop it into the highlighted cart slot.",
+    "putInto": "Put into slot · {order}",
+    "scanPlaceholder": "Scan item…",
+    "cameraStart": "Camera on",
+    "cameraStop": "Camera off",
+    "finishedTitle": "Pick run completed.",
+    "cancelledTitle": "Pick run cancelled.",
+    "backToQueue": "To picking queue",
+    "statusPacking": "Packing",
+    "statusPicking": "Picking",
+    "activeRun": "Pick run · {count} orders",
+    "resume": "Resume →",
+    "backToRun": "← Back to pick run",
+    "packEyebrow": "Pack per order",
+    "packTitle": "Pack orders",
+    "packIntro": "Each cart slot is one order. Pack them individually so everything ships correctly.",
+    "packAllDone": "All orders packed and shipped.",
+    "printAllSlips": "🧾 All packing slips ({count})",
+    "refresh": "Refresh",
+    "packItemCount": "{count, plural, one {# item} other {# items}}",
+    "packedLabel": "Packed ✓",
+    "packCta": "Pack →",
+    "packFinish": "Finish pick run",
+    "packFinishLocked": "Pack all orders first",
+    "packFinished": "Completed ✓"
   },
   "ordersAdmin": {
     "eyebrow": "Orders",
@@ -396,23 +655,56 @@
     }
   },
   "products": {
-    "eyebrow": "Master data",
-    "title": "Products",
-    "intro": "Mirror the Shopify catalog. Stock is managed separately via inbound; this page only shows master data.",
+    "eyebrow": "Master data & stock",
+    "title": "Products & stock",
+    "intro": "Sync the Shopify catalog and manage stock — with batches (best-before/FEFO) or directly per variant, depending on settings.",
     "stats": {
       "products": "Products",
       "variants": "Variants",
       "shopDomain": "Shop domain",
       "lastSync": "Last sync",
-      "never": "never"
+      "never": "never",
+      "activeBatches": "Active batches",
+      "onHandTotal": "Stock total (pcs)"
     },
+    "emptyNoSync": "No products synced yet. Run a one-off sync under <link>Settings → Shopify</link>.",
     "sync": {
       "eyebrow": "Synchronization",
       "title": "Full sync",
-      "intro": "Pulls all products and variants from Shopify into Firestore. Existing stock (on_hand_total, reserved_total) is not overwritten.",
+      "intro": "Pulls all products and variants from Shopify into Firestore. Existing stock is not overwritten by default.",
+      "inventoryCheckbox": "Import stock from Shopify",
+      "inventoryCheckboxHint": "Mirrors Shopify's sellable quantity into our database. Reservations stay intact. Only enable when you want to pull Shopify stock levels.",
       "button": "Sync from Shopify",
+      "starting": "Starting…",
+      "started": "Full sync is running in the background. Progress is shown in the bar at the top.",
+      "alreadyRunning": "A sync is already running — see the progress bar at the top.",
       "loading": "Syncing…",
-      "success": "{products} products, {variants} variants updated."
+      "success": "{products} products, {variants} variants updated.",
+      "successWithInventory": "{products} products, {variants} variants updated. {inventoryUpdated} stock levels imported from Shopify."
+    },
+    "syncBanner": {
+      "running": "Shopify sync in progress — {products} products, {variants} variants ({phase})…",
+      "completed": "Sync complete: {products} products, {variants} variants updated.",
+      "completedWithInventory": "Sync complete: {products} products, {variants} variants, {inventoryUpdated} stock levels imported.",
+      "cancel": "Cancel",
+      "forceStop": "Stop now",
+      "stopping": "Stopping sync — {products} products, {variants} variants so far…",
+      "cancelled": "Shopify sync cancelled.",
+      "failed": "Shopify sync failed",
+      "unknownError": "Unknown error",
+      "phase": {
+        "starting": "starting",
+        "locations": "locations",
+        "catalog": "catalog",
+        "inventory": "loading stock",
+        "applying_inventory": "writing stock",
+        "done": "done"
+      }
+    },
+    "inventoryPanel": {
+      "receiveStock": "+ Inbound",
+      "adjustStock": "Adjust stock",
+      "historyTitle": "Stock history"
     }
   },
   "lagerbestand": {
@@ -442,7 +734,7 @@
       "reserved": "Reserved (pcs)",
       "difference": "Difference (pcs)"
     },
-    "emptyNoSync": "No products synced yet. <link>Sync products</link> first.",
+    "emptyNoSync": "No products synced yet. <link>Sync from Settings → Shopify</link> first.",
     "table": {
       "eyebrow": "Variants",
       "count": "{filtered} of {total} variants",
@@ -457,6 +749,22 @@
       "onHand": "On hand",
       "reserved": "In orders",
       "difference": "Difference"
+    },
+    "edit": {
+      "hint": "Double-click to edit",
+      "successTitle": "Updated",
+      "errorTitle": "Save failed",
+      "nameSaved": "Product name pushed to Shopify.",
+      "skuSaved": "SKU pushed to Shopify.",
+      "stockSaved": "Stock updated.",
+      "batchesLocked": "Stock is managed via batches — adjust it under “Stock & Batches”.",
+      "invalidQty": "Please enter a whole number ≥ 0.",
+      "noLocation": "No location found for this variant.",
+      "emptyTitle": "Name must not be empty.",
+      "missingScope": "Missing Shopify permission (write_products). Please reconnect the app under Settings → Shopify.",
+      "notFound": "Record not found.",
+      "errForbidden": "Not allowed.",
+      "unknown": "Unknown error."
     }
   },
   "batches": {
@@ -468,7 +776,7 @@
       "activeBatches": "Active batches",
       "onHandTotal": "Stock total (pcs)"
     },
-    "emptyNoSync": "No products synced yet. First <link>sync products</link>.",
+    "emptyNoSync": "No products synced yet. First <link>sync via Settings → Shopify</link>.",
     "accordion": {
       "onHand": "On Hand",
       "available": "Available",
@@ -480,7 +788,10 @@
       "price": "Price",
       "search": "Search product, variant or SKU…",
       "filterCount": "{filtered} of {total}",
-      "variantsCharges": "{variants, plural, one {# variant} other {# variants}} · {batches, plural, one {# batch} other {# batches}}"
+      "variantsCharges": "{variants, plural, one {# variant} other {# variants}} · {batches, plural, one {# batch} other {# batches}}",
+      "variantsOnly": "{count, plural, one {# variant} other {# variants}}",
+      "labels": "Labels",
+      "printLabels": "Print labels"
     },
     "panel": {
       "skuLabel": "SKU",
@@ -661,10 +972,10 @@
     }
   },
   "picklistPrint": {
-    "header": "Monolith Caviar · Picklist",
+    "header": "Shrymp Logistics · Picklist",
     "subTitle": "FEFO · {datetime}",
     "express": "Express",
-    "brand": "Ikrinka",
+    "brand": "Shrymp",
     "brandSub": "Premium Quality",
     "address": "Lieferadresse",
     "tags": "Tags",
@@ -681,9 +992,9 @@
   },
   "packingSlip": {
     "eyebrow": "Premium Quality",
-    "brand": "IKRiNKA",
-    "companyLine": "Monolith Caviar & Co. GmbH · Hauptstraße 49 · 36166 Haunetal",
-    "contactEmail": "info@ikrinka.de",
+    "brand": "Shrymp",
+    "companyLine": "Shrymp Commerce GmbH · Ludwig-Erhard-Platz 1 · 51373 Leverkusen",
+    "contactEmail": "info@shrymp-commerce.com",
     "title": "Lieferschein",
     "orderDate": "Bestelldatum",
     "shippingAddress": "Lieferadresse",
@@ -700,7 +1011,7 @@
     "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
     "signature": "Vielen Dank und guten Appetit!\nDein IKRiNKA-Team",
     "footerOrder": "Lieferschein zu Bestellung <mono>{order}</mono>",
-    "footerLegal": "Monolith Caviar & Co. GmbH · USt-IdNr. DE 255 102 708 · Amtsgericht Bad Hersfeld · HRB 2193 · Geschäftsführung: Denis Wischnakow"
+    "footerLegal": "Shrymp Commerce GmbH · Ludwig-Erhard-Platz 1 · 51373 Leverkusen"
   },
   "login": {
     "title": "Sign in",

@@ -14,6 +14,7 @@ import { log } from "@/lib/logger";
 
 const ReceiveSchema = z.object({
   variantId: z.string().min(1),
+  locationId: z.string().min(1).optional(),
   chargeNumber: z.string().min(1).max(64),
   expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   productionDate: z
@@ -45,6 +46,7 @@ export async function receiveBatchAction(
 
   const parsed = ReceiveSchema.safeParse({
     variantId: formData.get("variantId"),
+    locationId: formData.get("locationId") ?? undefined,
     chargeNumber: formData.get("chargeNumber"),
     expiryDate: formData.get("expiryDate"),
     productionDate: formData.get("productionDate") ?? undefined,
@@ -64,6 +66,7 @@ export async function receiveBatchAction(
     const result = await receiveBatch({
       shopId,
       variantId: parsed.data.variantId,
+      locationId: parsed.data.locationId,
       chargeNumber: parsed.data.chargeNumber.trim(),
       expiryDate: parsed.data.expiryDate,
       productionDate: parsed.data.productionDate
@@ -73,7 +76,7 @@ export async function receiveBatchAction(
       note: parsed.data.note || undefined,
       userId: user.uid,
     });
-    revalidatePath("/admin/batches");
+    revalidatePath("/admin/products");
     return { ok: true, ...result };
   } catch (e) {
     log.warn("receive_batch_failed", { error: String(e) });
@@ -153,7 +156,7 @@ export async function editBatchAction(
       },
       user.uid,
     );
-    revalidatePath("/admin/batches");
+    revalidatePath("/admin/products");
     return { ok: true, delta };
   } catch (e) {
     log.warn("edit_batch_failed", { error: String(e) });
@@ -177,7 +180,7 @@ export async function archiveBatchAction(
   }
   try {
     await svcArchiveBatch(batchId, user.uid);
-    revalidatePath("/admin/batches");
+    revalidatePath("/admin/products");
     return { ok: true };
   } catch (e) {
     log.warn("archive_batch_failed", { error: String(e) });
@@ -208,6 +211,145 @@ export async function getBatchHistoryAction(
     return { ok: true, entries };
   } catch (e) {
     log.warn("batch_history_failed", { error: String(e) });
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
+// ----------------------- variant stock (no batch tracking) -----------------------
+
+const ReceiveVariantSchema = z.object({
+  variantId: z.string().min(1),
+  locationId: z.string().min(1).optional(),
+  qty: z
+    .union([z.number(), z.string()])
+    .transform((v) => (typeof v === "string" ? Number(v) : v)),
+  note: z.string().max(500).optional().or(z.literal("")),
+});
+
+export type ReceiveVariantActionState =
+  | { ok: true; newOnHandTotal: number }
+  | { ok: false; error: string }
+  | null;
+
+export async function receiveVariantStockAction(
+  _prev: ReceiveVariantActionState,
+  formData: FormData,
+): Promise<ReceiveVariantActionState> {
+  let user;
+  try {
+    user = await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const parsed = ReceiveVariantSchema.safeParse({
+    variantId: formData.get("variantId"),
+    locationId: formData.get("locationId") ?? undefined,
+    qty: formData.get("qty"),
+    note: formData.get("note") ?? undefined,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues.map((i) => i.message).join("; "),
+    };
+  }
+
+  try {
+    const { requireActiveShopId } = await import("@/lib/auth/tenant");
+    const shopId = await requireActiveShopId(user);
+    const { receiveVariantStock } = await import(
+      "@/server/inventory/variant-inventory"
+    );
+    const result = await receiveVariantStock({
+      shopId,
+      variantId: parsed.data.variantId,
+      locationId: parsed.data.locationId,
+      qty: parsed.data.qty,
+      note: parsed.data.note || undefined,
+      userId: user.uid,
+    });
+    revalidatePath("/admin/products");
+    return { ok: true, ...result };
+  } catch (e) {
+    log.warn("receive_variant_failed", { error: String(e) });
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
+const AdjustVariantSchema = z.object({
+  variantId: z.string().min(1),
+  locationId: z.string().min(1),
+  onHand: z
+    .union([z.number(), z.string()])
+    .transform((v) => (typeof v === "string" ? Number(v) : v)),
+  reason: z.string().max(500).optional().or(z.literal("")),
+});
+
+export type AdjustVariantResult =
+  | { ok: true; delta: number }
+  | { ok: false; error: string };
+
+export async function adjustVariantStockAction(
+  payload: z.infer<typeof AdjustVariantSchema>,
+): Promise<AdjustVariantResult> {
+  let user;
+  try {
+    user = await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+
+  const parsed = AdjustVariantSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues.map((i) => i.message).join("; "),
+    };
+  }
+
+  try {
+    const { adjustVariantStock } = await import(
+      "@/server/inventory/variant-inventory"
+    );
+    const { delta } = await adjustVariantStock({
+      variantId: parsed.data.variantId,
+      locationId: parsed.data.locationId,
+      newOnHand: parsed.data.onHand,
+      reason: parsed.data.reason?.trim() || undefined,
+      userId: user.uid,
+    });
+    revalidatePath("/admin/products");
+    return { ok: true, delta };
+  } catch (e) {
+    log.warn("adjust_variant_failed", { error: String(e) });
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
+export type VariantHistoryActionResult =
+  | {
+      ok: true;
+      entries: import("@/server/inventory/batch-history").BatchHistoryEntry[];
+    }
+  | { ok: false; error: string };
+
+export async function getVariantHistoryAction(
+  variantId: string,
+): Promise<VariantHistoryActionResult> {
+  try {
+    await requireRole("ADMIN");
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+  try {
+    const { getVariantHistory } = await import(
+      "@/server/inventory/variant-history"
+    );
+    const entries = await getVariantHistory(variantId);
+    return { ok: true, entries };
+  } catch (e) {
+    log.warn("variant_history_failed", { error: String(e) });
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
 }

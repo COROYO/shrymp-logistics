@@ -7,6 +7,10 @@ import {
   setUserDisabledAction,
   setUserRoleAction,
 } from "./actions";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 export function UserRow({
   user,
@@ -29,11 +33,19 @@ export function UserRow({
       })
     : "nie";
 
-  function run(fn: () => Promise<{ ok: true } | { ok: false; error: string }>) {
+  function run(
+    successMessage: string,
+    fn: () => Promise<{ ok: true } | { ok: false; error: string }>,
+  ) {
     setErr(null);
     startTransition(async () => {
       const res = await fn();
-      if (!res.ok) setErr(res.error);
+      if (res.ok) {
+        dispatchAdminJobSuccess({ title: "Benutzer", message: successMessage });
+      } else {
+        dispatchAdminJobError({ title: "Benutzer", message: res.error });
+        setErr(res.error);
+      }
     });
   }
 
@@ -47,7 +59,12 @@ export function UserRow({
       )
     )
       return;
-    run(() => setUserRoleAction(user.uid, next));
+    run(
+      next === "ADMIN"
+        ? `${user.email} ist jetzt ADMIN.`
+        : `${user.email} ist jetzt LAGER.`,
+      () => setUserRoleAction(user.uid, next),
+    );
   }
 
   function toggleDisabled() {
@@ -60,7 +77,12 @@ export function UserRow({
       )
     )
       return;
-    run(() => setUserDisabledAction(user.uid, next));
+    run(
+      next
+        ? `${user.email} deaktiviert.`
+        : `${user.email} reaktiviert.`,
+      () => setUserDisabledAction(user.uid, next),
+    );
   }
 
   function handleDelete() {
@@ -70,7 +92,7 @@ export function UserRow({
       )
     )
       return;
-    run(() => deleteUserAction(user.uid));
+    run(`${user.email} gelöscht.`, () => deleteUserAction(user.uid));
   }
 
   return (
@@ -193,75 +215,62 @@ function ResetPasswordRow({
   const [pw, setPw] = useState("");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
   function handleSave() {
     setErr(null);
     startTransition(async () => {
       const r = await resetUserPasswordAction(uid, pw);
       if (r.ok) {
-        setDone(true);
-      } else setErr(r.error);
+        dispatchAdminJobSuccess({
+          title: "Benutzer",
+          message: `Passwort für ${email} gesetzt. Bitte dem Mitarbeiter mitteilen.`,
+        });
+        onClose();
+      } else {
+        dispatchAdminJobError({ title: "Benutzer", message: r.error });
+        setErr(r.error);
+      }
     });
   }
 
   return (
     <tr className="bg-amber-50/60">
       <td colSpan={6} className="px-6 py-4">
-        {done ? (
-          <div className="flex flex-wrap items-center gap-3 text-sm text-emerald-800">
-            <span>
-              ✓ Passwort für <strong>{email}</strong> gesetzt. Bitte dem
-              Mitarbeiter mitteilen.
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
+              Neues Passwort für {email}
+            </label>
+            <input
+              type="text"
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+              placeholder="min. 8 Zeichen"
+              className="mt-1.5 w-72 rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm shadow-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={pending || pw.length < 8}
+            className="btn-primary"
+          >
+            {pending ? "…" : "Speichern"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={pending}
+            className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
+          >
+            Abbrechen
+          </button>
+          {err ? (
+            <span className="text-xs font-semibold text-brand-burgundy">
+              {err}
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                setDone(false);
-                onClose();
-              }}
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 underline-offset-2 hover:text-brand-burgundy hover:underline"
-            >
-              Schließen
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
-                Neues Passwort für {email}
-              </label>
-              <input
-                type="text"
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                placeholder="min. 8 Zeichen"
-                className="mt-1.5 w-72 rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm shadow-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={pending || pw.length < 8}
-              className="btn-primary"
-            >
-              {pending ? "…" : "Speichern"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={pending}
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
-            >
-              Abbrechen
-            </button>
-            {err ? (
-              <span className="text-xs font-semibold text-brand-burgundy">
-                {err}
-              </span>
-            ) : null}
-          </div>
-        )}
+          ) : null}
+        </div>
       </td>
     </tr>
   );

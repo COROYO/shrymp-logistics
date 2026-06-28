@@ -89,6 +89,61 @@ export async function tagsRemoveFromOrder(
   throwIfUserErrors("tagsRemove", data.tagsRemove.userErrors);
 }
 
+// ----------------------- locationAdd -----------------------
+
+const LOCATION_ADD_MUTATION = /* GraphQL */ `
+  mutation LocationAdd($input: LocationAddInput!) {
+    locationAdd(input: $input) {
+      location {
+        id
+        name
+        isPrimary
+        fulfillsOnlineOrders
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+export type LocationAddInput = {
+  name: string;
+  address: {
+    address1: string;
+    city: string;
+    zip: string;
+    countryCode: string;
+    phone?: string;
+  };
+  fulfillsOnlineOrders?: boolean;
+};
+
+export async function locationAdd(
+  input: LocationAddInput,
+): Promise<{ id: string; name: string }> {
+  const data = await shopifyGraphQL<{
+    locationAdd: {
+      location: {
+        id: string;
+        name: string;
+      } | null;
+      userErrors: Array<{ message: string; field?: string[] | null }>;
+    };
+  }>(LOCATION_ADD_MUTATION, {
+    input: {
+      name: input.name,
+      address: input.address,
+      fulfillsOnlineOrders: input.fulfillsOnlineOrders ?? true,
+    },
+  });
+  throwIfUserErrors("locationAdd", data.locationAdd.userErrors);
+  const loc = data.locationAdd.location;
+  if (!loc) throw new Error("locationAdd: no location returned");
+  return { id: loc.id, name: loc.name };
+}
+
 // ----------------------- inventorySetOnHandQuantities -----------------------
 
 // Since 2026-01 the `@idempotent` directive is required on this mutation.
@@ -158,6 +213,77 @@ export async function inventorySetOnHand(
     "inventorySetOnHandQuantities",
     data.inventorySetOnHandQuantities.userErrors,
   );
+}
+
+// ----------------------- productUpdate (title) -----------------------
+
+// Requires the `write_products` scope. Variant titles are derived from option
+// values in Shopify and are intentionally not editable here.
+const PRODUCT_UPDATE_TITLE_MUTATION = /* GraphQL */ `
+  mutation ProductTitleUpdate($product: ProductUpdateInput!) {
+    productUpdate(product: $product) {
+      product {
+        id
+        title
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+export async function productUpdateTitle(
+  productIdOrGid: string | number,
+  title: string,
+  shopId?: string,
+): Promise<void> {
+  const data = await shopifyGraphQL<{
+    productUpdate: {
+      userErrors: Array<{ message: string; field?: string[] | null }>;
+    };
+  }>(
+    PRODUCT_UPDATE_TITLE_MUTATION,
+    { product: { id: toGid("Product", productIdOrGid), title } },
+    shopId ? { shopId } : undefined,
+  );
+  throwIfUserErrors("productUpdate", data.productUpdate.userErrors);
+}
+
+// ----------------------- inventoryItemUpdate (sku) -----------------------
+
+// SKU lives on the InventoryItem, not the variant. `null` clears it.
+const INVENTORY_ITEM_SKU_UPDATE_MUTATION = /* GraphQL */ `
+  mutation InventoryItemSkuUpdate($id: ID!, $input: InventoryItemInput!) {
+    inventoryItemUpdate(id: $id, input: $input) {
+      inventoryItem {
+        id
+        sku
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+export async function inventoryItemUpdateSku(
+  inventoryItemIdOrGid: string | number,
+  sku: string | null,
+  shopId?: string,
+): Promise<void> {
+  const data = await shopifyGraphQL<{
+    inventoryItemUpdate: {
+      userErrors: Array<{ message: string; field?: string[] | null }>;
+    };
+  }>(
+    INVENTORY_ITEM_SKU_UPDATE_MUTATION,
+    { id: toGid("InventoryItem", inventoryItemIdOrGid), input: { sku } },
+    shopId ? { shopId } : undefined,
+  );
+  throwIfUserErrors("inventoryItemUpdate", data.inventoryItemUpdate.userErrors);
 }
 
 // ----------------------- fulfillmentCreate -----------------------

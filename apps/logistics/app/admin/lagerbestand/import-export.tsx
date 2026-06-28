@@ -7,6 +7,10 @@ import {
   importLagerbestandAction,
   type ImportActionState,
 } from "./actions";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 export function ImportExportBar() {
   const t = useTranslations("lagerbestand.io");
@@ -25,6 +29,15 @@ export function ImportExportBar() {
     startTransition(async () => {
       const res = await importLagerbestandAction(formData);
       setResult(res);
+      if (res.ok) {
+        const s = res.summary;
+        dispatchAdminJobSuccess({
+          title: t("import"),
+          message: `${s.created} neu · ${s.updated} aktualisiert · ${s.skipped} übersprungen${s.errors > 0 ? ` · ${s.errors} Fehler` : ""}`,
+        });
+      } else {
+        dispatchAdminJobError({ title: t("import"), message: res.error });
+      }
       if (fileRef.current) fileRef.current.value = "";
     });
   }
@@ -90,13 +103,7 @@ export function ImportExportBar() {
 function ImportResult({ result }: { result: ImportActionState }) {
   const t = useTranslations("lagerbestand.io");
 
-  if (!result.ok) {
-    return (
-      <div className="mt-4 rounded-md border border-brand-burgundy/30 bg-brand-burgundy/5 px-4 py-3 text-sm text-brand-burgundy">
-        {result.error}
-      </div>
-    );
-  }
+  if (!result.ok) return null;
 
   const s = result.summary;
   const problems = s.results.filter(

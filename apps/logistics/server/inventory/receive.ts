@@ -10,6 +10,7 @@ import { processOutbox } from "@/server/shopify/outbox";
 export type ReceiveBatchInput = {
   shopId: string;
   variantId: string;
+  locationId?: string;
   chargeNumber: string;
   /** YYYY-MM-DD; interpreted as UTC midnight to keep things calendar-stable. */
   expiryDate: string;
@@ -47,6 +48,13 @@ export async function receiveBatch(
     ? parseYmdToTimestamp(input.productionDate)
     : null;
 
+  const { getDefaultLocationId } = await import("@/server/locations/stock");
+  const locationId =
+    input.locationId ?? (await getDefaultLocationId(input.shopId));
+  if (!locationId) {
+    throw new Error("no_location_configured");
+  }
+
   const newOnHandTotal = await db.runTransaction(async (tx) => {
     const variantSnap = await tx.get(variantRef);
     if (!variantSnap.exists) {
@@ -65,6 +73,7 @@ export async function receiveBatch(
       id: batchRef.id,
       shop_id: variantShopId,
       variant_id: input.variantId,
+      location_id: locationId,
       charge_number: input.chargeNumber,
       expiry_date: expiryTs,
       initial_qty: input.qty,
@@ -105,11 +114,20 @@ export async function receiveBatch(
     qty: input.qty,
   });
 
+  const { applyDeltaToLocation } = await import("@/server/locations/stock");
+  await applyDeltaToLocation(
+    input.shopId,
+    input.variantId,
+    locationId,
+    input.qty,
+  );
+
   // Push new inventory level to Shopify (idempotent via outbox).
   await queueInventoryPush(
     input.variantId,
     "received",
     `shrymp-logistics://batch/${batchRef.id}/inbound`,
+    input.shopId,
   );
 
   // Drain BEFORE returning so the serverless container doesn't kill the

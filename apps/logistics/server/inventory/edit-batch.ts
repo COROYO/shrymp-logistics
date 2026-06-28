@@ -184,6 +184,19 @@ export async function editBatch(
       "correction",
       `shrymp-logistics://batch/${batchId}/edit`,
     );
+    const { applyDeltaToLocation, getDefaultLocationId } = await import(
+      "@/server/locations/stock"
+    );
+    const batchLocationId =
+      before.location_id ?? (await getDefaultLocationId(before.shop_id));
+    if (batchLocationId) {
+      await applyDeltaToLocation(
+        shopId,
+        variantId,
+        batchLocationId,
+        delta,
+      );
+    }
     // Drain BEFORE returning so the serverless container doesn't kill the
     // background promise. User waits ~1-2s but Shopify is synced when the
     // success message appears.
@@ -212,7 +225,8 @@ export async function archiveBatch(
   const batchRef = db.collection(Collections.Batches).doc(batchId);
   const movRef = db.collection(Collections.InventoryMovements).doc();
 
-  const { variantId, shopId } = await db.runTransaction(async (tx) => {
+  const { variantId, shopId, archivedRemaining, batchLocationId } =
+    await db.runTransaction(async (tx) => {
     const snap = await tx.get(batchRef);
     if (!snap.exists) throw new BatchEditError("batch_not_found");
     const before = snap.data() as Batch;
@@ -257,10 +271,31 @@ export async function archiveBatch(
       });
     }
 
-    return { variantId: before.variant_id, shopId: before.shop_id };
+    return {
+      variantId: before.variant_id,
+      shopId: before.shop_id,
+      archivedRemaining: remaining,
+      batchLocationId: before.location_id ?? null,
+    };
   });
 
   log.info("batch_archived", { batchId, userId });
+
+  if (archivedRemaining > 0) {
+    const { applyDeltaToLocation, getDefaultLocationId } = await import(
+      "@/server/locations/stock"
+    );
+    const locId =
+      batchLocationId ?? (await getDefaultLocationId(shopId));
+    if (locId) {
+      await applyDeltaToLocation(
+        shopId,
+        variantId,
+        locId,
+        -archivedRemaining,
+      );
+    }
+  }
 
   await queueInventoryPush(
     variantId,

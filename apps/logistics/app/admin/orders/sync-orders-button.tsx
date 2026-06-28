@@ -1,53 +1,45 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { backfillOrdersAction } from "../settings/actions";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 /**
  * "Aus Shopify nachladen" — manual safety net for missed webhooks.
- *
- * Pulls every open + unfulfilled order from Shopify and merges into Firestore
- * (existing internal_status is preserved). Idempotent — safe to click
- * repeatedly. Most likely use: a customer says "I ordered something but it
- * doesn't show up in the warehouse" → click here, it'll be there.
  */
 export function SyncOrdersButton() {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
   function handle() {
-    setMsg(null);
-    setErr(null);
     start(async () => {
       const res = await backfillOrdersAction();
       if (res.ok) {
-        setMsg(`${res.mirroredCount} Orders aus Shopify geladen.`);
+        dispatchAdminJobSuccess({
+          title: "Orders",
+          message: `${res.mirroredCount} Orders aus Shopify geladen.`,
+        });
         router.refresh();
       } else {
-        setErr(res.error);
+        dispatchAdminJobError({ title: "Orders", message: res.error });
       }
     });
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <button
-        type="button"
-        onClick={handle}
-        disabled={pending}
-        title="Aus Shopify nachladen"
-        aria-label="Aus Shopify nachladen"
-        className="inline-flex items-center justify-center rounded-md border border-brand-navy/30 bg-white p-2 text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pending ? <Spinner /> : <RefreshIcon />}
-      </button>
-      {msg ? <span className="text-[11px] text-emerald-700">{msg}</span> : null}
-      {err ? (
-        <span className="text-[11px] text-brand-burgundy">{err}</span>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      onClick={handle}
+      disabled={pending}
+      title="Aus Shopify nachladen"
+      aria-label="Aus Shopify nachladen"
+      className="inline-flex items-center justify-center rounded-md border border-brand-navy/30 bg-white p-2 text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {pending ? <Spinner /> : <RefreshIcon />}
+    </button>
   );
 }
 

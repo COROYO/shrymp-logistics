@@ -55,7 +55,7 @@ export async function dispatchShopifyWebhook(
       case TOPICS.ORDERS_CANCELLED:
         return cancelOrder(shopId, body as ShopifyOrderPayload, webhookId);
       case TOPICS.INVENTORY_LEVELS_UPDATE:
-        return recordInventoryDrift(body, webhookId);
+        return applyInventoryLevelsUpdate(shopId, body, webhookId);
       case TOPICS.APP_UNINSTALLED:
         return handleAppUninstalled(shopId, webhookId);
       default:
@@ -310,12 +310,33 @@ async function cancelOrder(
   return { kind: "ok", action: "cancelled" };
 }
 
-async function recordInventoryDrift(
+async function applyInventoryLevelsUpdate(
+  shopId: string,
   body: unknown,
   webhookId: string,
 ): Promise<DispatchResult> {
-  // We are the source of truth, so any external change is treated as drift.
-  // We don't auto-overwrite — admin must reconcile manually (or via M9 job).
+  const { loadLagerConfig } = await import("@/server/lager/config");
+  const lagerCfg = await loadLagerConfig(shopId);
+
+  if (lagerCfg.inventory_source === "SHOPIFY") {
+    const { applyShopifyInventoryLevel } = await import(
+      "@/server/inventory/apply-from-shopify"
+    );
+    const res = await applyShopifyInventoryLevel(shopId, body, webhookId);
+    if (!res.applied) {
+      log.warn("shopify_inventory_apply_skipped", {
+        webhookId,
+        reason: res.reason,
+      });
+      return { kind: "ok", action: `inventory_skipped:${res.reason}` };
+    }
+    return {
+      kind: "ok",
+      action: `inventory_applied:${res.variantId ?? "unknown"}`,
+    };
+  }
+
+  // App is source of truth — external Shopify changes are drift only.
   log.warn("inventory_drift_detected", { webhookId, body });
   return { kind: "ok", action: "drift_logged" };
 }

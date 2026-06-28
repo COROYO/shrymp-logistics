@@ -241,12 +241,15 @@ async function queueShopifyOutboxForExternal(
 
   // Inventory push: one entry per (variant → new on_hand). Skips if we
   // didn't actually consume anything (the no-allocations path).
+  const { isAppInventorySource } = await import("@/server/lager/config");
+  const pushInventory = await isAppInventorySource();
   const metaSnap = await db
     .collection(Collections.Config)
     .doc("shopify_meta")
     .get();
   const locationGid = metaSnap.data()?.location_gid as string | undefined;
 
+  if (pushInventory) {
   for (const variantId of Object.keys(consumedQtyByVariant)) {
     if (!locationGid) break;
     const vSnap = await db
@@ -284,6 +287,7 @@ async function queueShopifyOutboxForExternal(
       batch = db.batch();
       ops = 0;
     }
+  }
   }
   if (ops > 0) await batch.commit();
 }

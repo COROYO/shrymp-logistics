@@ -20,6 +20,7 @@ import { releaseUnshippableBatchAssignments } from "./release-invalid-assignment
 import { loadLagerConfig } from "@/server/lager/config";
 import { loadSlipBranding, type SlipBrandingConfig } from "@/server/slip/branding";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
+import { runWithTenantAsync } from "@/server/tenant/context";
 import {
   isBatchAssignableForShipping,
   isBatchExpired,
@@ -67,6 +68,8 @@ export type SlipData = {
   variantTitleByLi: Map<string, string | null>;
   lieferschein: LieferscheinRef;
   branding: SlipBrandingConfig;
+  /** When false, Chargen are disabled and the slip omits the Charge column. */
+  batchesEnabled: boolean;
 };
 
 /** Shopify's placeholder title for products without real variants. */
@@ -99,41 +102,44 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   const isReprint = order.internal_status === "PACKED";
   const batchesEnabled = lagerCfg.batches_enabled;
 
-  if (batchesEnabled && !isReprint) {
-    await releaseUnshippableBatchAssignments(orderId);
+  if (batchesEnabled && !isReprint && shopId) {
+    // Tenant context so the batch helpers resolve lager config for this shop.
+    await runWithTenantAsync(shopId, async () => {
+      await releaseUnshippableBatchAssignments(orderId);
 
-    // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
-    // the moment batches get pinned: pickers may work orders in arbitrary
-    // sequence, but each slip always takes the oldest batch still on the shelf,
-    // transactionally (no two slips can grab the same units). Idempotent on
-    // reprint. Without a complete assignment we must not issue a Lieferschein.
-    try {
-      await assignBatchesForOrder(orderId);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.startsWith("assign_batches_expired_blocked")) {
-        throw new SlipAssignmentBlockedError(
-          orderId,
-          "expired",
-          lagerCfg.batch_min_days_before_expiry,
-        );
+      // Assign the oldest-MHD Chargen to this order BEFORE we read them. This is
+      // the moment batches get pinned: pickers may work orders in arbitrary
+      // sequence, but each slip always takes the oldest batch still on the shelf,
+      // transactionally (no two slips can grab the same units). Idempotent on
+      // reprint. Without a complete assignment we must not issue a Lieferschein.
+      try {
+        await assignBatchesForOrder(orderId);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.startsWith("assign_batches_expired_blocked")) {
+          throw new SlipAssignmentBlockedError(
+            orderId,
+            "expired",
+            lagerCfg.batch_min_days_before_expiry,
+          );
+        }
+        if (msg.startsWith("assign_batches_near_expiry_blocked")) {
+          throw new SlipAssignmentBlockedError(
+            orderId,
+            "near_expiry",
+            lagerCfg.batch_min_days_before_expiry,
+          );
+        }
+        if (msg.startsWith("assign_batches_insufficient")) {
+          throw new SlipAssignmentBlockedError(
+            orderId,
+            "incomplete",
+            lagerCfg.batch_min_days_before_expiry,
+          );
+        }
+        log.warn("assign_batches_on_slip_failed", { orderId, error: msg });
       }
-      if (msg.startsWith("assign_batches_near_expiry_blocked")) {
-        throw new SlipAssignmentBlockedError(
-          orderId,
-          "near_expiry",
-          lagerCfg.batch_min_days_before_expiry,
-        );
-      }
-      if (msg.startsWith("assign_batches_insufficient")) {
-        throw new SlipAssignmentBlockedError(
-          orderId,
-          "incomplete",
-          lagerCfg.batch_min_days_before_expiry,
-        );
-      }
-      log.warn("assign_batches_on_slip_failed", { orderId, error: msg });
-    }
+    });
   }
 
   const allocSnap = await db
@@ -244,7 +250,14 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   // on the FIRST print without an extra read round-trip.
   order.lieferschein_no = lieferschein.number;
 
-  return { order, allocsByLi, variantTitleByLi, lieferschein, branding };
+  return {
+    order,
+    allocsByLi,
+    variantTitleByLi,
+    lieferschein,
+    branding,
+    batchesEnabled,
+  };
 }
 
 export function tsToDate(t: unknown): Date | null {

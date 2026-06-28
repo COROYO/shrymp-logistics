@@ -5,6 +5,7 @@ import {
   AdminIcon,
   AllocationsIcon,
   BatchesIcon,
+  BinsIcon,
   CustomersIcon,
   HomeIcon,
   LagerIcon,
@@ -12,6 +13,7 @@ import {
   PackedIcon,
   PickingIcon,
   ProductsIcon,
+  ScanIcon,
   SettingsIcon,
   UsersIcon,
 } from "./icons";
@@ -36,6 +38,8 @@ export type IconKey =
   | "picking"
   | "packed"
   | "lager"
+  | "bins"
+  | "scan"
   | "admin";
 
 const ICON_MAP: Record<IconKey, React.ComponentType<{ className?: string }>> = {
@@ -50,6 +54,8 @@ const ICON_MAP: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   picking: PickingIcon,
   packed: PackedIcon,
   lager: LagerIcon,
+  bins: BinsIcon,
+  scan: ScanIcon,
   admin: AdminIcon,
 };
 

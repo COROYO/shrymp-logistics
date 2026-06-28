@@ -51,6 +51,6 @@ export async function saveLagerConfigAction(
 
   revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/chargen");
-  revalidatePath("/admin/batches");
+  revalidatePath("/admin/products");
   return { ok: true };
 }

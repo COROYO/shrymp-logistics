@@ -9,6 +9,8 @@ import {
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { loadLagerConfig } from "@/server/lager/config";
+import { getTenantShopIdFromContext } from "@/server/tenant/context";
+import { normalizeShopId } from "@/server/tenant/id";
 import {
   isBatchAssignableForShipping,
   isBatchExpired,
@@ -18,6 +20,16 @@ import { orderAssignmentCoversLineItems } from "./assignment-coverage";
 import { orderHasActiveConsumption } from "./consume-guard";
 
 export { orderAssignmentCoversLineItems } from "./assignment-coverage";
+
+async function loadLagerConfigForOrder(orderId: string) {
+  const ctxShopId = getTenantShopIdFromContext();
+  if (ctxShopId) return loadLagerConfig(ctxShopId);
+  const snap = await adminDb().collection(Collections.Orders).doc(orderId).get();
+  if (!snap.exists) throw new Error(`order not found: ${orderId}`);
+  const shopId = (snap.data() as Order).shop_id;
+  if (!shopId) throw new Error(`order ${orderId} has no shop_id`);
+  return loadLagerConfig(normalizeShopId(shopId));
+}
 
 /**
  * Assign concrete Chargen (batches) to an order's line items — FEFO, oldest
@@ -43,7 +55,7 @@ export { orderAssignmentCoversLineItems } from "./assignment-coverage";
  * Throws on genuine stock inconsistency (assignable stock < reserved need).
  */
 export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
-  const lagerCfg = await loadLagerConfig();
+  const lagerCfg = await loadLagerConfigForOrder(orderId);
   if (!lagerCfg.batches_enabled) return true;
 
   await releaseUnshippableBatchAssignments(orderId);

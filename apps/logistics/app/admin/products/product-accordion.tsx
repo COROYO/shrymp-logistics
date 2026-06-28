@@ -1,8 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { Tag } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { VariantBatchPanel } from "./variant-batch-panel";
+import { VariantInventoryPanel } from "./variant-inventory-panel";
+import { ProductLabel } from "@/app/_components/product-label";
 import {
   TOGGLEABLE_COLUMNS,
   useColumnVisibility,
@@ -13,37 +17,36 @@ export type BatchRow = {
   id: string;
   chargeNumber: string;
   expiryDateIso: string;
-  /** Production date (ISO YYYY-MM-DD) — optional, audit-only. */
   productionDateIso: string | null;
-  /** When the batch was booked into the system. */
   receivedAtIso: string | null;
-  /** Who booked it — Firebase uid plus a human-readable label. */
   receivedByUid: string;
   receivedByName: string;
   remainingQty: number;
   initialQty: number;
-  /**
-   * Quantity actually sold (packed + shipped) from this batch — derived
-   * from consumed, non-released allocations. Cancelled-and-released
-   * allocations don't count.
-   */
   soldQty: number;
   status: string;
-  /** MHD passed or status already EXPIRED — still on shelf until archived. */
   expired: boolean;
   notes: string | null;
+  locationId: string | null;
+  locationName: string | null;
 };
 
 export type VariantRow = {
   id: string;
   title: string;
   sku: string | null;
+  barcode: string | null;
   priceCents: number | null;
   currency: string | null;
   imageUrl: string | null;
   onHand: number;
   reserved: number;
   available: number;
+  locationStock: Array<{
+    locationId: string;
+    locationName: string;
+    onHand: number;
+  }>;
   batches: BatchRow[];
 };
 
@@ -72,7 +75,17 @@ function formatPrice(cents: number | null, currency: string | null): string {
   }
 }
 
-export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
+export function ProductAccordion({
+  rows,
+  batchesEnabled,
+  locations,
+  defaultLocationId,
+}: {
+  rows: ProductRow[];
+  batchesEnabled: boolean;
+  locations: Array<{ id: string; name: string; isPrimary: boolean }>;
+  defaultLocationId: string | null;
+}) {
   const t = useTranslations("batches.accordion");
   const tp = useTranslations("batches.panel");
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
@@ -115,14 +128,18 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
           {t("filterCount", { filtered: filtered.length, total: rows.length })}
         </div>
         <div className="ml-auto">
-          <ColumnMenu
-            cols={cols}
-            onToggle={toggleCol}
-            onReset={resetCols}
-            label={tp("columns")}
-            resetLabel={tp("columnsReset")}
-            columnLabel={(key) => tp(key === "production" ? "productionDate" : key)}
-          />
+          {batchesEnabled ? (
+            <ColumnMenu
+              cols={cols}
+              onToggle={toggleCol}
+              onReset={resetCols}
+              label={tp("columns")}
+              resetLabel={tp("columnsReset")}
+              columnLabel={(key) =>
+                tp(key === "production" ? "productionDate" : key)
+              }
+            />
+          ) : null}
         </div>
       </div>
 
@@ -131,10 +148,11 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
           const open = openIds.has(p.id);
           return (
             <li key={p.id} className="card overflow-hidden">
+              <div className="flex items-center">
               <button
                 type="button"
                 onClick={() => toggle(p.id)}
-                className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-brand-navy-50"
+                className="flex flex-1 items-center gap-4 px-5 py-4 text-left transition hover:bg-brand-navy-50"
               >
                 <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-brand-cream ring-1 ring-zinc-200">
                   {p.imageUrl ? (
@@ -157,10 +175,12 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
                     {p.title}
                   </div>
                   <div className="text-xs text-brand-navy/60">
-                    {t("variantsCharges", {
-                      variants: p.variants.length,
-                      batches: p.batchCount,
-                    })}
+                    {batchesEnabled
+                      ? t("variantsCharges", {
+                          variants: p.variants.length,
+                          batches: p.batchCount,
+                        })
+                      : t("variantsOnly", { count: p.variants.length })}
                   </div>
                 </div>
                 <div className="hidden text-right sm:block">
@@ -194,6 +214,16 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
                   ▶
                 </div>
               </button>
+              <Link
+                href={`/admin/products/labels?product=${p.id}`}
+                target="_blank"
+                title={t("printLabels")}
+                aria-label={t("printLabels")}
+                className="mr-3 grid h-10 w-10 shrink-0 place-items-center rounded-md text-brand-navy/50 transition hover:bg-brand-cream hover:text-brand-burgundy"
+              >
+                <Tag className="h-5 w-5" />
+              </Link>
+              </div>
 
               {open ? (
                 <div className="space-y-4 border-t border-zinc-200 bg-brand-cream/50 p-5">
@@ -202,14 +232,53 @@ export function ProductAccordion({ rows }: { rows: ProductRow[] }) {
                       {t("noVariants")}
                     </p>
                   ) : (
-                    p.variants.map((v) => (
-                      <VariantBatchPanel
-                        key={v.id}
-                        variant={v}
-                        priceLabel={formatPrice(v.priceCents, v.currency)}
-                        cols={cols}
-                      />
-                    ))
+                    <>
+                      {p.variants.map((v, idx) =>
+                        batchesEnabled ? (
+                          <VariantBatchPanel
+                            key={`${p.id}-${v.id}-${idx}`}
+                            variant={v}
+                            priceLabel={formatPrice(v.priceCents, v.currency)}
+                            cols={cols}
+                            locations={locations}
+                            defaultLocationId={defaultLocationId}
+                          />
+                        ) : (
+                          <VariantInventoryPanel
+                            key={`${p.id}-${v.id}-${idx}`}
+                            variant={v}
+                            priceLabel={formatPrice(v.priceCents, v.currency)}
+                            locations={locations}
+                            defaultLocationId={defaultLocationId}
+                          />
+                        ),
+                      )}
+
+                      <div className="rounded-lg border border-zinc-200 bg-white p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="eyebrow">{t("labels")}</p>
+                          <Link
+                            href={`/admin/products/labels?product=${p.id}`}
+                            target="_blank"
+                            className="btn-ghost text-xs"
+                          >
+                            {t("printLabels")}
+                          </Link>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {p.variants.map((v) => (
+                            <ProductLabel
+                              key={`label-${v.id}`}
+                              productTitle={p.title}
+                              variantTitle={v.title}
+                              sku={v.sku}
+                              barcode={v.barcode}
+                              priceLabel={formatPrice(v.priceCents, v.currency)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               ) : null}

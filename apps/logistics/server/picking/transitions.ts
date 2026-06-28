@@ -8,6 +8,7 @@ import {
   type OrderInternalStatus,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { loadLagerConfig } from "@/server/lager/config";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 import { assignBatchesForOrder } from "./assign-batches";
 import { orderHasActiveConsumption } from "./consume-guard";
@@ -141,16 +142,25 @@ export async function confirmPacking(
   const db = adminDb();
   const orderRef = db.collection(Collections.Orders).doc(orderId);
 
-  // Ensure the order has its FEFO Charge assignment before we consume it.
-  // Idempotent: a no-op when the slip was already printed.
-  await assignBatchesForOrder(orderId);
+  const preSnap = await orderRef.get();
+  if (!preSnap.exists) throw new TransitionError("order_not_found");
+  const preOrder = preSnap.data() as Order;
+  const shopId = preOrder.shop_id;
+  if (!shopId) throw new Error("order has no shop_id");
+
+  const lagerCfg = await loadLagerConfig(shopId);
+  const batchesEnabled = lagerCfg.batches_enabled;
+
+  // Charge assignment happens at slip print; ensure it here too when enabled.
+  if (batchesEnabled) {
+    await assignBatchesForOrder(orderId);
+  }
 
   const {
     consumedQtyByBatch,
     consumedQtyByVariant,
     lineItems,
     effectiveTracking,
-    shopId,
   } = await db.runTransaction(async (tx) => {
       const orderSnap = await tx.get(orderRef);
       if (!orderSnap.exists) throw new TransitionError("order_not_found");
@@ -162,7 +172,6 @@ export async function confirmPacking(
         );
       }
 
-      // Open allocations for this order.
       const allocSnap = await tx.get(
         db
           .collection(Collections.Allocations)
@@ -175,82 +184,132 @@ export async function confirmPacking(
           "Bestand wurde für diese Order bereits abgezogen.",
         );
       }
-      const openAllocs = allocSnap.docs
-        .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
-        .filter((a) => !a.data.consumed_at);
-
-      if (openAllocs.length === 0) {
-        throw new TransitionError("no_open_allocations");
-      }
 
       const consumedByBatch: Record<string, number> = {};
       const consumedByVariant: Record<string, number> = {};
 
-      const variantIds = Array.from(
-        new Set(openAllocs.map((a) => a.data.variant_id)),
-      );
-      const variantRefs = variantIds.map((id) =>
-        db.collection(Collections.Variants).doc(id),
-      );
-      const variantSnaps = await Promise.all(variantRefs.map((r) => tx.get(r)));
-      const variantById = new Map<
-        string,
-        {
-          ref: FirebaseFirestore.DocumentReference;
-          onHand: number;
-          reserved: number;
+      if (batchesEnabled) {
+        const openAllocs = allocSnap.docs
+          .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
+          .filter((a) => !a.data.consumed_at);
+
+        if (openAllocs.length === 0) {
+          throw new TransitionError("no_open_allocations");
         }
-      >();
-      for (let i = 0; i < variantIds.length; i++) {
-        const snap = variantSnaps[i];
-        if (!snap?.exists) {
-          throw new TransitionError(
-            "batch_inconsistency",
-            `variant ${variantIds[i]} existiert nicht mehr`,
-          );
+
+        const variantIds = Array.from(
+          new Set(openAllocs.map((a) => a.data.variant_id)),
+        );
+        const variantRefs = variantIds.map((id) =>
+          db.collection(Collections.Variants).doc(id),
+        );
+        const variantSnaps = await Promise.all(
+          variantRefs.map((r) => tx.get(r)),
+        );
+        const variantById = new Map<
+          string,
+          {
+            ref: FirebaseFirestore.DocumentReference;
+            onHand: number;
+            reserved: number;
+          }
+        >();
+        for (let i = 0; i < variantIds.length; i++) {
+          const snap = variantSnaps[i];
+          if (!snap?.exists) {
+            throw new TransitionError(
+              "batch_inconsistency",
+              `variant ${variantIds[i]} existiert nicht mehr`,
+            );
+          }
+          const d = snap.data() ?? {};
+          const ref = variantRefs[i];
+          if (!ref) throw new Error("variantRefs index out of bounds");
+          variantById.set(variantIds[i] as string, {
+            ref,
+            onHand: (d.on_hand_total as number) ?? 0,
+            reserved: (d.reserved_total as number) ?? 0,
+          });
         }
-        const d = snap.data() ?? {};
-        const ref = variantRefs[i];
-        if (!ref) throw new Error("variantRefs index out of bounds");
-        variantById.set(variantIds[i] as string, {
-          ref,
-          onHand: (d.on_hand_total as number) ?? 0,
-          reserved: (d.reserved_total as number) ?? 0,
-        });
+
+        for (const a of openAllocs) {
+          consumedByBatch[a.data.batch_id] =
+            (consumedByBatch[a.data.batch_id] ?? 0) + a.data.qty;
+          consumedByVariant[a.data.variant_id] =
+            (consumedByVariant[a.data.variant_id] ?? 0) + a.data.qty;
+        }
+
+        for (const a of openAllocs) {
+          tx.update(a.ref, { consumed_at: FieldValue.serverTimestamp() });
+        }
+
+        for (const [variantId, qty] of Object.entries(consumedByVariant)) {
+          const v = variantById.get(variantId);
+          if (!v) continue;
+          const nextOnHand = v.onHand - qty;
+          const nextReserved = Math.max(0, v.reserved - qty);
+          tx.update(v.ref, {
+            on_hand_total: nextOnHand,
+            reserved_total: nextReserved,
+            available: nextOnHand - nextReserved,
+            updated_at: FieldValue.serverTimestamp(),
+          });
+        }
+      } else {
+        const variantIds = Array.from(
+          new Set(order.line_items.map((li) => li.variant_id)),
+        );
+        const variantRefs = variantIds.map((id) =>
+          db.collection(Collections.Variants).doc(id),
+        );
+        const variantSnaps = await Promise.all(
+          variantRefs.map((r) => tx.get(r)),
+        );
+        const variantById = new Map<
+          string,
+          {
+            ref: FirebaseFirestore.DocumentReference;
+            onHand: number;
+            reserved: number;
+          }
+        >();
+        for (let i = 0; i < variantIds.length; i++) {
+          const snap = variantSnaps[i];
+          if (!snap?.exists) {
+            throw new TransitionError(
+              "batch_inconsistency",
+              `variant ${variantIds[i]} existiert nicht mehr`,
+            );
+          }
+          const d = snap.data() ?? {};
+          const ref = variantRefs[i];
+          if (!ref) throw new Error("variantRefs index out of bounds");
+          variantById.set(variantIds[i] as string, {
+            ref,
+            onHand: (d.on_hand_total as number) ?? 0,
+            reserved: (d.reserved_total as number) ?? 0,
+          });
+        }
+
+        for (const li of order.line_items) {
+          consumedByVariant[li.variant_id] =
+            (consumedByVariant[li.variant_id] ?? 0) + li.qty;
+        }
+
+        for (const [variantId, qty] of Object.entries(consumedByVariant)) {
+          const v = variantById.get(variantId);
+          if (!v) continue;
+          const nextOnHand = v.onHand - qty;
+          const nextReserved = Math.max(0, v.reserved - qty);
+          tx.update(v.ref, {
+            on_hand_total: nextOnHand,
+            reserved_total: nextReserved,
+            available: nextOnHand - nextReserved,
+            updated_at: FieldValue.serverTimestamp(),
+          });
+        }
       }
 
-      // Aggregate consumption (batch totals are for the audit log only —
-      // remaining_qty was already decremented at assignment).
-      for (const a of openAllocs) {
-        consumedByBatch[a.data.batch_id] =
-          (consumedByBatch[a.data.batch_id] ?? 0) + a.data.qty;
-        consumedByVariant[a.data.variant_id] =
-          (consumedByVariant[a.data.variant_id] ?? 0) + a.data.qty;
-      }
-
-      // ---- Writes ----
-      // Allocations: mark consumed
-      for (const a of openAllocs) {
-        tx.update(a.ref, { consumed_at: FieldValue.serverTimestamp() });
-      }
-
-      // Variants: decrement on_hand_total + reserved_total
-      for (const [variantId, qty] of Object.entries(consumedByVariant)) {
-        const v = variantById.get(variantId);
-        if (!v) continue;
-        const nextOnHand = v.onHand - qty;
-        const nextReserved = Math.max(0, v.reserved - qty);
-        tx.update(v.ref, {
-          on_hand_total: nextOnHand,
-          reserved_total: nextReserved,
-          available: nextOnHand - nextReserved,
-          updated_at: FieldValue.serverTimestamp(),
-        });
-      }
-
-      // If the lager already created a DHL label, fall back to its
-      // shipment_no when the operator didn't type a tracking number
-      // manually. This keeps Shopify's "shipped" notification truthful.
       const dhl = order.dhl_shipment;
       const effectiveTracking: TrackingInput | undefined = (() => {
         if (tracking?.number) return tracking;
@@ -264,7 +323,6 @@ export async function confirmPacking(
         return tracking;
       })();
 
-      // Order
       const orderUpdate: Record<string, unknown> = {
         internal_status: "PACKED",
         packed_at: FieldValue.serverTimestamp(),
@@ -279,14 +337,20 @@ export async function confirmPacking(
         consumedQtyByVariant: consumedByVariant,
         lineItems: order.line_items,
         effectiveTracking,
-        shopId: order.shop_id,
       };
     });
 
   // ---- Outside-tx side effects (best-effort, idempotent via outbox) ----
-  await writeAudit(orderId, userId, consumedQtyByBatch, consumedQtyByVariant);
+  await writeAudit(
+    orderId,
+    userId,
+    shopId,
+    consumedQtyByBatch,
+    consumedQtyByVariant,
+  );
   await queueShopifyOutbox(
     orderId,
+    shopId,
     lineItems,
     effectiveTracking,
     consumedQtyByVariant,
@@ -321,14 +385,13 @@ export async function confirmPacking(
 async function writeAudit(
   orderId: string,
   userId: string,
+  shopId: string,
   byBatch: Record<string, number>,
   byVariant: Record<string, number>,
 ): Promise<void> {
   const db = adminDb();
   let batch = db.batch();
   let ops = 0;
-  // We pair batch_id ↔ variant_id by looking up the batch doc.
-  // Cheaper: just write one CONSUME per batch (variant_id is inferred).
   for (const [batchId, qty] of Object.entries(byBatch)) {
     const bSnap = await db
       .collection(Collections.Batches)
@@ -339,10 +402,11 @@ async function writeAudit(
     const movRef = db.collection(Collections.InventoryMovements).doc();
     batch.set(movRef, {
       id: movRef.id,
+      shop_id: shopId,
       type: "CONSUME",
       batch_id: batchId,
       variant_id: variantId,
-      qty: -qty, // signed: outflow
+      qty: -qty,
       ref: { kind: "ORDER", id: orderId },
       user_id: userId,
       created_at: FieldValue.serverTimestamp(),
@@ -354,17 +418,34 @@ async function writeAudit(
       ops = 0;
     }
   }
-  // Also a "per-variant total" snapshot for fast reporting (optional).
-  for (const [variantId, qty] of Object.entries(byVariant)) {
-    // skip — covered by the per-batch entries above
-    void variantId;
-    void qty;
+  if (Object.keys(byBatch).length === 0) {
+    for (const [variantId, qty] of Object.entries(byVariant)) {
+      const movRef = db.collection(Collections.InventoryMovements).doc();
+      batch.set(movRef, {
+        id: movRef.id,
+        shop_id: shopId,
+        type: "CONSUME",
+        batch_id: null,
+        variant_id: variantId,
+        qty: -qty,
+        ref: { kind: "ORDER", id: orderId },
+        user_id: userId,
+        created_at: FieldValue.serverTimestamp(),
+      });
+      ops++;
+      if (ops >= 450) {
+        await batch.commit();
+        batch = db.batch();
+        ops = 0;
+      }
+    }
   }
   if (ops > 0) await batch.commit();
 }
 
 async function queueShopifyOutbox(
   orderId: string,
+  shopId: string,
   lineItems: Order["line_items"],
   tracking: TrackingInput | undefined,
   consumedQtyByVariant: Record<string, number>,
@@ -424,6 +505,9 @@ async function queueShopifyOutbox(
 
   // Inventory push: one entry per (variant → new on_hand).
   // We could batch these, but the per-variant write is also fine for low traffic.
+  const { isAppInventorySource } = await import("@/server/lager/config");
+  const pushInventory = await isAppInventorySource(shopId);
+  if (pushInventory) {
   for (const variantId of Object.keys(consumedQtyByVariant)) {
     const vSnap = await db
       .collection(Collections.Variants)
@@ -466,6 +550,7 @@ async function queueShopifyOutbox(
       batch = db.batch();
       ops = 0;
     }
+  }
   }
   // Counter to keep linter happy that lineItems param is used.
   void lineItems;

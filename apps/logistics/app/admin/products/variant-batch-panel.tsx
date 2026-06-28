@@ -8,9 +8,18 @@ import {
   getBatchHistoryAction,
   receiveBatchAction,
   type ReceiveBatchActionState,
-} from "./actions";
+} from "./inventory-actions";
 import type { BatchHistoryEntry } from "@/server/inventory/batch-history";
 import { ArchiveIcon, EditIcon, HistoryIcon } from "@/app/_components/icons";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
+import {
+  LocationSelect,
+  LocationStockBreakdown,
+  type LocationOption,
+} from "@/app/admin/_components/location-fields";
 import { TOGGLEABLE_COLUMNS, type ColumnVisibility } from "./columns";
 import type { BatchRow, VariantRow } from "./product-accordion";
 
@@ -27,19 +36,23 @@ function isVisibleByDefault(b: BatchRow): boolean {
   return !isArchivedBatch(b);
 }
 
-/** Charge + actions are always shown; the rest are toggleable. */
+/** Charge + location + actions are always shown; the rest are toggleable. */
 function colSpanFor(cols: ColumnVisibility): number {
-  return 2 + TOGGLEABLE_COLUMNS.filter((k) => cols[k]).length;
+  return 3 + TOGGLEABLE_COLUMNS.filter((k) => cols[k]).length;
 }
 
 export function VariantBatchPanel({
   variant,
   priceLabel,
   cols,
+  locations,
+  defaultLocationId,
 }: {
   variant: VariantRow;
   priceLabel: string;
   cols: ColumnVisibility;
+  locations: LocationOption[];
+  defaultLocationId: string | null;
 }) {
   const t = useTranslations("batches.panel");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -84,6 +97,7 @@ export function VariantBatchPanel({
             ) : null}
             {priceLabel}
           </div>
+          <LocationStockBreakdown rows={variant.locationStock} />
         </div>
         <div className="grid grid-cols-3 gap-4 text-right">
           <Cell label={t("onHandShort")} value={variant.onHand} />
@@ -101,6 +115,7 @@ export function VariantBatchPanel({
         <thead className="bg-brand-cream text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
           <tr>
             <th className="px-4 py-2">{t("charge")}</th>
+            <th className="px-4 py-2">Standort</th>
             {cols.expiry ? <th className="px-4 py-2">{t("expiry")}</th> : null}
             {cols.production ? (
               <th className="px-4 py-2">{t("productionDate")}</th>
@@ -168,6 +183,8 @@ export function VariantBatchPanel({
         {adding ? (
           <NewBatchInlineForm
             variantId={variant.id}
+            locations={locations}
+            defaultLocationId={defaultLocationId}
             onClose={() => setAdding(false)}
           />
         ) : (
@@ -251,7 +268,15 @@ function BatchDisplayRow({
     setErr(null);
     startTransition(async () => {
       const res = await archiveBatchAction(batch.id);
-      if (!res.ok) setErr(res.error);
+      if (res.ok) {
+        dispatchAdminJobSuccess({
+          title: "Charge",
+          message: `Charge ${batch.chargeNumber} archiviert.`,
+        });
+      } else {
+        dispatchAdminJobError({ title: "Charge", message: res.error });
+        setErr(res.error);
+      }
     });
   }
 
@@ -274,6 +299,9 @@ function BatchDisplayRow({
             </span>
           ) : null}
         </span>
+      </td>
+      <td className="px-4 py-2.5 text-xs text-brand-navy/80">
+        {batch.locationName ?? "—"}
       </td>
       {cols.expiry ? (
         <td
@@ -493,8 +521,16 @@ function EditBatchRow({
         notes: notes !== (batch.notes ?? "") ? notes : undefined,
         reason: qtyChanged ? reason : undefined,
       });
-      if (res.ok) onClose();
-      else setErr(res.error);
+      if (res.ok) {
+        dispatchAdminJobSuccess({
+          title: "Charge",
+          message: `Charge ${chargeNumber} gespeichert.`,
+        });
+        onClose();
+      } else {
+        dispatchAdminJobError({ title: "Charge", message: res.error });
+        setErr(res.error);
+      }
     });
   }
 
@@ -510,6 +546,9 @@ function EditBatchRow({
           onChange={(e) => setChargeNumber(e.target.value)}
           className={`${inlineInput} w-24 font-mono`}
         />
+      </td>
+      <td className="px-4 py-2 text-xs text-brand-navy/70">
+        {batch.locationName ?? "—"}
       </td>
       {cols.expiry ? (
         <td className="px-4 py-2">
@@ -625,13 +664,20 @@ function EditBatchRow({
 
 function NewBatchInlineForm({
   variantId,
+  locations,
+  defaultLocationId,
   onClose,
 }: {
   variantId: string;
+  locations: LocationOption[];
+  defaultLocationId: string | null;
   onClose: () => void;
 }) {
   const t = useTranslations("batches.panel");
   const [chargeNumber, setChargeNumber] = useState("");
+  const [locationId, setLocationId] = useState(
+    defaultLocationId ?? locations[0]?.id ?? "",
+  );
   const [expiry, setExpiry] = useState("");
   // Produktionsdatum default = heute (lokale Zeitzone). Wareneingänge werden
   // praktisch immer am Tag der Produktion oder kurz danach gebucht, deshalb
@@ -646,6 +692,7 @@ function NewBatchInlineForm({
     setErr(null);
     const fd = new FormData();
     fd.set("variantId", variantId);
+    fd.set("locationId", locationId);
     fd.set("chargeNumber", chargeNumber);
     fd.set("expiryDate", expiry);
     if (production) fd.set("productionDate", production);
@@ -653,8 +700,16 @@ function NewBatchInlineForm({
     fd.set("note", notes);
     startTransition(async () => {
       const res: ReceiveBatchActionState = await receiveBatchAction(null, fd);
-      if (res?.ok) onClose();
-      else if (res) setErr(res.error);
+      if (res?.ok) {
+        dispatchAdminJobSuccess({
+          title: "Charge",
+          message: `Charge ${chargeNumber || "neu"} · ${qty} Stück eingebucht.`,
+        });
+        onClose();
+      } else if (res) {
+        dispatchAdminJobError({ title: "Charge", message: res.error });
+        setErr(res.error);
+      }
     });
   }
 
@@ -662,7 +717,7 @@ function NewBatchInlineForm({
     "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
   return (
-    <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_1fr_2fr_auto]">
+    <div className="grid w-full grid-cols-1 items-end gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_2fr_auto]">
       <Field label={t("charge")}>
         <input
           type="text"
@@ -670,6 +725,13 @@ function NewBatchInlineForm({
           value={chargeNumber}
           onChange={(e) => setChargeNumber(e.target.value)}
           className={`${input} font-mono`}
+        />
+      </Field>
+      <Field label="Standort">
+        <LocationSelect
+          locations={locations}
+          value={locationId}
+          onChange={setLocationId}
         />
       </Field>
       <Field label={t("expiry")}>

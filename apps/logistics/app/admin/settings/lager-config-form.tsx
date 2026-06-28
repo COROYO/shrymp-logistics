@@ -3,6 +3,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveLagerConfigAction } from "./lager-config-actions";
 import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY } from "@/lib/lager/defaults";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 export type LagerConfigFormValue = {
   batches_enabled: boolean;
@@ -17,21 +21,22 @@ export function LagerConfigForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [batchesEnabled, setBatchesEnabled] = useState(current.batches_enabled);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
       const res = await saveLagerConfigAction(fd);
       if (res.ok) {
-        setMsg({ ok: true, text: "Lager-Einstellungen gespeichert." });
+        dispatchAdminJobSuccess({
+          title: "Lager",
+          message: "Lager-Einstellungen gespeichert.",
+        });
         router.refresh();
       } else {
-        setMsg({
-          ok: false,
-          text: `Fehler: ${res.error}${
+        dispatchAdminJobError({
+          title: "Lager",
+          message: `${res.error}${
             res.details ? ` — ${JSON.stringify(res.details)}` : ""
           }`,
         });
@@ -96,13 +101,6 @@ export function LagerConfigForm({
         >
           {pending ? "Speichern…" : "Speichern"}
         </button>
-        {msg ? (
-          <span
-            className={`text-sm ${msg.ok ? "text-emerald-700" : "text-red-700"}`}
-          >
-            {msg.text}
-          </span>
-        ) : null}
       </div>
     </form>
   );

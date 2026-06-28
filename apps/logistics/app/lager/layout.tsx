@@ -27,6 +27,7 @@ export default async function LagerLayout({
     {
       label: t("lager"),
       items: [
+        { href: "/lager/scan", label: t("scan"), icon: "scan" },
         { href: "/lager/picking", label: t("picking"), icon: "picking" },
         {
           href: "/lager/packed-orders",

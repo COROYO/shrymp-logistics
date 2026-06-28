@@ -2,6 +2,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveDhlConfigAction } from "./dhl-config-actions";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 /**
  * Serializable subset of `DhlConfig` for client-side editing. The Firestore
@@ -41,21 +45,22 @@ export function DhlConfigForm({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
       const res = await saveDhlConfigAction(fd);
       if (res.ok) {
-        setMsg({ ok: true, text: "DHL-Konfiguration gespeichert." });
+        dispatchAdminJobSuccess({
+          title: "DHL",
+          message: "DHL-Konfiguration gespeichert.",
+        });
         router.refresh();
       } else {
-        setMsg({
-          ok: false,
-          text: `Fehler: ${res.error}${
+        dispatchAdminJobError({
+          title: "DHL",
+          message: `${res.error}${
             res.details ? ` — ${JSON.stringify(res.details)}` : ""
           }`,
         });
@@ -252,17 +257,6 @@ export function DhlConfigForm({
         >
           {pending ? "Speichere…" : "Speichern"}
         </button>
-        {msg ? (
-          <span
-            className={
-              msg.ok
-                ? "text-xs font-semibold text-emerald-700"
-                : "text-xs font-semibold text-brand-burgundy-dark"
-            }
-          >
-            {msg.text}
-          </span>
-        ) : null}
       </div>
     </form>
   );

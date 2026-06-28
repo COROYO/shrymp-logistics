@@ -123,6 +123,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "variant_id", "order": "ASCENDING" },
+        { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
     },
@@ -141,6 +142,78 @@
         { "fieldPath": "batch_id", "order": "ASCENDING" },
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "product_sync_runs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pick_runs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "product_sync_runs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "started_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "locations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "active", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "variants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "inventory_item_gid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "variants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "barcode", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "variants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "sku", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "storage_bins",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "code", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "variant_bins",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "bin_id", "order": "ASCENDING" }
       ]
     }
   ],

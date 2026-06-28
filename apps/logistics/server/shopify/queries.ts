@@ -32,6 +32,7 @@ const PRODUCTS_PAGE_QUERY = /* GraphQL */ `
             id
             title
             sku
+            barcode
             price
             image {
               url(transform: { maxWidth: 400, maxHeight: 400 })
@@ -45,6 +46,11 @@ const PRODUCTS_PAGE_QUERY = /* GraphQL */ `
     }
   }
 `;
+
+export type ShopifyInventoryLevelNode = {
+  location: { id: string };
+  quantities: { quantity: number }[];
+};
 
 export type ShopifyProductNode = {
   id: string;
@@ -61,7 +67,8 @@ export type ShopifyVariantNode = {
   id: string;
   title: string;
   sku: string | null;
-  price: string | null; // decimal string, e.g. "49.90"
+  barcode: string | null;
+  price: string | null;
   image: { url: string } | null;
   inventoryItem: { id: string } | null;
 };
@@ -73,30 +80,136 @@ type ProductsPageResponse = {
   };
 };
 
+export async function fetchProductsPage(
+  cursor: string | null = null,
+  pageSize = 50,
+): Promise<{
+  products: ShopifyProductNode[];
+  hasNextPage: boolean;
+  endCursor: string | null;
+}> {
+  const data: ProductsPageResponse = await shopifyGraphQL<ProductsPageResponse>(
+    PRODUCTS_PAGE_QUERY,
+    { cursor, pageSize },
+  );
+  return {
+    products: data.products.nodes,
+    hasNextPage: data.products.pageInfo.hasNextPage,
+    endCursor: data.products.pageInfo.endCursor,
+  };
+}
+
 export async function* iterateAllProducts(
   pageSize = 50,
 ): AsyncGenerator<ShopifyProductNode> {
   let cursor: string | null = null;
-  // Guard against runaway pagination.
   for (let i = 0; i < 1000; i++) {
-    const data: ProductsPageResponse = await shopifyGraphQL<ProductsPageResponse>(
-      PRODUCTS_PAGE_QUERY,
-      { cursor, pageSize },
-    );
-
-    for (const p of data.products.nodes) yield p;
-
-    if (!data.products.pageInfo.hasNextPage) return;
-    cursor = data.products.pageInfo.endCursor;
+    const page = await fetchProductsPage(cursor, pageSize);
+    for (const p of page.products) yield p;
+    if (!page.hasNextPage) return;
+    cursor = page.endCursor;
   }
   throw new Error("iterateAllProducts: too many pages (>1000)");
+}
+
+export type VariantLocationAvailable = {
+  locationGid: string;
+  available: number;
+};
+
+/** All location-level available quantities for a variant node (legacy shape with nested levels). */
+export function shopifyAvailableByLocationFromVariantNode(
+  v: ShopifyVariantNode & {
+    inventoryItem?: {
+      inventoryLevels?: { nodes: ShopifyInventoryLevelNode[] };
+    } | null;
+  },
+): VariantLocationAvailable[] {
+  const levels = v.inventoryItem?.inventoryLevels?.nodes ?? [];
+  return parseInventoryLevelNodes(levels);
+}
+
+export function parseInventoryLevelNodes(
+  levels: ShopifyInventoryLevelNode[],
+): VariantLocationAvailable[] {
+  const out: VariantLocationAvailable[] = [];
+  for (const level of levels) {
+    const qty = level.quantities?.[0]?.quantity;
+    if (qty == null || !Number.isFinite(qty)) continue;
+    out.push({
+      locationGid: level.location.id,
+      available: Math.max(0, Math.trunc(qty)),
+    });
+  }
+  return out;
+}
+
+const INVENTORY_ITEMS_BATCH_QUERY = /* GraphQL */ `
+  query InventoryItemsBatch($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on InventoryItem {
+        id
+        inventoryLevels(first: 25) {
+          nodes {
+            location {
+              id
+            }
+            quantities(names: ["available"]) {
+              quantity
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+type InventoryItemBatchNode = {
+  id: string;
+  inventoryLevels?: { nodes: ShopifyInventoryLevelNode[] };
+};
+
+/** Fetch per-location available qty in small batches (keeps query cost under Shopify limit). */
+const INVENTORY_ITEM_BATCH_SIZE = 25;
+
+export async function* fetchInventoryLevelsByItemGids(
+  inventoryItemGids: string[],
+): AsyncGenerator<{ inventoryItemGid: string; locations: VariantLocationAvailable[] }> {
+  const ids = [...new Set(inventoryItemGids.filter(Boolean))];
+  for (let i = 0; i < ids.length; i += INVENTORY_ITEM_BATCH_SIZE) {
+    const chunk = ids.slice(i, i + INVENTORY_ITEM_BATCH_SIZE);
+    const data = await shopifyGraphQL<{
+      nodes: Array<InventoryItemBatchNode | null>;
+    }>(INVENTORY_ITEMS_BATCH_QUERY, { ids: chunk });
+
+    for (const node of data.nodes) {
+      if (!node?.id) continue;
+      yield {
+        inventoryItemGid: node.id,
+        locations: parseInventoryLevelNodes(node.inventoryLevels?.nodes ?? []),
+      };
+    }
+  }
+}
+
+/** @deprecated Use shopifyAvailableByLocationFromVariantNode — sums all locations. */
+export function shopifyAvailableFromVariantNode(
+  v: ShopifyVariantNode,
+): number | null {
+  const rows = shopifyAvailableByLocationFromVariantNode(v);
+  if (rows.length === 0) return null;
+  return rows.reduce((s, r) => s + r.available, 0);
 }
 
 // ----------------------- Locations -----------------------
 
 const LOCATIONS_QUERY = /* GraphQL */ `
-  query Locations {
-    locations(first: 10, includeInactive: false) {
+  query Locations($cursor: String) {
+    locations(first: 50, after: $cursor, includeInactive: false) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       nodes {
         id
         name
@@ -115,17 +228,22 @@ export type ShopifyLocationNode = {
 };
 
 export async function getActiveLocations(): Promise<ShopifyLocationNode[]> {
-  const data = await shopifyGraphQL<{
-    locations: { nodes: ShopifyLocationNode[] };
-  }>(LOCATIONS_QUERY);
-  return data.locations.nodes;
+  const out: ShopifyLocationNode[] = [];
+  let cursor: string | null = null;
+  for (let i = 0; i < 50; i++) {
+    const data = await shopifyGraphQL<{
+      locations: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: ShopifyLocationNode[];
+      };
+    }>(LOCATIONS_QUERY, { cursor });
+    out.push(...data.locations.nodes);
+    if (!data.locations.pageInfo.hasNextPage) break;
+    cursor = data.locations.pageInfo.endCursor;
+  }
+  return out;
 }
 
-/**
- * Pick a single fulfillment location to use for inventory pushes.
- * Prefers `isPrimary` && `fulfillsOnlineOrders`. Falls back to the first
- * online-fulfilling location. Throws if none exists.
- */
 export async function resolvePrimaryFulfillmentLocation(): Promise<ShopifyLocationNode> {
   const locs = await getActiveLocations();
   const primary = locs.find((l) => l.isPrimary && l.fulfillsOnlineOrders);

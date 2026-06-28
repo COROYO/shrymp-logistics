@@ -1,43 +1,55 @@
 import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
-import { Collections, ConfigDocs } from "@/server/firestore/schema";
+import { Collections } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { isAppInventorySource } from "@/server/lager/config";
+import { buildInventoryPushEntriesForVariant } from "@/server/locations/push-stock";
+
+async function resolveVariantShopId(
+  variantId: string,
+): Promise<string | undefined> {
+  const snap = await adminDb()
+    .collection(Collections.Variants)
+    .doc(variantId)
+    .get();
+  return snap.data()?.shop_id as string | undefined;
+}
 
 /**
- * Queue an INVENTORY_SET outbox entry to push the current `available`
- * quantity of a variant to Shopify.
+ * Queue an INVENTORY_SET outbox entry to push stock to Shopify.
+ * Writes one outbox row per variant with all location quantities.
  *
- * Call this after every batch mutation (receive, edit, delete) so Shopify's
- * inventory page reflects the truth our app holds.
+ * `shopId` is required to resolve the lager config; server actions don't run
+ * inside a tenant context, so we fall back to the variant's `shop_id`.
  */
 export async function queueInventoryPush(
   variantId: string,
   reason: string,
   referenceUri: string,
+  shopId?: string,
 ): Promise<{ queued: boolean }> {
-  const db = adminDb();
-  const [vSnap, metaSnap] = await Promise.all([
-    db.collection(Collections.Variants).doc(variantId).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyMeta).get(),
-  ]);
-  if (!vSnap.exists) {
-    log.warn("inventory_push_skipped_variant_missing", { variantId });
+  const resolvedShopId = shopId ?? (await resolveVariantShopId(variantId));
+  if (!resolvedShopId) {
+    log.warn("inventory_push_skipped_no_shop", { variantId, reason });
     return { queued: false };
   }
-  const v = vSnap.data() ?? {};
-  const inventoryItemGid = v.inventory_item_gid as string | undefined;
-  if (!inventoryItemGid) {
-    log.warn("inventory_push_skipped_no_inventory_item", { variantId });
-    return { queued: false };
-  }
-  const locationGid = metaSnap.data()?.location_gid as string | undefined;
-  if (!locationGid) {
-    log.warn("inventory_push_skipped_no_location", { variantId });
-    return { queued: false };
-  }
-  const onHand = (v.on_hand_total as number) ?? 0;
 
+  if (!(await isAppInventorySource(resolvedShopId))) {
+    log.info("inventory_push_skipped_shopify_source", { variantId, reason });
+    return { queued: false };
+  }
+
+  const setQuantities = await buildInventoryPushEntriesForVariant(
+    variantId,
+    resolvedShopId,
+  );
+  if (setQuantities.length === 0) {
+    log.warn("inventory_push_skipped_no_entries", { variantId });
+    return { queued: false };
+  }
+
+  const db = adminDb();
   const ref = db.collection(Collections.ShopifyOutbox).doc();
   const now = FieldValue.serverTimestamp();
   await ref.set({
@@ -46,13 +58,7 @@ export async function queueInventoryPush(
     payload: {
       reason,
       referenceDocumentUri: referenceUri,
-      setQuantities: [
-        {
-          inventoryItemId: inventoryItemGid,
-          locationId: locationGid,
-          quantity: onHand,
-        },
-      ],
+      setQuantities,
     },
     attempts: 0,
     next_retry_at: now,

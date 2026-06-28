@@ -15,12 +15,14 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { href: "/admin/settings/shopify", label: "Shopify" },
       { href: "/admin/settings/dhl", label: "DHL Versand" },
+      { href: "/admin/settings/api", label: "REST API" },
     ],
   },
   {
     label: "Lager",
     items: [
       { href: "/admin/settings/chargen", label: "Chargen" },
+      { href: "/admin/settings/standorte", label: "Standorte" },
       { href: "/admin/settings/bestand", label: "Bestand" },
     ],
   },

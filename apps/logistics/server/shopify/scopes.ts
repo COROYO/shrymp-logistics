@@ -4,6 +4,7 @@
  */
 export const REQUIRED_OAUTH_SCOPES = [
   "read_products",
+  "write_products",
   "read_orders",
   "write_orders",
   "read_customers",
@@ -12,6 +13,17 @@ export const REQUIRED_OAUTH_SCOPES = [
   "read_fulfillments",
   "write_fulfillments",
   "read_locations",
+  "write_locations",
 ] as const;
 
 export const REQUIRED_OAUTH_SCOPE_STRING = REQUIRED_OAUTH_SCOPES.join(",");
+
+export function getMissingOAuthScopes(
+  granted: string | null | undefined,
+): string[] {
+  if (!granted?.trim()) return [...REQUIRED_OAUTH_SCOPES];
+  const grantedSet = new Set(
+    granted.split(",").map((s) => s.trim()).filter(Boolean),
+  );
+  return REQUIRED_OAUTH_SCOPES.filter((s) => !grantedSet.has(s));
+}

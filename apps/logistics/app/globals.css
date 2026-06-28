@@ -72,6 +72,12 @@ body {
     @apply rounded-lg border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(15,27,51,0.04)];
   }
 
+  /* Compact input — inline forms, selects, scan box */
+  .input-sm {
+    @apply rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/20;
+  }
+
   /* Section eyebrow label */
   .eyebrow {
     @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy;

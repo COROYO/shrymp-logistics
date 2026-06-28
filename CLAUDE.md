@@ -1,6 +1,6 @@
 # Monolith Lager — Project Conventions
 
-Internal warehouse picking/packing app for **Ikrinka (Monolith Caviar)**.
+Internal warehouse picking/packing app for **Shopify Merchants**.
 Greenfield Next.js 16 + Firestore project.
 
 ## Stack
@@ -50,7 +50,18 @@ pnpm-workspace.yaml
 - **Timestamps:** server-set via `FieldValue.serverTimestamp()` on write;
   Zod schemas accept Firestore Timestamps, ISO strings, and Date.
 - **Logging:** use `lib/logger.ts` (single-line JSON for Cloud Logging).
-- **Comments:** sparse, only where the *why* is non-obvious.
+- **Comments:** sparse, only where the _why_ is non-obvious.
+- **Admin feedback (Job Tray):** Do not add inline success/error banners in admin
+  UI. Use the fixed bottom-right tray via
+  `apps/logistics/app/admin/_components/admin-jobs-events.ts`:
+  - `dispatchAdminJobSuccess({ title?, message })` — green notice, auto-dismiss
+    after 15s (stackable, dismissible with X).
+  - `dispatchAdminJobError({ title?, message })` — red notice, stays until
+    dismissed.
+  - `window.dispatchEvent(new Event(ADMIN_JOBS_REFRESH_EVENT))` after starting a
+    background job (e.g. product sync) so the tray picks it up.
+  - Tray component: `AdminJobsTray` in `app/admin/layout.tsx`. Default titles
+    come from `adminJobs.success` / `adminJobs.error` in messages.
 
 ## Allocation invariants
 
@@ -72,7 +83,7 @@ Chargen are pinned **only when the packing slip is printed**
 (`server/picking/assign-batches.ts`), FEFO (oldest MHD first), in one
 transaction over the batch docs (the serialization point against concurrent
 prints). This guarantees the oldest Charge ships first regardless of the order
-in which staff pack. `batch.remaining_qty` = *assignable* units, decremented at
+in which staff pack. `batch.remaining_qty` = _assignable_ units, decremented at
 assignment and restored on cancel/STOP-flip; physical `on_hand_total` only
 drops at packing-confirm. Reprints reuse the same Charge (idempotent).
 

@@ -1,9 +1,9 @@
 import "server-only";
+import { cache } from "react";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
-  ConfigDocs,
   ShopSchema,
   type DhlConfig,
   type Shop,
@@ -15,14 +15,16 @@ function shopRef(shopId: string) {
   return adminDb().collection(Collections.Shops).doc(normalizeShopId(shopId));
 }
 
-export async function getShop(shopId: string): Promise<Shop | null> {
+async function getShopUncached(shopId: string): Promise<Shop | null> {
   const snap = await shopRef(shopId).get();
   if (!snap.exists) return null;
   const parsed = ShopSchema.safeParse({ id: snap.id, ...snap.data() });
   return parsed.success ? parsed.data : null;
 }
 
-export async function listActiveShops(): Promise<Shop[]> {
+export const getShop = cache(getShopUncached);
+
+async function listActiveShopsUncached(): Promise<Shop[]> {
   const snap = await adminDb()
     .collection(Collections.Shops)
     .where("status", "==", "ACTIVE")
@@ -34,6 +36,8 @@ export async function listActiveShops(): Promise<Shop[]> {
   }
   return out.sort((a, b) => a.shop_domain.localeCompare(b.shop_domain));
 }
+
+export const listActiveShops = cache(listActiveShopsUncached);
 
 export async function upsertShopOAuth(
   shopDomain: string,
@@ -89,34 +93,6 @@ export async function saveShopOAuthTokens(
   log.info("shop_oauth_persisted", { shopId, scope: tokens.scope });
 }
 
-/** One-time: bind migrated legacy shop to the oldest ADMIN account. */
-async function linkLegacyAdminToShop(shopId: string): Promise<void> {
-  const db = adminDb();
-  const usersSnap = await db
-    .collection(Collections.Users)
-    .where("role", "==", "ADMIN")
-    .get();
-  if (usersSnap.empty) return;
-
-  const candidates = usersSnap.docs
-    .map((d) => ({ id: d.id, data: d.data() }))
-    .filter((u) => {
-      const ids = u.data.shop_ids;
-      if (Array.isArray(ids) && ids.length > 0) return false;
-      if (u.data.pending_shop_domain) return false;
-      return true;
-    });
-  if (candidates.length === 0) return;
-
-  const oldest = candidates[0]!;
-  await db
-    .collection(Collections.Users)
-    .doc(oldest.id)
-    .set({ shop_ids: FieldValue.arrayUnion(shopId) }, { merge: true });
-  await shopRef(shopId).set({ owner_uid: oldest.id }, { merge: true });
-  log.info("legacy_admin_linked_to_shop", { shopId, uid: oldest.id });
-}
-
 export async function markShopUninstalled(shopId: string): Promise<void> {
   await shopRef(shopId).set(
     {
@@ -135,6 +111,7 @@ export async function updateShopMeta(
   shopId: string,
   patch: {
     location_gid?: string;
+    default_location_id?: string;
     api_version?: string;
     shop_domain?: string;
   },
@@ -160,6 +137,24 @@ export async function updateShopLagerSettings(
     {
       batches_enabled: patch.batches_enabled,
       batch_min_days_before_expiry: patch.batch_min_days_before_expiry,
+      lager_updated_by_uid: patch.updated_by_uid,
+      lager_updated_at: FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+export async function updateShopInventorySource(
+  shopId: string,
+  patch: {
+    inventory_source: "APP" | "SHOPIFY";
+    updated_by_uid: string | null;
+  },
+): Promise<void> {
+  await shopRef(shopId).set(
+    {
+      inventory_source: patch.inventory_source,
       lager_updated_by_uid: patch.updated_by_uid,
       lager_updated_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
@@ -199,56 +194,6 @@ export async function updateShopSlipBranding(
   );
 }
 
-/**
- * One-time lift from legacy singleton `config/*` docs into `shops/{shopId}`.
- * Returns the migrated shop id, or null if nothing to migrate.
- */
-export async function migrateLegacyShopIfNeeded(): Promise<string | null> {
-  const db = adminDb();
-  const [tokenSnap, metaSnap, lagerSnap, dhlSnap] = await Promise.all([
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyToken).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.ShopifyMeta).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.LagerConfig).get(),
-    db.collection(Collections.Config).doc(ConfigDocs.DhlConfig).get(),
-  ]);
-  if (!tokenSnap.exists) return null;
-
-  const token = tokenSnap.data() ?? {};
-  const shopDomain = (token.shop_domain as string | undefined)?.trim();
-  const accessToken = token.access_token as string | undefined;
-  if (!shopDomain || !accessToken) return null;
-
-  const shopId = normalizeShopId(shopDomain);
-  const existing = await shopRef(shopId).get();
-  if (existing.exists) return shopId;
-
-  const meta = metaSnap.data() ?? {};
-  const lager = lagerSnap.data() ?? {};
-  const dhl = dhlSnap.exists ? dhlSnap.data() : undefined;
-
-  await shopRef(shopId).set({
-    id: shopId,
-    shop_domain: shopId,
-    status: "ACTIVE",
-    access_token: accessToken,
-    scope: (token.scope as string | undefined) ?? "",
-    installed_at: token.installed_at ?? FieldValue.serverTimestamp(),
-    location_gid: meta.location_gid as string | undefined,
-    api_version: (meta.api_version as string | undefined) ?? "2026-04",
-    batch_min_days_before_expiry:
-      (lager.batch_min_days_before_expiry as number | undefined) ?? 10,
-    batches_enabled:
-      (lager.batches_enabled as boolean | undefined) ?? true,
-    ...(dhl ? { dhl_config: dhl } : {}),
-    created_at: FieldValue.serverTimestamp(),
-    updated_at: FieldValue.serverTimestamp(),
-  });
-
-  log.info("legacy_shop_migrated", { shopId });
-  await linkLegacyAdminToShop(shopId);
-  return shopId;
-}
-
 export type ShopCredentials = {
   shop_domain: string;
   access_token: string;
@@ -260,7 +205,6 @@ export type ShopCredentials = {
 export async function loadShopCredentials(
   shopId: string,
 ): Promise<ShopCredentials | null> {
-  await migrateLegacyShopIfNeeded();
   const { ensureValidShopCredentials } = await import(
     "@/server/shopify/token"
   );

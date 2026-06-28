@@ -1,9 +1,14 @@
 import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import { adminDb } from "@/server/firestore/admin";
 import { getShop } from "@/server/tenant/shop";
+import { productsForShop, variantsForShop } from "@/server/tenant/queries";
+import { getTranslations } from "next-intl/server";
 import { ShopifyConnectForm } from "@/app/_components/shopify-connect-form";
+import { ProductSyncButton } from "@/app/admin/products/sync-button";
 import { RegisterWebhooksButton } from "../register-webhooks-button";
 import { HealthPanel, type HealthSnapshot } from "../health-panel";
 import { readLastHealth } from "@/server/shopify/health";
+import { getMissingOAuthScopes } from "@/server/shopify/scopes";
 import { Badge, DefItem, getEnvHealth } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -19,12 +24,40 @@ async function getShopStatus(shopId: string) {
   };
 }
 
+async function getProductSyncStats(shopId: string) {
+  const db = adminDb();
+  const [prodCount, varCount, shop] = await Promise.all([
+    productsForShop(db, shopId)
+      .count()
+      .get()
+      .then((s) => s.data().count)
+      .catch(() => 0),
+    variantsForShop(db, shopId)
+      .count()
+      .get()
+      .then((s) => s.data().count)
+      .catch(() => 0),
+    getShop(shopId),
+  ]);
+
+  const updatedAt = shop?.updated_at;
+  let updatedAtIso: string | null = null;
+  const ts = updatedAt as unknown as { toDate?: () => Date };
+  if (ts && typeof ts.toDate === "function") {
+    updatedAtIso = ts.toDate().toISOString();
+  }
+
+  return { productCount: prodCount, variantCount: varCount, updatedAtIso };
+}
+
 export default async function ShopifySettingsPage() {
   const { shopId } = await requireTenantPageContext("/admin/settings/shopify");
-  const [status, env, lastHealth] = await Promise.all([
+  const [status, env, lastHealth, syncStats, t] = await Promise.all([
     getShopStatus(shopId),
     Promise.resolve(getEnvHealth()),
     readLastHealth(shopId),
+    getProductSyncStats(shopId),
+    getTranslations("products"),
   ]);
 
   const healthSnap: HealthSnapshot | null = lastHealth
@@ -36,6 +69,10 @@ export default async function ShopifySettingsPage() {
         errors: lastHealth.errors,
         checkedAt: lastHealth.checkedAt,
       }
+    : null;
+  const missingScopes = getMissingOAuthScopes(status.token_scope);
+  const reconnectHref = status.token_shop_domain
+    ? `/api/shopify/install?${new URLSearchParams({ shop: status.token_shop_domain }).toString()}`
     : null;
 
   return (
@@ -50,7 +87,7 @@ export default async function ShopifySettingsPage() {
         </p>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
-          <DefItem label="App installiert (Token in Firestore)">
+          <DefItem label="App installiert">
             <Badge ok={status.token_installed} />
           </DefItem>
           <DefItem label="Shop">
@@ -66,11 +103,6 @@ export default async function ShopifySettingsPage() {
           <DefItem label="API Version">
             <span className="font-mono">
               {status.api_version ?? env.apiVersion ?? "—"}
-            </span>
-          </DefItem>
-          <DefItem label="Location GID">
-            <span className="font-mono text-xs">
-              {status.location_gid ?? "— (wird beim Produkt-Sync gesetzt)"}
             </span>
           </DefItem>
         </dl>
@@ -89,7 +121,48 @@ export default async function ShopifySettingsPage() {
               compact
             />
           </div>
-        ) : null}
+        ) : (
+          <div className="mt-5 space-y-4">
+            {missingScopes.length > 0 ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-semibold">
+                  Neue Berechtigungen erforderlich
+                </p>
+                <p className="mt-1 text-xs">
+                  Fehlende Scopes:{" "}
+                  <span className="font-mono">{missingScopes.join(", ")}</span>
+                </p>
+              </div>
+            ) : null}
+            {!healthSnap?.tokenValid ? (
+              <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-4 py-3 text-sm text-brand-burgundy-dark">
+                <p className="font-semibold">Token ungültig oder abgelaufen</p>
+                <p className="mt-1 text-xs">
+                  Bitte Shopify erneut freigeben, um einen neuen Access Token zu
+                  erhalten.
+                </p>
+              </div>
+            ) : null}
+            <p className="text-xs text-brand-navy/60">
+              Nach App-Updates oder neuen Berechtigungen Shopify einmal neu
+              verbinden — du wirst nur zur Freigabe weitergeleitet.
+            </p>
+            {reconnectHref ? (
+              <a
+                href={reconnectHref}
+                className="btn-primary inline-block !py-3"
+              >
+                Shopify neu verbinden
+              </a>
+            ) : (
+              <ShopifyConnectForm
+                initialShopDomain={status.token_shop_domain}
+                submitLabel="Shopify neu verbinden"
+                compact
+              />
+            )}
+          </div>
+        )}
       </section>
 
       <section className="card p-6">
@@ -119,6 +192,58 @@ export default async function ShopifySettingsPage() {
           <RegisterWebhooksButton baseUrl={env.appUrl} />
         </div>
       </section>
+
+      {status.token_installed ? (
+        <>
+          <section className="card p-6">
+            <p className="eyebrow">Standorte</p>
+            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+              Multi-Location Bestand
+            </h2>
+            <p className="mt-1 text-xs text-brand-navy/60">
+              Standorte syncen, Standard-Lager festlegen und neue Shopify
+              Locations anlegen — unter{" "}
+              <a
+                href="/admin/settings/standorte"
+                className="font-semibold text-brand-burgundy underline"
+              >
+                Einstellungen → Standorte
+              </a>
+              .
+            </p>
+          </section>
+
+          <section className="card p-6">
+            <p className="eyebrow">{t("sync.eyebrow")}</p>
+            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+              {t("sync.title")}
+            </h2>
+            <p className="mt-1 text-xs text-brand-navy/60">{t("sync.intro")}</p>
+            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+              <DefItem label={t("stats.products")}>
+                <span className="font-bold tabular-nums">
+                  {syncStats.productCount}
+                </span>
+              </DefItem>
+              <DefItem label={t("stats.variants")}>
+                <span className="font-bold tabular-nums">
+                  {syncStats.variantCount}
+                </span>
+              </DefItem>
+              <DefItem label={t("stats.lastSync")}>
+                <span className="font-mono text-xs">
+                  {syncStats.updatedAtIso
+                    ? new Date(syncStats.updatedAtIso).toLocaleString("de-DE")
+                    : t("stats.never")}
+                </span>
+              </DefItem>
+            </dl>
+            <div className="mt-5">
+              <ProductSyncButton />
+            </div>
+          </section>
+        </>
+      ) : null}
     </>
   );
 }

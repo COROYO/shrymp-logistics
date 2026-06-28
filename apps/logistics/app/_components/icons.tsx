@@ -170,6 +170,23 @@ export function PackedIcon({ className }: IconProps) {
   );
 }
 
+export function BinsIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M3 4h5v5H3zM12 4h5v5h-5zM3 11h5v5H3zM12 11h5v5h-5z" />
+    </Svg>
+  );
+}
+
+export function ScanIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 7V5a1 1 0 0 1 1-1h2M16 7V5a1 1 0 0 0-1-1h-2M4 13v2a1 1 0 0 0 1 1h2M16 13v2a1 1 0 0 1-1 1h-2" />
+      <path d="M3 10h14" />
+    </Svg>
+  );
+}
+
 export function DownloadIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

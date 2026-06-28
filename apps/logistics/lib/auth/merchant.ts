@@ -1,17 +1,12 @@
 import "server-only";
+import { cache } from "react";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections } from "@/server/firestore/schema";
 import { getShop } from "@/server/tenant/shop";
 import { normalizeShopId } from "@/server/tenant/id";
+import { loadUserShopIds } from "@/lib/auth/user-shops";
 import type { SessionUser } from "./session";
-
-async function loadUserShopIds(uid: string): Promise<string[]> {
-  const snap = await adminDb().collection(Collections.Users).doc(uid).get();
-  const raw = snap.data()?.shop_ids;
-  if (!Array.isArray(raw)) return [];
-  return raw.map((s) => normalizeShopId(String(s)));
-}
 
 export async function loadPendingShopDomain(
   uid: string,
@@ -22,19 +17,25 @@ export async function loadPendingShopDomain(
   return normalizeShopId(raw);
 }
 
-/** True when an ADMIN has no shop with a valid OAuth token yet. */
-export async function merchantNeedsShopifyConnect(
-  user: SessionUser,
+async function merchantNeedsShopifyConnectUncached(
+  uid: string,
+  role: SessionUser["role"],
 ): Promise<boolean> {
-  if (user.role !== "ADMIN") return false;
-  const shopIds = await loadUserShopIds(user.uid);
-  if (shopIds.length === 0) return true;
+  if (role !== "ADMIN") return false;
+  const shopIds = await loadUserShopIds(uid);
+  if (!shopIds || shopIds.length === 0) return true;
   for (const id of shopIds) {
     const shop = await getShop(id);
     if (shop?.status === "ACTIVE" && shop.access_token) return false;
   }
   return true;
 }
+
+/** True when an ADMIN has no shop with a valid OAuth token yet. */
+export const merchantNeedsShopifyConnect = cache(
+  async (user: SessionUser): Promise<boolean> =>
+    merchantNeedsShopifyConnectUncached(user.uid, user.role),
+);
 
 export class ShopLinkError extends Error {
   constructor(

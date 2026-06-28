@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { backfillOrders } from "@/server/shopify/sync-orders";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
-import { pushAllInventoryToShopify } from "@/server/inventory/push-all";
+import { pushAllLocationStockToShopify } from "@/server/locations/push-stock";
 
 function normalizeBaseUrl(s: string): string {
   const trimmed = s.trim().replace(/\/$/, "");
@@ -27,11 +27,17 @@ export async function pushAllInventoryAction(): Promise<
     const user = await requireRole("ADMIN");
     const shopId = await requireActiveShopId(user);
     const r = await runWithTenantAsync(shopId, () =>
-      pushAllInventoryToShopify(shopId),
+      pushAllLocationStockToShopify(shopId),
     );
-    revalidatePath("/admin/batches");
+    revalidatePath("/admin/products");
     revalidatePath("/admin/settings");
-    return { ok: true, ...r };
+    return {
+      ok: true,
+      variantCount: r.variantCount,
+      queuedChunks: r.queuedChunks,
+      skipped: r.skipped,
+      drained: r.drained,
+    };
   } catch (e) {
     const { log } = await import("@/lib/logger");
     log.error("bulk_inventory_push_failed", { error: String(e) });

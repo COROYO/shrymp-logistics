@@ -69,7 +69,7 @@ export async function SlipBody({
   data: SlipData;
   pageBreakAfter?: boolean;
 }) {
-  const { order, allocsByLi, variantTitleByLi, branding } = data;
+  const { order, allocsByLi, variantTitleByLi, branding, batchesEnabled } = data;
   const mergedLines = mergeSlipLines(
     order.line_items,
     allocsByLi,
@@ -206,9 +206,11 @@ export async function SlipBody({
             <th className="px-3 py-2 pr-4 text-right text-[10pt] font-semibold uppercase tracking-[0.1em]">
               {t("qty")}
             </th>
-            <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
-              {t("charge")}
-            </th>
+            {batchesEnabled ? (
+              <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
+                {t("charge")}
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -241,21 +243,23 @@ export async function SlipBody({
                   line.qty
                 )}
               </td>
-              <td className="px-3 py-2 pr-4 font-mono">
-                {line.allocs.length === 0 ? (
-                  <span className="italic text-brand-navy/40">
-                    {t("noCharge")}
-                  </span>
-                ) : line.allocs.length === 1 ? (
-                  line.allocs[0]!.chargeNumber
-                ) : (
-                  <div className="space-y-0.5">
-                    {line.allocs.map((a) => (
-                      <div key={a.chargeNumber}>{a.chargeNumber}</div>
-                    ))}
-                  </div>
-                )}
-              </td>
+              {batchesEnabled ? (
+                <td className="px-3 py-2 pr-4 font-mono">
+                  {line.allocs.length === 0 ? (
+                    <span className="italic text-brand-navy/40">
+                      {t("noCharge")}
+                    </span>
+                  ) : line.allocs.length === 1 ? (
+                    line.allocs[0]!.chargeNumber
+                  ) : (
+                    <div className="space-y-0.5">
+                      {line.allocs.map((a) => (
+                        <div key={a.chargeNumber}>{a.chargeNumber}</div>
+                      ))}
+                    </div>
+                  )}
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

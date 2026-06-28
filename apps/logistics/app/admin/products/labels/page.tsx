@@ -1,0 +1,38 @@
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { requireTenantPageContext } from "@/lib/auth/tenant-page";
+import { runWithTenantAsync } from "@/server/tenant/context";
+import { loadVariantLabels } from "@/server/warehouse/product-labels";
+import { ProductLabelSheet } from "./product-label-sheet";
+
+export const dynamic = "force-dynamic";
+
+export default async function ProductLabelsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ product?: string; variant?: string }>;
+}) {
+  const { shopId } = await requireTenantPageContext("/admin/products/labels");
+  const { product, variant } = await searchParams;
+  const labels = await runWithTenantAsync(shopId, () =>
+    loadVariantLabels(shopId, { productId: product, variantId: variant }),
+  );
+  const t = await getTranslations("productLabels");
+
+  return (
+    <div className="space-y-6">
+      <div className="print:hidden">
+        <Link
+          href="/admin/products"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
+        >
+          {t("back")}
+        </Link>
+        <h1 className="h-display mt-3 text-3xl">{t("title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">{t("intro")}</p>
+      </div>
+
+      <ProductLabelSheet labels={labels} />
+    </div>
+  );
+}

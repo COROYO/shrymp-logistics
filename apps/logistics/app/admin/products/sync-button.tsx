@@ -2,52 +2,65 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { triggerProductSyncAction } from "./actions";
+import {
+  ADMIN_JOBS_REFRESH_EVENT,
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 export function ProductSyncButton() {
   const t = useTranslations("products.sync");
-  const tCommon = useTranslations("common");
+  const [syncInventory, setSyncInventory] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
   function handleClick() {
-    setMsg(null);
-    setErr(null);
     startTransition(async () => {
-      const res = await triggerProductSyncAction();
+      const res = await triggerProductSyncAction(syncInventory);
       if (res.ok) {
-        setMsg(
-          t("success", {
-            products: res.productCount,
-            variants: res.variantCount,
-          }),
-        );
+        window.dispatchEvent(new Event(ADMIN_JOBS_REFRESH_EVENT));
+        dispatchAdminJobSuccess({
+          title: t("button"),
+          message: t("started"),
+        });
+      } else if (res.error === "sync_already_running") {
+        dispatchAdminJobSuccess({
+          title: t("button"),
+          message: t("alreadyRunning"),
+        });
       } else {
-        setErr(res.error);
+        dispatchAdminJobError({
+          title: t("button"),
+          message: res.error,
+        });
       }
     });
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <label className="flex cursor-pointer items-start gap-3 rounded-md border border-zinc-200 bg-brand-cream/40 px-3 py-2.5 text-sm text-brand-navy">
+        <input
+          type="checkbox"
+          checked={syncInventory}
+          onChange={(e) => setSyncInventory(e.target.checked)}
+          disabled={pending}
+          className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-brand-burgundy focus:ring-brand-navy/30"
+        />
+        <span>
+          <span className="font-semibold">{t("inventoryCheckbox")}</span>
+          <span className="mt-0.5 block text-xs text-brand-navy/60">
+            {t("inventoryCheckboxHint")}
+          </span>
+        </span>
+      </label>
       <button
         type="button"
         onClick={handleClick}
         disabled={pending}
         className="btn-primary"
       >
-        {pending ? t("loading") : t("button")}
+        {pending ? t("starting") : t("button")}
       </button>
-      {msg ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          {msg}
-        </div>
-      ) : null}
-      {err ? (
-        <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-3 py-2 text-sm text-brand-burgundy-dark">
-          {tCommon("error")}: {err}
-        </div>
-      ) : null}
     </div>
   );
 }

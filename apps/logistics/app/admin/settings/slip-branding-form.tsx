@@ -3,6 +3,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveSlipBrandingAction } from "./slip-branding-actions";
 import type { SlipBrandingConfig } from "@/lib/slip/defaults";
+import {
+  dispatchAdminJobError,
+  dispatchAdminJobSuccess,
+} from "@/app/admin/_components/admin-jobs-events";
 
 const labelClass =
   "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60";
@@ -13,21 +17,22 @@ const inputClass =
 export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
       const res = await saveSlipBrandingAction(fd);
       if (res.ok) {
-        setMsg({ ok: true, text: "Lieferschein-Branding gespeichert." });
+        dispatchAdminJobSuccess({
+          title: "Lieferschein",
+          message: "Lieferschein-Branding gespeichert.",
+        });
         router.refresh();
       } else {
-        setMsg({
-          ok: false,
-          text: `Fehler: ${res.error}${
+        dispatchAdminJobError({
+          title: "Lieferschein",
+          message: `${res.error}${
             res.details ? ` — ${JSON.stringify(res.details)}` : ""
           }`,
         });
@@ -140,13 +145,6 @@ export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
         >
           {pending ? "Speichern…" : "Branding speichern"}
         </button>
-        {msg ? (
-          <span
-            className={`text-sm ${msg.ok ? "text-emerald-700" : "text-red-700"}`}
-          >
-            {msg.text}
-          </span>
-        ) : null}
       </div>
     </form>
   );

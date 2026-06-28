@@ -19,6 +19,7 @@ import { DhlLabelButtons } from "./dhl-label-buttons";
 import { DhlServicesBadges } from "./dhl-services-badges";
 import { summarizeDhlServices } from "@/server/dhl/request-builder";
 import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
+import { isBatchesEnabled } from "@/server/lager/config";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 
 export const dynamic = "force-dynamic";
@@ -40,9 +41,8 @@ async function loadOrderForPacking(orderId: string) {
   // Tenant gate before any mutation/read of foreign order data.
   await assertShopAccessibleForPage(shopId, `/lager/packing/${orderId}`);
 
-  await releaseUnshippableBatchAssignments(orderId);
-
   return runWithTenantAsync(shopId, async () => {
+    await releaseUnshippableBatchAssignments(orderId);
     const [shop, dhlConfig] = await Promise.all([
       getShop(shopId),
       loadDhlConfig(shopId),
@@ -94,8 +94,16 @@ async function loadOrderForPacking(orderId: string) {
     }
 
     const dhlShipmentForUi = await prepareDhlShipmentForUi(order);
+    const batchesEnabled = await isBatchesEnabled(shopId);
 
-    return { order, allocsByLi, shopDomain, dhlConfig, dhlShipmentForUi };
+    return {
+      order,
+      allocsByLi,
+      shopDomain,
+      dhlConfig,
+      dhlShipmentForUi,
+      batchesEnabled,
+    };
   });
 }
 
@@ -150,13 +158,24 @@ async function prepareDhlShipmentForUi(
 
 export default async function PackingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ run?: string }>;
 }) {
   const { orderId } = await params;
+  const { run: runId } = await searchParams;
+  const runHref = runId ? `/lager/run/${runId}/pack` : null;
   const data = await loadOrderForPacking(orderId);
   if (!data) notFound();
-  const { order, allocsByLi, shopDomain, dhlConfig, dhlShipmentForUi } = data;
+  const {
+    order,
+    allocsByLi,
+    shopDomain,
+    dhlConfig,
+    dhlShipmentForUi,
+    batchesEnabled,
+  } = data;
   const defaultWeightG = dhlConfig?.default_weight_g ?? 1000;
   const dhlServices = summarizeDhlServices(order);
 
@@ -172,10 +191,10 @@ export default async function PackingPage({
     <div className="space-y-8">
       <div>
         <Link
-          href={`/lager/picking/${order.id}`}
+          href={runHref ?? `/lager/picking/${order.id}`}
           className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
         >
-          {tPage("backToPicklist")}
+          {runHref ? tPage("backToRun") : tPage("backToPicklist")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
@@ -239,7 +258,7 @@ export default async function PackingPage({
               <tr>
                 <th>{tPack("product")}</th>
                 <th className="text-right">{tPack("qty")}</th>
-                <th>{tPack("batches")}</th>
+                {batchesEnabled ? <th>{tPack("batches")}</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -260,18 +279,20 @@ export default async function PackingPage({
                     <td className="text-right text-lg font-bold text-brand-navy">
                       {li.qty}
                     </td>
-                    <td className="text-xs">
-                      <div className="flex flex-wrap gap-1.5">
-                        {allocs.map((a, idx) => (
-                          <span
-                            key={idx}
-                            className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white"
-                          >
-                            {a.chargeNumber} · {a.qty}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
+                    {batchesEnabled ? (
+                      <td className="text-xs">
+                        <div className="flex flex-wrap gap-1.5">
+                          {allocs.map((a, idx) => (
+                            <span
+                              key={idx}
+                              className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white"
+                            >
+                              {a.chargeNumber} · {a.qty}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })}
@@ -337,7 +358,10 @@ export default async function PackingPage({
           </h2>
           <p className="mt-1 text-xs text-brand-navy/60">{t("finish.intro")}</p>
           <div className="mt-5">
-            <ConfirmPackingForm orderId={order.id} />
+            <ConfirmPackingForm
+              orderId={order.id}
+              returnHref={runHref ?? "/lager/picking"}
+            />
           </div>
         </section>
       ) : isPacked ? (

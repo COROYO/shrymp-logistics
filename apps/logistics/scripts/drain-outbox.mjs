@@ -5,10 +5,45 @@
 // Run: node --env-file=.env.local scripts/drain-outbox.mjs
 import admin from "firebase-admin";
 
-if (!admin.apps.length) {
-  const json = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  admin.initializeApp({ credential: admin.credential.cert(json) });
+function initAdmin() {
+  if (admin.apps.length) return;
+
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  if (!projectId) {
+    throw new Error(
+      "FIREBASE_PROJECT_ID is required. Add it to apps/logistics/.env.local.",
+    );
+  }
+
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
+  if (raw) {
+    let s = raw;
+    if (
+      (s.startsWith("'") && s.endsWith("'")) ||
+      (s.startsWith('"') && s.endsWith('"'))
+    ) {
+      s = s.slice(1, -1);
+    }
+    const json = JSON.parse(s);
+    if (
+      typeof json.private_key === "string" &&
+      !json.private_key.includes("\n") &&
+      json.private_key.includes("\\n")
+    ) {
+      json.private_key = json.private_key.replaceAll("\\n", "\n");
+    }
+    admin.initializeApp({
+      credential: admin.credential.cert(json),
+      projectId,
+    });
+    return;
+  }
+
+  // ADC — works after `gcloud auth application-default login`.
+  admin.initializeApp({ projectId });
 }
+
+initAdmin();
 const db = admin.firestore();
 
 const snap = await db

@@ -1,9 +1,10 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections } from "@/server/firestore/schema";
-import { listActiveShops, migrateLegacyShopIfNeeded } from "@/server/tenant/shop";
 import { normalizeShopId } from "@/server/tenant/id";
+import { loadUserShopIds } from "@/lib/auth/user-shops";
 import type { SessionUser } from "./session";
 
 export const SHOP_COOKIE = "__shop";
@@ -18,34 +19,49 @@ export class TenantError extends Error {
   }
 }
 
-async function loadUserShopIds(uid: string): Promise<string[] | null> {
-  const snap = await adminDb().collection(Collections.Users).doc(uid).get();
-  const raw = snap.data()?.shop_ids;
-  if (!Array.isArray(raw)) return null;
-  return raw.map((s) => normalizeShopId(String(s)));
-}
-
-/** Shops the user may access (explicit shop_ids only — no cross-tenant leakage). */
-export async function listAccessibleShopIds(
-  user: SessionUser,
+async function listAccessibleShopIdsUncached(
+  uid: string,
+  role: SessionUser["role"],
 ): Promise<string[]> {
-  await migrateLegacyShopIfNeeded();
-  const active = await listActiveShops();
-  const activeIds = active.map((s) => s.id);
-
-  const restricted = await loadUserShopIds(user.uid);
+  const restricted = await loadUserShopIds(uid);
   if (!restricted || restricted.length === 0) {
-    if (user.role === "ADMIN") return [];
+    if (role === "ADMIN") return [];
     throw new TenantError(
       "NO_SHOPS",
       "Kein Mandant zugewiesen — Admin muss shop_ids setzen.",
     );
   }
-  return activeIds.filter((id) => restricted.includes(id));
+
+  const db = adminDb();
+  const snaps = await db.getAll(
+    ...restricted.map((id) =>
+      db.collection(Collections.Shops).doc(normalizeShopId(id)),
+    ),
+  );
+
+  const out: string[] = [];
+  for (const snap of snaps) {
+    if (!snap.exists) continue;
+    if (snap.data()?.status !== "ACTIVE") continue;
+    out.push(snap.id);
+  }
+  return out.sort((a, b) => a.localeCompare(b));
 }
 
-export async function getActiveShopId(user: SessionUser): Promise<string> {
-  const accessible = await listAccessibleShopIds(user);
+const listAccessibleShopIdsCached = cache(listAccessibleShopIdsUncached);
+
+/** Shops the user may access (explicit shop_ids only — no cross-tenant leakage). */
+export async function listAccessibleShopIds(
+  user: SessionUser,
+): Promise<string[]> {
+  return listAccessibleShopIdsCached(user.uid, user.role);
+}
+
+async function getActiveShopIdUncached(
+  uid: string,
+  role: SessionUser["role"],
+): Promise<string> {
+  const accessible = await listAccessibleShopIdsCached(uid, role);
   if (accessible.length === 0) {
     throw new TenantError("NO_SHOPS", "Kein aktiver Shopify-Mandant.");
   }
@@ -65,6 +81,12 @@ export async function getActiveShopId(user: SessionUser): Promise<string> {
   );
 }
 
+const getActiveShopIdCached = cache(getActiveShopIdUncached);
+
+export async function getActiveShopId(user: SessionUser): Promise<string> {
+  return getActiveShopIdCached(user.uid, user.role);
+}
+
 export async function requireActiveShopId(user: SessionUser): Promise<string> {
-  return getActiveShopId(user);
+  return getActiveShopIdCached(user.uid, user.role);
 }

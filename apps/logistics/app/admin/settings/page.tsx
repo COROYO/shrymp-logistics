@@ -28,8 +28,11 @@ export default async function SettingsOverviewPage({
           <ol className="list-decimal list-inside space-y-2 rounded-md border border-zinc-200 bg-white px-4 py-4 text-sm text-brand-navy">
             <li>
               <strong>Produkte syncen</strong> unter{" "}
-              <a href="/admin/products" className="text-brand-burgundy underline">
-                Produkte
+              <a
+                href="/admin/settings/shopify"
+                className="text-brand-burgundy underline"
+              >
+                Shopify-Einstellungen
               </a>
             </li>
             <li>
@@ -74,6 +77,16 @@ export default async function SettingsOverviewPage({
         </p>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+              Bestandsführung
+            </dt>
+            <dd className="mt-1">
+              <span className="chip chip-emerald">
+                {lagerCfg.inventory_source === "APP" ? "Lager-App" : "Shopify"}
+              </span>
+            </dd>
+          </div>
           <div>
             <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
               Chargen-Tracking

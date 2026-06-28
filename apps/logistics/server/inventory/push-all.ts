@@ -7,6 +7,7 @@ import {
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { processOutbox } from "@/server/shopify/outbox";
+import { isAppInventorySource } from "@/server/lager/config";
 
 /**
  * Bulk-push all current variant inventories to Shopify.
@@ -35,6 +36,12 @@ export type BulkPushResult = {
 export async function pushAllInventoryToShopify(
   shopId: string,
 ): Promise<BulkPushResult> {
+  if (!(await isAppInventorySource(shopId))) {
+    throw new Error(
+      "Bestandsführung liegt bei Shopify — Push ist deaktiviert.",
+    );
+  }
+
   const db = adminDb();
   const { variantsForShop } = await import("@/server/tenant/queries");
   const { getShop } = await import("@/server/tenant/shop");

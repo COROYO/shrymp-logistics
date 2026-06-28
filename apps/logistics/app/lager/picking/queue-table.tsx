@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 import { bulkConfirmPackingAction } from "../packing/actions";
+import { createPickRunAction } from "../run/actions";
 
 export type QueueRow = {
   id: string;
@@ -32,6 +33,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
     failures: Failure[];
   } | null>(null);
   const [showErrors, setShowErrors] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someSelected = selected.size > 0 && !allSelected;
@@ -59,6 +61,20 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
     if (selectedIds.length === 0) return;
     const url = `/lager/print-slips?ids=${selectedIds.join(",")}`;
     window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function handleStartRun() {
+    if (selectedIds.length === 0) return;
+    setRunError(null);
+    setResult(null);
+    start(async () => {
+      const res = await createPickRunAction(selectedIds);
+      if (res.ok) {
+        router.push(`/lager/run/${res.runId}`);
+      } else {
+        setRunError(res.error);
+      }
+    });
   }
 
   function handleMarkPacked() {
@@ -120,6 +136,14 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
+                onClick={handleStartRun}
+                disabled={pending}
+                className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pending ? tBulk("starting") : tBulk("startRun", { count: selected.size })}
+              </button>
+              <button
+                type="button"
                 onClick={handlePrintSlips}
                 disabled={pending}
                 className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
@@ -136,6 +160,13 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
               </button>
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {runError ? (
+        <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-4 py-3 text-sm text-brand-burgundy-dark">
+          {tBulk("runError")}
+          {runError === "no_eligible" ? ` ${tBulk("runNoEligible")}` : ` (${runError})`}
         </div>
       ) : null}
 

@@ -34,6 +34,14 @@
     "error": "Fehler",
     "success": "Erfolg"
   },
+  "adminJobs": {
+    "title": "Hintergrund-Jobs",
+    "productSync": "Shopify Voll-Sync",
+    "cancelJob": "Job abbrechen",
+    "dismiss": "Schließen",
+    "error": "Fehler",
+    "success": "Erfolg"
+  },
   "nav": {
     "admin": "Admin",
     "lager": "Lager",
@@ -45,9 +53,11 @@
     "allocations": "Zuordnungen",
     "batches": "Chargen",
     "lagerbestand": "Lagerbestand",
+    "lagerplaetze": "Lagerplätze",
     "products": "Produkte",
     "users": "Benutzer",
     "settings": "Einstellungen",
+    "scan": "Scanner",
     "picking": "Picking",
     "packedOrders": "Abgeschlossen",
     "openMenu": "Menü öffnen",
@@ -56,16 +66,15 @@
   },
   "adminHome": {
     "eyebrow": "Übersicht",
-    "title": "Monolith Caviar Backoffice",
+    "title": "Shrymp Logistics Backoffice",
     "intro": "Wareneingang, Bestände, Orders, Allocation-Runs. Wähle einen Bereich aus.",
     "open": "Öffnen →",
     "tiles": {
       "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW Übersicht" },
-      "batches": {
-        "title": "Bestand & Chargen",
-        "desc": "Wareneingang, MHD, FEFO-Liste"
+      "products": {
+        "title": "Produkte & Bestand",
+        "desc": "Shopify-Sync, Wareneingang, Chargen"
       },
-      "products": { "title": "Produkte", "desc": "Shopify-Sync verwalten" },
       "customers": {
         "title": "Kunden",
         "desc": "Kundenliste + Bestellhistorie"
@@ -76,6 +85,61 @@
         "desc": "Shopify-Verbindung, Webhooks, Allocation"
       },
       "lager": { "title": "Lager", "desc": "Picking & Packing-Ansicht öffnen" }
+    }
+  },
+  "dashboard": {
+    "unavailable": "Kennzahlen konnten nicht geladen werden.",
+    "quickLinks": "Schnellzugriff",
+    "noData": "Keine Daten im Zeitraum",
+    "naShort": "—",
+    "kpi": {
+      "openOrders": "Offene Aufträge",
+      "openOrdersSub": "{stop} blockiert (STOP)",
+      "revenue30d": "Umsatz (30 Tage)",
+      "aov": "Ø Bestellwert {value}",
+      "revenueToday": "Umsatz heute",
+      "ordersToday": "{count} Bestellungen heute",
+      "packed": "Pakete verpackt (heute)",
+      "packed30d": "{count} in 30 Tagen",
+      "cycleTime": "Ø Pick → Pack",
+      "cycleP90": "P90 {value}"
+    },
+    "status": {
+      "title": "Auftragsstatus",
+      "subtitle": "Offener Bestand über alle Zeiträume",
+      "new": "Neu",
+      "ship": "Versandbereit",
+      "picking": "In Bearbeitung",
+      "stop": "Blockiert",
+      "link": "Zu den Orders →"
+    },
+    "packedChart": {
+      "title": "Verpackt pro Tag",
+      "subtitle": "Letzte {days} Tage",
+      "footer": "{week} in 7 Tagen · {samples} mit Pick-Zeit gemessen"
+    },
+    "revenueChart": {
+      "title": "Umsatz pro Tag",
+      "subtitle": "Letzte {days} Tage",
+      "footer": "{value} in 7 Tagen · {orders} Bestellungen"
+    },
+    "inventory": {
+      "title": "Lagerbestand",
+      "value": "Bestandswert",
+      "skus": "Varianten (SKU)",
+      "onHand": "Bestand (Stück)",
+      "reserved": "Reserviert",
+      "outOfStock": "Nicht verfügbar",
+      "lowStock": "Niedriger Bestand",
+      "link": "Lagerbestand öffnen →"
+    },
+    "batches": {
+      "title": "Chargen / MHD",
+      "active": "Aktiv",
+      "expiring": "MHD ≤ {days} T",
+      "expired": "Abgelaufen",
+      "link": "Chargen öffnen →",
+      "disabled": "Chargenverwaltung ist deaktiviert."
     }
   },
   "customers": {
@@ -163,7 +227,11 @@
         "confirmMark": "Wirklich {count} Orders als verpackt + versendet markieren? Bestand wird abgebucht, Fulfillment an Shopify gemeldet.",
         "successAll": "{count} Orders erfolgreich abgeschlossen.",
         "successPartial": "{ok} erfolgreich, {fail} fehlgeschlagen.",
-        "showErrors": "Fehler anzeigen"
+        "showErrors": "Fehler anzeigen",
+        "startRun": "🛒 Pick-Run starten ({count})",
+        "starting": "Starte…",
+        "runError": "Pick-Run konnte nicht gestartet werden.",
+        "runNoEligible": "Keine geeignete Order in der Auswahl (SHIP oder im Picking, noch keinem Lauf zugeordnet)."
       }
     }
   },
@@ -258,6 +326,7 @@
   },
   "packingPage": {
     "backToPicklist": "← Zurück zur Picklist",
+    "backToRun": "← Zurück zum Pick-Run",
     "notConfigured": "DHL ist noch nicht konfiguriert. <link>In den Admin-Einstellungen</link> EKP-Nummer + Absenderadresse pflegen."
   },
   "pickingDetail": {
@@ -268,6 +337,8 @@
       "eyebrow": "Picklist · FEFO",
       "positions": "{count, plural, one {# Position} other {# Positionen}}",
       "product": "Produkt",
+      "bin": "Lagerplatz",
+      "noBin": "—",
       "sku": "SKU",
       "qty": "Menge",
       "charge": "Charge",
@@ -285,6 +356,153 @@
     },
     "wrongStatus": "Order ist in Status <b>{status}</b>, nicht picking-bar."
   },
+  "bins": {
+    "eyebrow": "Lagerverwaltung",
+    "title": "Lagerplätze",
+    "intro": "Lege Lagerplätze an, ordne Produkte zu und drucke Barcode-Etiketten. So gestaltest du dein Lager selbst.",
+    "toLabels": "Etiketten drucken →",
+    "loading": "Lädt…",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "created": "Lagerplatz „{code}\" angelegt.",
+    "updated": "Lagerplatz „{code}\" gespeichert.",
+    "deleted": "Lagerplatz „{code}\" gelöscht.",
+    "bulkDone": "{created} Lagerplätze angelegt, {skipped} übersprungen.",
+    "confirmDelete": "Lagerplatz „{code}\" wirklich löschen? {count} Zuordnung(en) werden entfernt.",
+    "fields": {
+      "code": "Lagernummer / Code",
+      "name": "Name",
+      "zone": "Zone (optional)",
+      "note": "Notiz (optional)",
+      "prefix": "Präfix",
+      "suffix": "Suffix",
+      "start": "Start-Nr",
+      "count": "Anzahl",
+      "padding": "Stellen (Nullen)",
+      "namePrefix": "Namens-Präfix"
+    },
+    "create": {
+      "eyebrow": "Neu",
+      "title": "Lagerplatz anlegen",
+      "single": "Einzeln",
+      "bulk": "Bulk",
+      "add": "Anlegen",
+      "generate": "Generieren",
+      "bulkHint": "Erzeugt fortlaufende Plätze, z. B. Präfix „A-\", Start 1, Anzahl 20, 2 Stellen → A-01 … A-20.",
+      "bulkExample": "A-01 … A-20"
+    },
+    "list": {
+      "title": "{count, plural, one {# Lagerplatz} other {# Lagerplätze}}",
+      "empty": "Noch keine Lagerplätze — lege einen an oder generiere mehrere per Bulk.",
+      "variantCount": "{count, plural, one {# Produkt} other {# Produkte}}",
+      "inactive": "inaktiv"
+    },
+    "assign": {
+      "eyebrow": "Zuordnung",
+      "title": "Produkte zu Lagerplätzen",
+      "intro": "Weise jeder Variante ihren Lagerplatz zu. Der Platz erscheint in der Picklist und beim Scannen.",
+      "search": "Produkt, SKU oder Barcode…",
+      "onlyUnassigned": "Nur ohne Platz",
+      "product": "Produkt",
+      "sku": "SKU / Barcode",
+      "bin": "Lagerplatz",
+      "none": "— kein Platz —",
+      "empty": "Keine Produkte gefunden."
+    },
+    "errors": {
+      "invalid_code": "Ungültige Lagernummer.",
+      "invalid_name": "Name fehlt.",
+      "duplicate_code": "Diese Lagernummer existiert bereits.",
+      "not_found": "Lagerplatz nicht gefunden.",
+      "bulk_too_large": "Anzahl zu groß (max. 500).",
+      "forbidden": "Keine Berechtigung."
+    }
+  },
+  "binLabels": {
+    "back": "← Lagerplätze",
+    "title": "Etiketten drucken",
+    "intro": "Wähle die Plätze, Spaltenzahl und drucke die Klebezettel mit Name, Lagernummer und Barcode (Code 128).",
+    "empty": "Keine Lagerplätze vorhanden. Lege zuerst Plätze an.",
+    "columns": "Spalten",
+    "showName": "Name zeigen",
+    "showZone": "Zone zeigen",
+    "selectAll": "Alle wählen",
+    "selectNone": "Keine",
+    "print": "{count} Etikett(en) drucken"
+  },
+  "productLabels": {
+    "back": "← Produkte",
+    "title": "Produkt-Etiketten",
+    "intro": "Drucke Etiketten mit Titel, Preis, SKU und Barcode (EAN bzw. SKU als Code 128) — scanbar im Picking.",
+    "empty": "Keine Produkte vorhanden. Zuerst von Shopify syncen.",
+    "columns": "Spalten",
+    "copies": "Kopien je Produkt",
+    "showPrice": "Preis zeigen",
+    "showSku": "SKU zeigen",
+    "search": "Produkt, SKU oder Barcode…",
+    "selectAll": "Alle wählen",
+    "selectNone": "Keine",
+    "print": "{count} Etikett(en) drucken",
+    "downloadBarcodes": "Barcodes ({count})",
+    "downloadBarcode": "Barcode als PNG herunterladen",
+    "downloadEmpty": "Keine Barcodes in der Auswahl.",
+    "downloadDone": "{count} Barcode(s) heruntergeladen.",
+    "downloadFailed": "Download fehlgeschlagen.",
+    "skuPlaceholder": "SKU…",
+    "skuSave": "OK",
+    "skuGenerate": "Zufällige SKU erzeugen",
+    "skuSaved": "SKU „{sku}\" gespeichert.",
+    "skuGenerated": "SKU „{sku}\" erzeugt.",
+    "skuErrors": {
+      "invalid_sku": "Ungültige SKU.",
+      "duplicate_sku": "Diese SKU ist bereits vergeben.",
+      "not_found": "Variante nicht gefunden.",
+      "no_inventory_item": "Keine Shopify-Inventory-Verknüpfung.",
+      "generate_failed": "Konnte keine eindeutige SKU erzeugen.",
+      "shopify_failed": "Shopify hat die SKU abgelehnt.",
+      "forbidden": "Keine Berechtigung."
+    }
+  },
+  "scan": {
+    "eyebrow": "Lager",
+    "title": "Scanner",
+    "intro": "Scanne Lagerplatz, Produkt-Barcode/SKU oder Bestellnummer. Funktioniert mit USB-/Bluetooth-Scanner oder Kamera.",
+    "placeholder": "Scannen oder eingeben…",
+    "submit": "Suchen",
+    "hint": "Tipp: Handscanner schreiben den Code direkt ins Feld und bestätigen mit Enter.",
+    "cameraStart": "Kamera",
+    "cameraStop": "Kamera aus",
+    "cameraUnsupported": "Kamera-Scan wird von diesem Browser nicht unterstützt. Bitte Handscanner verwenden.",
+    "cameraDenied": "Kein Kamerazugriff. Bitte Berechtigung erlauben oder Handscanner nutzen.",
+    "notFound": "Nichts gefunden für „{code}\".",
+    "result": {
+      "product": "Produkt",
+      "bin": "Lagerplatz",
+      "onHand": "Bestand",
+      "reserved": "Reserviert",
+      "available": "Verfügbar",
+      "storedHere": "{count, plural, =0 {Keine Produkte} one {# Produkt} other {# Produkte}} hier gelagert",
+      "binEmpty": "Diesem Platz sind noch keine Produkte zugeordnet.",
+      "noBin": "Kein Lagerplatz zugeordnet.",
+      "assignBin": "Zuordnen"
+    }
+  },
+  "pickScan": {
+    "eyebrow": "Kontrolle",
+    "title": "Scan-Prüfung",
+    "placeholder": "Artikel scannen…",
+    "check": "Prüfen",
+    "cameraStart": "Kamera",
+    "cameraStop": "Kamera aus",
+    "errorsTitle": "Picking-Fehler",
+    "clear": "Leeren",
+    "errWrongItem": "Artikel gehört nicht zu dieser Bestellung.",
+    "errOverPick": "Zu viel gescannt: {title}",
+    "noCode": "Kein Barcode/SKU — manuell prüfen",
+    "allDone": "Alle Positionen geprüft. Weiter zum Packen."
+  },
   "confirmPacking": {
     "tracking": "Tracking-Nr (optional)",
     "trackingPlaceholder": "Leer lassen wenn noch keine Nr",
@@ -295,6 +513,47 @@
     "submitting": "Buche…",
     "confirm": "Sicher? Nochmal klicken zum Bestätigen",
     "errorPrefix": "Fehler:"
+  },
+  "pickRun": {
+    "eyebrow": "Multi-Picking",
+    "title": "Pick-Run · {count} Aufträge",
+    "cancel": "Abbrechen",
+    "cancelConfirm": "Pick-Run wirklich abbrechen? Alle Aufträge gehen zurück in die Queue.",
+    "progress": "Fortschritt",
+    "errorsTitle": "Scan-Fehler",
+    "clearErrors": "Leeren",
+    "errWrongItem": "Artikel gehört zu keinem Auftrag in diesem Lauf.",
+    "errOverPick": "Zu viel gescannt: {title}",
+    "errSync": "Konnte nicht gespeichert werden — bitte erneut scannen.",
+    "binNone": "kein Platz",
+    "noCode": "Kein Barcode/SKU",
+    "complete": "Picking abschließen → Packen",
+    "completeLocked": "Erst alle Artikel picken",
+    "completeHint": "Scanne jeden Artikel und lege ihn in den angezeigten Wagen-Slot.",
+    "putInto": "In Slot legen · {order}",
+    "scanPlaceholder": "Artikel scannen…",
+    "cameraStart": "Kamera an",
+    "cameraStop": "Kamera aus",
+    "finishedTitle": "Pick-Run abgeschlossen.",
+    "cancelledTitle": "Pick-Run abgebrochen.",
+    "backToQueue": "Zur Picking-Queue",
+    "statusPacking": "Packen",
+    "statusPicking": "Picking",
+    "activeRun": "Pick-Run · {count} Aufträge",
+    "resume": "Fortsetzen →",
+    "backToRun": "← Zurück zum Pick-Run",
+    "packEyebrow": "Packen pro Auftrag",
+    "packTitle": "Aufträge verpacken",
+    "packIntro": "Jeder Wagen-Slot ist ein Auftrag. Verpacke einzeln, damit alles korrekt versendet wird.",
+    "packAllDone": "Alle Aufträge verpackt und versendet.",
+    "printAllSlips": "🧾 Alle Lieferscheine ({count})",
+    "refresh": "Aktualisieren",
+    "packItemCount": "{count, plural, one {# Artikel} other {# Artikel}}",
+    "packedLabel": "Gepackt ✓",
+    "packCta": "Packen →",
+    "packFinish": "Pick-Run abschließen",
+    "packFinishLocked": "Erst alle Aufträge packen",
+    "packFinished": "Abgeschlossen ✓"
   },
   "ordersAdmin": {
     "eyebrow": "Orders",
@@ -396,23 +655,56 @@
     }
   },
   "products": {
-    "eyebrow": "Stammdaten",
-    "title": "Produkte",
-    "intro": "Shopify-Katalog spiegeln. Bestände werden separat über Wareneingang gepflegt, hier nur Stammdaten.",
+    "eyebrow": "Stammdaten & Bestand",
+    "title": "Produkte & Bestand",
+    "intro": "Shopify-Katalog synchronisieren und Bestände pflegen — mit Chargen (MHD/FEFO) oder direkt pro Variante.",
     "stats": {
       "products": "Produkte",
       "variants": "Varianten",
       "shopDomain": "Shop-Domain",
       "lastSync": "Letzter Sync",
-      "never": "nie"
+      "never": "nie",
+      "activeBatches": "Aktive Chargen",
+      "onHandTotal": "Bestand gesamt (Stk)"
     },
+    "emptyNoSync": "Noch keine Produkte synchronisiert. Einmal unter <link>Einstellungen → Shopify</link> aus Shopify laden.",
     "sync": {
       "eyebrow": "Synchronisation",
       "title": "Voll-Sync",
-      "intro": "Lädt alle Produkte und Varianten aus Shopify nach Firestore. Bestehende Bestände (on_hand_total, reserved_total) werden nicht überschrieben.",
+      "intro": "Lädt alle Produkte und Varianten aus Shopify nach Firestore. Bestehende Bestände werden standardmäßig nicht überschrieben.",
+      "inventoryCheckbox": "Bestand aus Shopify übernehmen",
+      "inventoryCheckboxHint": "Spiegelt die verkaufbare Menge von Shopify in unsere Datenbank. Reservierungen bleiben erhalten. Nur aktivieren, wenn du Shopify-Bestände importieren willst.",
       "button": "Aus Shopify synchronisieren",
+      "starting": "Starte…",
+      "started": "Voll-Sync läuft im Hintergrund. Fortschritt siehst du oben in der Leiste.",
+      "alreadyRunning": "Ein Sync läuft bereits — Fortschritt siehst du oben in der Leiste.",
       "loading": "Synchronisiere…",
-      "success": "{products} Produkte, {variants} Varianten aktualisiert."
+      "success": "{products} Produkte, {variants} Varianten aktualisiert.",
+      "successWithInventory": "{products} Produkte, {variants} Varianten aktualisiert. {inventoryUpdated} Bestände aus Shopify übernommen."
+    },
+    "syncBanner": {
+      "running": "Shopify-Sync läuft — {products} Produkte, {variants} Varianten ({phase})…",
+      "completed": "Sync abgeschlossen: {products} Produkte, {variants} Varianten aktualisiert.",
+      "completedWithInventory": "Sync abgeschlossen: {products} Produkte, {variants} Varianten, {inventoryUpdated} Bestände übernommen.",
+      "cancel": "Abbrechen",
+      "forceStop": "Sofort stoppen",
+      "stopping": "Sync wird gestoppt — {products} Produkte, {variants} Varianten bisher…",
+      "cancelled": "Shopify-Sync abgebrochen.",
+      "failed": "Shopify-Sync fehlgeschlagen",
+      "unknownError": "Unbekannter Fehler",
+      "phase": {
+        "starting": "Start",
+        "locations": "Standorte",
+        "catalog": "Katalog",
+        "inventory": "Bestände laden",
+        "applying_inventory": "Bestände schreiben",
+        "done": "Fertig"
+      }
+    },
+    "inventoryPanel": {
+      "receiveStock": "+ Wareneingang",
+      "adjustStock": "Bestand korrigieren",
+      "historyTitle": "Bestands-Historie"
     }
   },
   "lagerbestand": {
@@ -442,7 +734,7 @@
       "reserved": "Reserviert (Stk)",
       "difference": "Differenz (Stk)"
     },
-    "emptyNoSync": "Noch keine Produkte synchronisiert. Erst <link>Produkte syncen</link>.",
+    "emptyNoSync": "Noch keine Produkte synchronisiert. Erst unter <link>Einstellungen → Shopify</link> syncen.",
     "table": {
       "eyebrow": "Varianten",
       "count": "{filtered} von {total} Varianten",
@@ -457,6 +749,22 @@
       "onHand": "Lager",
       "reserved": "In Orders",
       "difference": "Differenz"
+    },
+    "edit": {
+      "hint": "Doppelklick zum Bearbeiten",
+      "successTitle": "Aktualisiert",
+      "errorTitle": "Speichern fehlgeschlagen",
+      "nameSaved": "Produktname an Shopify übertragen.",
+      "skuSaved": "SKU an Shopify übertragen.",
+      "stockSaved": "Lagerbestand aktualisiert.",
+      "batchesLocked": "Bestand wird über Chargen verwaltet – bitte unter „Bestand & Chargen“ anpassen.",
+      "invalidQty": "Bitte eine ganze Zahl ≥ 0 eingeben.",
+      "noLocation": "Kein Standort für diese Variante gefunden.",
+      "emptyTitle": "Name darf nicht leer sein.",
+      "missingScope": "Fehlende Shopify-Berechtigung (write_products). Bitte App unter Einstellungen → Shopify neu verbinden.",
+      "notFound": "Datensatz nicht gefunden.",
+      "errForbidden": "Keine Berechtigung.",
+      "unknown": "Unbekannter Fehler."
     }
   },
   "batches": {
@@ -468,7 +776,7 @@
       "activeBatches": "Aktive Chargen",
       "onHandTotal": "Bestand gesamt (Stk)"
     },
-    "emptyNoSync": "Noch keine Produkte synchronisiert. Erst <link>Produkte syncen</link>.",
+    "emptyNoSync": "Noch keine Produkte synchronisiert. Erst unter <link>Einstellungen → Shopify</link> syncen.",
     "accordion": {
       "onHand": "On Hand",
       "available": "Available",
@@ -480,7 +788,10 @@
       "price": "Preis",
       "search": "Produkt, Variante oder SKU suchen…",
       "filterCount": "{filtered} von {total}",
-      "variantsCharges": "{variants, plural, one {# Variante} other {# Varianten}} · {batches, plural, one {# Charge} other {# Chargen}}"
+      "variantsCharges": "{variants, plural, one {# Variante} other {# Varianten}} · {batches, plural, one {# Charge} other {# Chargen}}",
+      "variantsOnly": "{count, plural, one {# Variante} other {# Varianten}}",
+      "labels": "Etiketten",
+      "printLabels": "Etiketten drucken"
     },
     "panel": {
       "skuLabel": "SKU",
@@ -661,10 +972,10 @@
     }
   },
   "picklistPrint": {
-    "header": "Monolith Caviar · Picklist",
+    "header": "Shrymp Logistics · Picklist",
     "subTitle": "FEFO · {datetime}",
     "express": "Express",
-    "brand": "Ikrinka",
+    "brand": "Shrymp",
     "brandSub": "Premium Quality",
     "address": "Lieferadresse",
     "tags": "Tags",
@@ -681,9 +992,9 @@
   },
   "packingSlip": {
     "eyebrow": "Premium Quality",
-    "brand": "IKRiNKA",
-    "companyLine": "Monolith Caviar & Co. GmbH · Hauptstraße 49 · 36166 Haunetal",
-    "contactEmail": "info@ikrinka.de",
+    "brand": "Shrymp",
+    "companyLine": "Shrymp Commerce GmbH · Ludwig-Erhard-Platz 1 · 51373 Leverkusen",
+    "contactEmail": "info@shrymp-commerce.com",
     "title": "Lieferschein",
     "orderDate": "Bestelldatum",
     "shippingAddress": "Lieferadresse",
@@ -700,7 +1011,7 @@
     "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
     "signature": "Vielen Dank und guten Appetit!\nDein IKRiNKA-Team",
     "footerOrder": "Lieferschein zu Bestellung <mono>{order}</mono>",
-    "footerLegal": "Monolith Caviar & Co. GmbH · USt-IdNr. DE 255 102 708 · Amtsgericht Bad Hersfeld · HRB 2193 · Geschäftsführung: Denis Wischnakow"
+    "footerLegal": "Shrymp Commerce GmbH · Ludwig-Erhard-Platz 1 · 51373 Leverkusen"
   },
   "login": {
     "title": "Anmelden",
