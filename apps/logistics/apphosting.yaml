@@ -2,6 +2,9 @@ env:
   # ---------- Firebase (server) ----------
   - variable: FIREBASE_PROJECT_ID
     value: shrymp-logistics
+    availability:
+      - BUILD
+      - RUNTIME
 
   # ---------- Firebase (client, public) ----------
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY

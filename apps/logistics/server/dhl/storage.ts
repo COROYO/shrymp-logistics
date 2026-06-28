@@ -1,5 +1,6 @@
 import "server-only";
 import { getStorage } from "firebase-admin/storage";
+import { resolveFirebaseProjectId } from "@/server/firestore/admin";
 
 /**
  * Firebase Storage helpers for DHL label PDFs.
@@ -16,7 +17,7 @@ const SIGNED_URL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 function bucketName(): string {
   const explicit = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
   if (explicit) return explicit;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId = resolveFirebaseProjectId();
   if (!projectId) throw new Error("FIREBASE_PROJECT_ID required for storage");
   return `${projectId}.firebasestorage.app`;
 }

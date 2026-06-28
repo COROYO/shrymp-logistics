@@ -9,9 +9,11 @@ import { getAuth, type Auth } from "firebase-admin/auth";
  * Credentials are loaded from (in order of precedence):
  *   1. `FIREBASE_SERVICE_ACCOUNT_JSON` — full inlined JSON of the service
  *      account key file.
- *   2. Application Default Credentials (gcloud / Firebase / GCP runtime).
- *
- * `FIREBASE_PROJECT_ID` must always be set.
+ *   2. App Hosting / GCP runtime — `FIREBASE_CONFIG` + ADC (`initializeApp()`
+ *      with no args; see Firebase App Hosting docs).
+ *   3. Application Default Credentials with an explicit project id
+ *      (`FIREBASE_PROJECT_ID`, `GCP_PROJECT_ID`, or
+ *      `NEXT_PUBLIC_FIREBASE_PROJECT_ID`).
  */
 
 let cachedApp: App | undefined;
@@ -58,6 +60,23 @@ function parseServiceAccount(raw: string): Record<string, unknown> {
   return obj;
 }
 
+export function resolveFirebaseProjectId(): string | undefined {
+  const explicit =
+    process.env.FIREBASE_PROJECT_ID ??
+    process.env.GCP_PROJECT_ID ??
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (explicit) return explicit;
+
+  const raw = process.env.FIREBASE_CONFIG;
+  if (!raw) return undefined;
+  try {
+    const cfg = JSON.parse(raw) as { projectId?: string };
+    return cfg.projectId;
+  } catch {
+    return undefined;
+  }
+}
+
 function getAdminApp(): App {
   if (cachedApp) return cachedApp;
   const existing = getApps()[0];
@@ -66,15 +85,14 @@ function getAdminApp(): App {
     return existing;
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  if (!projectId) {
-    throw new Error(
-      "FIREBASE_PROJECT_ID env var is required. Add it to .env.local.",
-    );
-  }
-
+  const projectId = resolveFirebaseProjectId();
   const saJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (saJson && saJson.trim().length > 0) {
+    if (!projectId) {
+      throw new Error(
+        "FIREBASE_PROJECT_ID env var is required when using FIREBASE_SERVICE_ACCOUNT_JSON. Add it to .env.local.",
+      );
+    }
     const parsed = parseServiceAccount(saJson);
     // Sanity: project_id in the key should match the env, otherwise the
     // user has the wrong key for the wrong project — fail loudly.
@@ -88,10 +106,17 @@ function getAdminApp(): App {
       credential: cert(parsed as any),
       projectId,
     });
-  } else {
+  } else if (process.env.FIREBASE_CONFIG) {
+    // App Hosting injects FIREBASE_CONFIG at build + runtime; ADC supplies auth.
+    cachedApp = initializeApp();
+  } else if (projectId) {
     // ADC (Application Default Credentials) — works on Firebase / GCP runtime
     // or after `gcloud auth application-default login` locally.
     cachedApp = initializeApp({ projectId });
+  } else {
+    throw new Error(
+      "FIREBASE_PROJECT_ID env var is required. Add it to .env.local.",
+    );
   }
 
   return cachedApp;
