@@ -3,8 +3,8 @@ import { AlertTriangle, FileSpreadsheet, Shuffle } from "lucide-react";
 const problems = [
   {
     icon: FileSpreadsheet,
-    title: "Shopify kennt keine Chargen",
-    body: "MHD und Rückverfolgbarkeit lassen sich im Shop nicht sauber abbilden — Excel und Notizen füllen die Lücke.",
+    title: "Manuelle Lagerprozesse",
+    body: "Picklisten, Bestand und Versand laufen über Excel, Notizen und Bauchgefühl — fehleranfällig und schlecht skalierbar.",
   },
   {
     icon: Shuffle,
@@ -14,7 +14,7 @@ const problems = [
   {
     icon: AlertTriangle,
     title: "Fehler beim Packen",
-    body: "Ohne FEFO und feste Chargenzuweisung landet die falsche Charge im Paket — teuer und riskant.",
+    body: "Ohne Scan-Prüfung und klare Zuweisung landet der falsche Artikel oder die falsche Charge im Paket — teuer und riskant.",
   },
 ] as const;
 
@@ -28,8 +28,8 @@ export function ProblemSection() {
             Shopify allein reicht nicht
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-secondary">
-            Lebensmittel, Kaviar, Tiefkühlware: Dein Shop verwaltet SKUs —
-            aber nicht die Charge, die heute raus muss.
+            Dein Shop verwaltet SKUs und Bestellungen — aber nicht, welcher
+            Artikel aus welchem Lagerplatz heute optimal raus muss.
           </p>
         </div>
 

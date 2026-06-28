@@ -7,8 +7,8 @@ import {
 import { logisticsUrl } from "@/lib/config";
 
 const stats = [
-  { value: "FEFO", label: "Älteste MHD zuerst" },
-  { value: "100%", label: "All-or-nothing pro Order" },
+  { value: "Express", label: "Vorrang bei knappem Bestand" },
+  { value: "Multi-Pick", label: "Mehrere Orders pro Lauf" },
   { value: "1-Klick", label: "Shopify-Sync" },
 ] as const;
 
@@ -72,14 +72,14 @@ export function HeroSection() {
               Beta für Shopify-Händler
             </p>
             <h1 className="display-heading mt-5 text-4xl leading-[1.08] sm:text-5xl lg:text-[3.25rem]">
-              Lagerlogistik,
-              <span className="block text-brand-burgundy">die Chargen versteht</span>
+              Die Lagerschicht,
+              <span className="block text-brand-burgundy">die mitdenkt</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-secondary">
               Shrymp Logistics sitzt zwischen Shopify und deinem physischen Lager:
-              intelligente Allocation, FEFO-Picking und transparente
-              Chargenzuweisung — für Produkte, bei denen MHD und
-              Rückverfolgbarkeit zählen.
+              intelligente Allocation, Picking mit Scanner-Prüfung, DHL-Versand
+              und Bestandsführung in Echtzeit — Chargen und MHD inklusive, wenn
+              du sie brauchst.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

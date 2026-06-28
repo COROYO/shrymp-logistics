@@ -6,7 +6,7 @@ import { useState } from "react";
 const faqs = [
   {
     q: "Für wen ist Shrymp Logistics gedacht?",
-    a: "Für Shopify-Händler mit MHD-pflichtigen oder chargenrelevanten Produkten — Lebensmittel, Kaviar, Tiefkühlware und ähnliche Sortimente.",
+    a: "Für Shopify-Händler, die echte Lagerprozesse brauchen — Allocation, Picking, Versand und Bestandsführung. Besonders stark bei chargen- oder MHD-pflichtigen Sortimenten wie Lebensmitteln, aber nicht darauf beschränkt.",
   },
   {
     q: "Ersetzt Shrymp Logistics mein Warenwirtschaftssystem?",

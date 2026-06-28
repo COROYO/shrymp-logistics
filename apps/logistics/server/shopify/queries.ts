@@ -227,16 +227,21 @@ export type ShopifyLocationNode = {
   fulfillsOnlineOrders: boolean;
 };
 
+type LocationsPageResponse = {
+  locations: {
+    pageInfo: { hasNextPage: boolean; endCursor: string | null };
+    nodes: ShopifyLocationNode[];
+  };
+};
+
 export async function getActiveLocations(): Promise<ShopifyLocationNode[]> {
   const out: ShopifyLocationNode[] = [];
   let cursor: string | null = null;
   for (let i = 0; i < 50; i++) {
-    const data = await shopifyGraphQL<{
-      locations: {
-        pageInfo: { hasNextPage: boolean; endCursor: string | null };
-        nodes: ShopifyLocationNode[];
-      };
-    }>(LOCATIONS_QUERY, { cursor });
+    const data: LocationsPageResponse = await shopifyGraphQL<LocationsPageResponse>(
+      LOCATIONS_QUERY,
+      { cursor },
+    );
     out.push(...data.locations.nodes);
     if (!data.locations.pageInfo.hasNextPage) break;
     cursor = data.locations.pageInfo.endCursor;
