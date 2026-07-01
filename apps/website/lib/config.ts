@@ -4,4 +4,4 @@ export const siteUrl =
 export const contactEmail = "hello@shrymp.de";
 
 export const logisticsUrl =
-  process.env.NEXT_PUBLIC_LOGISTICS_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_LOGISTICS_URL ?? "https://lager.shrymp.de";
