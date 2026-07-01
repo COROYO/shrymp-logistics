@@ -64,6 +64,14 @@
     "closeMenu": "Menü schließen",
     "mainNav": "Hauptnavigation"
   },
+  "tenant": {
+    "activeShop": "Mandant",
+    "superAdmin": "Super-Admin",
+    "selectShopTitle": "Mandant wählen",
+    "selectShopIntro": "Du hast Zugriff auf mehrere Shops. Wähle den Bereich, den du öffnen möchtest.",
+    "selectShopIntroSuper": "Als Super-Admin kannst du jeden aktiven Kunden-Shop öffnen und prüfen.",
+    "noShopsAvailable": "Keine aktiven Mandanten vorhanden."
+  },
   "adminHome": {
     "eyebrow": "Übersicht",
     "title": "Shrymp Logistics Backoffice",

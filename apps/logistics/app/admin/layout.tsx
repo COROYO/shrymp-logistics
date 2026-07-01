@@ -12,8 +12,13 @@ import {
 } from "@/app/_components/sidebar";
 import { MobileNav } from "@/app/_components/mobile-nav";
 import { AdminJobsTray } from "@/app/admin/_components/admin-jobs-tray";
+import { ShopSwitcher } from "@/app/_components/shop-switcher";
 import { runWithTenantAsync } from "@/server/tenant/context";
-import { requireActiveShopId } from "@/lib/auth/tenant";
+import {
+  listAccessibleShopOptions,
+  resolveActiveShopIdOrRedirect,
+} from "@/lib/auth/tenant";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export default async function AdminLayout({
   children,
@@ -24,12 +29,14 @@ export default async function AdminLayout({
   if (!user) redirect("/login?next=/admin");
   if (user.role !== "ADMIN") redirect("/lager");
 
-  const [needsConnect, needsOnboarding, t, shopId] = await Promise.all([
-    merchantNeedsShopifyConnect(user),
-    merchantNeedsOnboarding(user),
-    getTranslations("nav"),
-    requireActiveShopId(user),
-  ]);
+  const [needsConnect, needsOnboarding, t, shopId, shopOptions] =
+    await Promise.all([
+      merchantNeedsShopifyConnect(user),
+      merchantNeedsOnboarding(user),
+      getTranslations("nav"),
+      resolveActiveShopIdOrRedirect(user),
+      listAccessibleShopOptions(user),
+    ]);
   if (needsConnect) redirect("/onboarding");
   if (needsOnboarding) redirect("/onboarding/setup");
 
@@ -81,6 +88,7 @@ export default async function AdminLayout({
     crossLink: { href: "/lager", label: t("lager"), icon: "lager" },
     userEmail: user.email,
   };
+  const superAdmin = isSuperAdmin(user);
 
   return runWithTenantAsync(shopId, async () => (
     <div className="flex min-h-screen w-full">
@@ -89,6 +97,13 @@ export default async function AdminLayout({
         footer={footer}
         variantLabel={t("admin")}
         homeHref="/admin"
+        shopSwitcher={
+          <ShopSwitcher
+            shops={shopOptions}
+            currentShopId={shopId}
+            showSuperBadge={superAdmin}
+          />
+        }
       />
       <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-brand-navy text-white shadow-[2px_0_0_0_var(--color-brand-burgundy)] md:flex print:hidden">
         <div className="px-5 py-5">
@@ -99,6 +114,11 @@ export default async function AdminLayout({
             {t("admin")}
           </div>
         </div>
+        <ShopSwitcher
+          shops={shopOptions}
+          currentShopId={shopId}
+          showSuperBadge={superAdmin}
+        />
         <div className="flex flex-1 flex-col overflow-y-auto">
           <Sidebar sections={SECTIONS} footer={footer} />
         </div>

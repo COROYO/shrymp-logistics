@@ -64,6 +64,14 @@
     "closeMenu": "Закрыть меню",
     "mainNav": "Главная навигация"
   },
+  "tenant": {
+    "activeShop": "Магазин",
+    "superAdmin": "Супер-админ",
+    "selectShopTitle": "Выберите магазин",
+    "selectShopIntro": "У вас доступ к нескольким магазинам. Выберите, какой открыть.",
+    "selectShopIntroSuper": "Как супер-админ вы можете открыть любой активный магазин клиента.",
+    "noShopsAvailable": "Нет активных магазинов."
+  },
   "adminHome": {
     "eyebrow": "Обзор",
     "title": "Бэк-офис Shrymp Logistics",

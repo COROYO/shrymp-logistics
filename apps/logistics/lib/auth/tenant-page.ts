@@ -1,7 +1,7 @@
 import "server-only";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
-import { listAccessibleShopIds, requireActiveShopId } from "@/lib/auth/tenant";
+import { listAccessibleShopIds, resolveActiveShopIdOrRedirect } from "@/lib/auth/tenant";
 import { normalizeShopId } from "@/server/tenant/id";
 
 export type TenantPageContext = {
@@ -15,7 +15,7 @@ export async function requireTenantPageContext(
 ): Promise<TenantPageContext> {
   const user = await getSessionUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(nextPath)}`);
-  const shopId = await requireActiveShopId(user);
+  const shopId = await resolveActiveShopIdOrRedirect(user);
   return { user, shopId };
 }
 

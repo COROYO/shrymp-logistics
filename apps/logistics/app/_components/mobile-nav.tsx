@@ -18,11 +18,13 @@ export function MobileNav({
   footer,
   variantLabel,
   homeHref,
+  shopSwitcher,
 }: {
   sections: SidebarSection[];
   footer?: SidebarFooter;
   variantLabel: string;
   homeHref: string;
+  shopSwitcher?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
@@ -106,6 +108,7 @@ export function MobileNav({
               className="flex-1 overflow-y-auto"
               onClick={() => setOpen(false)}
             >
+              {shopSwitcher}
               <Sidebar sections={sections} footer={footer} />
             </div>
           </div>

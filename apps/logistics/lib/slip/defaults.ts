@@ -3,7 +3,7 @@ export const DEFAULT_SLIP_BRANDING = {
   brand_name: "SHRYMP",
   eyebrow: "Lager neu gedacht",
   company_line: "lager.shrymp.de",
-  contact_email: "hello@shrymp.de",
+  contact_email: "roman@shrymp.de",
   accent_color: "#F3ACC8",
   header_color: "#0f1b33",
   document_title: "Lieferschein",

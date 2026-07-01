@@ -8,6 +8,7 @@ import { normalizeShopId } from "@/server/tenant/id";
 import type { SessionUser } from "@/lib/auth/session";
 import { merchantNeedsShopifyConnect } from "@/lib/auth/merchant";
 import { requireActiveShopId } from "@/lib/auth/tenant";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export const ONBOARDING_STEP_COUNT = 7;
 
@@ -24,6 +25,7 @@ export async function merchantNeedsOnboarding(
   user: SessionUser,
 ): Promise<boolean> {
   if (user.role !== "ADMIN") return false;
+  if (isSuperAdmin(user)) return false;
   if (await merchantNeedsShopifyConnect(user)) return false;
   const shopId = await requireActiveShopId(user);
   return shopNeedsOnboarding(shopId);

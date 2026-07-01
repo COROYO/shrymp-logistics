@@ -64,6 +64,14 @@
     "closeMenu": "Close menu",
     "mainNav": "Main navigation"
   },
+  "tenant": {
+    "activeShop": "Tenant",
+    "superAdmin": "Super admin",
+    "selectShopTitle": "Select tenant",
+    "selectShopIntro": "You have access to multiple shops. Choose which area to open.",
+    "selectShopIntroSuper": "As a super admin you can open and inspect every active customer shop.",
+    "noShopsAvailable": "No active tenants available."
+  },
   "adminHome": {
     "eyebrow": "Overview",
     "title": "Shrymp Logistics Back Office",

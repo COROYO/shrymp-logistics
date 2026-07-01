@@ -6,6 +6,7 @@ import { Collections } from "@/server/firestore/schema";
 import { getShop } from "@/server/tenant/shop";
 import { normalizeShopId } from "@/server/tenant/id";
 import { loadUserShopIds } from "@/lib/auth/user-shops";
+import { isSuperAdminEmail } from "@/lib/auth/super-admin";
 import type { SessionUser } from "./session";
 
 export async function loadPendingShopDomain(
@@ -20,8 +21,10 @@ export async function loadPendingShopDomain(
 async function merchantNeedsShopifyConnectUncached(
   uid: string,
   role: SessionUser["role"],
+  email: string | null,
 ): Promise<boolean> {
   if (role !== "ADMIN") return false;
+  if (isSuperAdminEmail(email)) return false;
   const shopIds = await loadUserShopIds(uid);
   if (!shopIds || shopIds.length === 0) return true;
   const shops = await Promise.all(shopIds.map((id) => getShop(id)));
@@ -31,7 +34,7 @@ async function merchantNeedsShopifyConnectUncached(
 /** True when an ADMIN has no shop with a valid OAuth token yet. */
 export const merchantNeedsShopifyConnect = cache(
   async (user: SessionUser): Promise<boolean> =>
-    merchantNeedsShopifyConnectUncached(user.uid, user.role),
+    merchantNeedsShopifyConnectUncached(user.uid, user.role, user.email),
 );
 
 export class ShopLinkError extends Error {

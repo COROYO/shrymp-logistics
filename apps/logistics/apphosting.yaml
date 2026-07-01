@@ -72,3 +72,5 @@ env:
     secret: CRON_SECRET
   - variable: NODE_ENV
     value: production
+  - variable: SUPER_ADMIN_EMAILS
+    value: roman@shrymp-commerce.com

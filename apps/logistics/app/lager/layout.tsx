@@ -3,12 +3,19 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { BrandMark } from "@/app/_components/brand-mark";
+import { ShopSwitcher } from "@/app/_components/shop-switcher";
 import {
   Sidebar,
   type SidebarFooter,
   type SidebarSection,
 } from "@/app/_components/sidebar";
 import { MobileNav } from "@/app/_components/mobile-nav";
+import {
+  listAccessibleShopOptions,
+  resolveActiveShopIdOrRedirect,
+} from "@/lib/auth/tenant";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
+import { runWithTenantAsync } from "@/server/tenant/context";
 
 export default async function LagerLayout({
   children,
@@ -21,7 +28,12 @@ export default async function LagerLayout({
     redirect("/login?error=no_role");
   }
   const isAdmin = user.role === "ADMIN";
-  const t = await getTranslations("nav");
+  const [t, shopId, shopOptions] = await Promise.all([
+    getTranslations("nav"),
+    resolveActiveShopIdOrRedirect(user),
+    listAccessibleShopOptions(user),
+  ]);
+  const superAdmin = isSuperAdmin(user);
 
   const SECTIONS: SidebarSection[] = [
     {
@@ -50,13 +62,20 @@ export default async function LagerLayout({
     userEmail: user.email,
   };
 
-  return (
+  return runWithTenantAsync(shopId, async () => (
     <div className="flex min-h-screen w-full">
       <MobileNav
         sections={SECTIONS}
         footer={footer}
         variantLabel={t("lager")}
         homeHref="/lager"
+        shopSwitcher={
+          <ShopSwitcher
+            shops={shopOptions}
+            currentShopId={shopId}
+            showSuperBadge={superAdmin}
+          />
+        }
       />
       <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-brand-navy text-white shadow-[2px_0_0_0_var(--color-brand-burgundy)] md:flex print:hidden">
         <div className="px-5 py-5">
@@ -67,11 +86,16 @@ export default async function LagerLayout({
             {t("lager")}
           </div>
         </div>
+        <ShopSwitcher
+          shops={shopOptions}
+          currentShopId={shopId}
+          showSuperBadge={superAdmin}
+        />
         <div className="flex flex-1 flex-col overflow-y-auto">
           <Sidebar sections={SECTIONS} footer={footer} />
         </div>
       </aside>
       <main className="flex-1 min-w-0 px-6 py-8 md:px-10">{children}</main>
     </div>
-  );
+  ));
 }

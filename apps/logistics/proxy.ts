@@ -14,7 +14,7 @@ import { SESSION_COOKIE } from "@/lib/auth/session";
  * authenticate via Shopify HMAC, not cookies.
  */
 
-const PROTECTED_PREFIXES = ["/admin", "/lager", "/onboarding"];
+const PROTECTED_PREFIXES = ["/admin", "/lager", "/onboarding", "/select-shop"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -34,5 +34,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/lager/:path*", "/onboarding/:path*"],
+  matcher: ["/admin/:path*", "/lager/:path*", "/onboarding/:path*", "/select-shop"],
 };
