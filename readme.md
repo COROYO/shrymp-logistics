@@ -32,6 +32,8 @@ pnpm build:website    # Marketing
 pnpm test             # Vitest (Logistics)
 ```
 
-Firebase-Deploy (Logistics): `firebase deploy` aus dem Repo-Root — `firebase.json` zeigt auf `apps/logistics`.
+Firebase-Deploy (Logistics): App Hosting über GitHub bzw. `firebase deploy` — Backend `shrymp-logistics`, Domain `lager.shrymp.de`.
+
+Website (statisch): `pnpm deploy:website` — baut `apps/website/out` und deployed nach Hosting-Site `shrymp-website` (`https://shrymp-website.web.app`, Custom Domain `shrymp.de` in der Firebase Console verbinden).
 
 Details: [CLAUDE.md](./CLAUDE.md), [PROJECT.md](./PROJECT.md).

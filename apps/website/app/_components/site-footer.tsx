@@ -65,13 +65,22 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-2 border-t border-white/10 pt-8 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-8 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Shrymp Logistics. Alle Rechte vorbehalten.</p>
-          <p>
-            <Link href="/" className="transition hover:text-stone-300">
-              shrymp.de
+          <nav
+            className="flex flex-wrap items-center gap-x-4 gap-y-2"
+            aria-label="Rechtliches"
+          >
+            <Link href="/impressum" className="transition hover:text-stone-300">
+              Impressum
             </Link>
-          </p>
+            <Link href="/datenschutz" className="transition hover:text-stone-300">
+              Datenschutz
+            </Link>
+            <Link href="/agb" className="transition hover:text-stone-300">
+              AGB
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

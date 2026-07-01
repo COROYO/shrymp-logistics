@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "shrymp-logistics"
+  },
+  "targets": {
+    "shrymp-logistics": {
+      "hosting": {
+        "logistics": [
+          "shrymp-logistics"
+        ],
+        "website": [
+          "shrymp-website"
+        ]
+      }
+    }
   }
 }

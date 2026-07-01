@@ -11,6 +11,7 @@
     "start": "pnpm --filter @shrymp/logistics start",
     "build:logistics": "pnpm --filter @shrymp/logistics build",
     "build:website": "pnpm --filter @monolith/website build",
+    "deploy:website": "pnpm build:website && firebase deploy --only hosting:website",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @shrymp/logistics test"

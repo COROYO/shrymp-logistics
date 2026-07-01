@@ -26,6 +26,7 @@ import {
   isBatchExpired,
 } from "./batch-assignability";
 import { log } from "@/lib/logger";
+import { loadBinsForVariants } from "@/server/warehouse/bins";
 
 export type SlipAssignmentBlockReason =
   | "near_expiry"
@@ -70,6 +71,8 @@ export type SlipData = {
   branding: SlipBrandingConfig;
   /** When false, Chargen are disabled and the slip omits the Charge column. */
   batchesEnabled: boolean;
+  /** variantId → Lagerplatz code (for pickers on the printed slip). */
+  binByVariant: Map<string, string | null>;
 };
 
 /** Shopify's placeholder title for products without real variants. */
@@ -241,6 +244,12 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     variantTitleByLi.set(li.id, variantTitleById.get(li.variant_id) ?? null);
   }
 
+  const bins = await loadBinsForVariants(variantIds);
+  const binByVariant = new Map<string, string | null>();
+  for (const vid of variantIds) {
+    binByVariant.set(vid, bins.get(vid)?.code ?? null);
+  }
+
   // Assign (or reuse) Lieferschein-Nr. AFTER reading the order so we have
   // the freshest doc. The helper is itself transactional — if the order
   // already has a number the existing one comes back, otherwise a new one
@@ -257,6 +266,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     lieferschein,
     branding,
     batchesEnabled,
+    binByVariant,
   };
 }
 

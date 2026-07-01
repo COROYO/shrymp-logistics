@@ -102,6 +102,34 @@ body {
   .container-narrow {
     @apply mx-auto max-w-6xl;
   }
+
+  .legal-prose {
+    @apply text-secondary leading-relaxed;
+  }
+
+  .legal-prose h2 {
+    @apply mt-10 text-lg font-semibold text-brand-navy first:mt-8;
+  }
+
+  .legal-prose p {
+    @apply mt-3;
+  }
+
+  .legal-prose ul {
+    @apply mt-3 list-disc space-y-1.5 pl-5;
+  }
+
+  .legal-prose address {
+    @apply mt-3 not-italic;
+  }
+
+  .legal-prose a {
+    @apply text-brand-burgundy underline decoration-brand-burgundy/30 underline-offset-2 transition hover:decoration-brand-burgundy;
+  }
+
+  .legal-prose .legal-meta {
+    @apply mt-10 text-sm text-secondary/70;
+  }
 }
 
 .hero-glow {

@@ -10,6 +10,7 @@ type MergedSlipLine = {
   title: string;
   variantTitle: string | null;
   sku: string | null;
+  binCode: string | null;
   qty: number;
   allocs: { chargeNumber: string; qty: number }[];
 };
@@ -18,6 +19,7 @@ function mergeSlipLines(
   lineItems: SlipData["order"]["line_items"],
   allocsByLi: Map<string, SlipAllocLine[]>,
   variantTitleByLi: Map<string, string | null>,
+  binByVariant: Map<string, string | null>,
 ): MergedSlipLine[] {
   const groups = new Map<string, MergedSlipLine>();
   const order: string[] = [];
@@ -31,6 +33,7 @@ function mergeSlipLines(
         title: li.title,
         variantTitle: variantTitleByLi.get(li.id) ?? null,
         sku: li.sku ?? null,
+        binCode: binByVariant.get(li.variant_id) ?? null,
         qty: 0,
         allocs: [],
       };
@@ -69,11 +72,13 @@ export async function SlipBody({
   data: SlipData;
   pageBreakAfter?: boolean;
 }) {
-  const { order, allocsByLi, variantTitleByLi, branding, batchesEnabled } = data;
+  const { order, allocsByLi, variantTitleByLi, branding, batchesEnabled, binByVariant } =
+    data;
   const mergedLines = mergeSlipLines(
     order.line_items,
     allocsByLi,
     variantTitleByLi,
+    binByVariant,
   );
 
   const locale = "de" as const;
@@ -203,6 +208,9 @@ export async function SlipBody({
             <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
               {t("product")}
             </th>
+            <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
+              {t("bin")}
+            </th>
             <th className="px-3 py-2 pr-4 text-right text-[10pt] font-semibold uppercase tracking-[0.1em]">
               {t("qty")}
             </th>
@@ -231,6 +239,13 @@ export async function SlipBody({
                     {t("sku")} {line.sku}
                   </div>
                 ) : null}
+              </td>
+              <td className="px-3 py-2 pr-4 font-mono text-[11pt] font-bold text-brand-navy">
+                {line.binCode ?? (
+                  <span className="font-normal italic text-brand-navy/40">
+                    {t("noBin")}
+                  </span>
+                )}
               </td>
               <td className="px-3 py-2 pr-4 text-right text-brand-navy">
                 {line.allocs.length > 1 ? (

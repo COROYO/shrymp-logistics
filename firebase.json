@@ -14,17 +14,30 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "hosting": {
-    "source": "apps/logistics",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "frameworksBackend": {
-      "region": "europe-west3"
+  "hosting": [
+    {
+      "target": "logistics",
+      "source": "apps/logistics",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "frameworksBackend": {
+        "region": "europe-west3"
+      }
+    },
+    {
+      "target": "website",
+      "public": "apps/website/out",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "cleanUrls": true
     }
-  },
+  ],
   "functions": [
     {
       "source": "functions",

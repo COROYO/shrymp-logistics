@@ -325,9 +325,11 @@ export default async function PickingDetailPage({
                     <div className="font-semibold text-brand-navy">
                       {li.productTitle}
                     </div>
-                    <div className="text-xs text-brand-navy/60">
-                      {li.variantTitle}
-                    </div>
+                    {li.variantTitle && li.variantTitle !== "Default Title" ? (
+                      <div className="text-xs text-brand-navy/60">
+                        {li.variantTitle}
+                      </div>
+                    ) : null}
                   </td>
                   <td>
                     {bin ? (
