@@ -10,12 +10,6 @@ type LegalPageShellProps = {
 export function LegalPageShell({ title, children }: LegalPageShellProps) {
   return (
     <>
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-burgundy focus:px-4 focus:py-2 focus:text-white"
-      >
-        Zum Inhalt springen
-      </a>
       <SiteHeader />
       <main id="main" className="pt-16">
         <article className="section-pad">

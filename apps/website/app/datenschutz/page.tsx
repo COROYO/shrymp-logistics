@@ -2,6 +2,7 @@ import {
   LegalPageShell,
   legalMetadata,
 } from "@/app/_components/legal-page-shell";
+import { contactEmail } from "@/lib/config";
 
 export const metadata = legalMetadata(
   "Datenschutz",
@@ -26,7 +27,7 @@ export default function DatenschutzPage() {
         Deutschland
         <br />
         E-Mail:{" "}
-        <a href="mailto:info@shrymp-commerce.com">info@shrymp-commerce.com</a>
+        <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
       </address>
 
       <h2>2. Allgemeine Hinweise zur Datenverarbeitung</h2>

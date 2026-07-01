@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, JetBrains_Mono } from "next/font/google";
+import { siteUrl } from "@/lib/config";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -15,6 +16,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Shrymp Logistics — Lagerlogistik mit Chargen & MHD für Shopify",
   description:
     "Chargenführung, intelligente Allocation und FEFO-Picking für Shopify-Händler mit MHD-pflichtigen Produkten. Jetzt Beta starten.",

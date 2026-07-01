@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { logisticsUrl } from "@/lib/config";
+import { contactEmail, logisticsUrl } from "@/lib/config";
 import { BrandMark } from "@/app/_components/brand-mark";
 
 export function SiteFooter() {
@@ -55,10 +55,10 @@ export function SiteFooter() {
               <p className="font-semibold text-stone-200">Kontakt</p>
               <p className="mt-3 text-stone-400">
                 <a
-                  href="mailto:hello@shrymp.de"
+                  href={`mailto:${contactEmail}`}
                   className="transition hover:text-white"
                 >
-                  hello@shrymp.de
+                  {contactEmail}
                 </a>
               </p>
             </div>

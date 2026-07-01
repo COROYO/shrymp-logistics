@@ -1,5 +1,5 @@
 import { ArrowRight, Sparkles } from "lucide-react";
-import { logisticsUrl } from "@/lib/config";
+import { contactEmail, logisticsUrl } from "@/lib/config";
 
 export function BetaCtaSection() {
   return (
@@ -28,7 +28,7 @@ export function BetaCtaSection() {
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </a>
               <a
-                href="mailto:hello@shrymp.de"
+                href={`mailto:${contactEmail}`}
                 className="btn-secondary min-w-[200px] border-white/20 bg-white/10 text-white hover:border-white/40 hover:bg-white/15"
               >
                 Frage stellen

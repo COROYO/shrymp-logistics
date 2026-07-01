@@ -2,6 +2,7 @@ import {
   LegalPageShell,
   legalMetadata,
 } from "@/app/_components/legal-page-shell";
+import { contactEmail } from "@/lib/config";
 
 export const metadata = legalMetadata(
   "Impressum",
@@ -32,7 +33,7 @@ export default function ImpressumPage() {
         Telefon: +49 163 5347130
         <br />
         E-Mail:{" "}
-        <a href="mailto:info@shrymp-commerce.com">info@shrymp-commerce.com</a>
+        <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
       </p>
 
       <h2>Registereintrag</h2>
