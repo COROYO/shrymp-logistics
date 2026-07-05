@@ -21,7 +21,7 @@ export type ColumnVisibility = Record<BatchColumnKey, boolean>;
 
 const STORAGE_KEY = "batches.columnVisibility.v1";
 
-const DEFAULT_VISIBILITY: ColumnVisibility = {
+export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
   expiry: true,
   production: true,
   remaining: true,
@@ -33,12 +33,12 @@ const DEFAULT_VISIBILITY: ColumnVisibility = {
 };
 
 function parse(raw: string | null): ColumnVisibility {
-  if (!raw) return DEFAULT_VISIBILITY;
+  if (!raw) return DEFAULT_COLUMN_VISIBILITY;
   try {
     const obj = JSON.parse(raw) as Partial<ColumnVisibility>;
-    return { ...DEFAULT_VISIBILITY, ...obj };
+    return { ...DEFAULT_COLUMN_VISIBILITY, ...obj };
   } catch {
-    return DEFAULT_VISIBILITY;
+    return DEFAULT_COLUMN_VISIBILITY;
   }
 }
 
@@ -54,7 +54,7 @@ export function useColumnVisibility(): {
   toggle: (key: BatchColumnKey) => void;
   reset: () => void;
 } {
-  const [cols, setCols] = useState<ColumnVisibility>(DEFAULT_VISIBILITY);
+  const [cols, setCols] = useState<ColumnVisibility>(DEFAULT_COLUMN_VISIBILITY);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {

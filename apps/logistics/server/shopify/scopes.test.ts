@@ -24,6 +24,7 @@ describe("scopes", () => {
 
   it("detects scopes missing from a non-empty grant", () => {
     expect(getMissingOAuthScopes("read_products,read_orders")).toEqual([
+      "read_files",
       "write_products",
       "write_orders",
       "read_inventory",

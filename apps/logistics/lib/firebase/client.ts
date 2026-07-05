@@ -28,8 +28,8 @@ const FIREBASE_CLIENT_ENV_KEYS = [
   "NEXT_PUBLIC_FIREBASE_APP_ID",
 ] as const;
 
-function resolveFirebaseClientConfig(): FirebaseOptions | undefined {
-  const config: FirebaseOptions = {
+function readFirebaseClientConfig(): FirebaseOptions {
+  return {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -37,12 +37,25 @@ function resolveFirebaseClientConfig(): FirebaseOptions | undefined {
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   };
+}
 
-  const missing = FIREBASE_CLIENT_ENV_KEYS.filter(
-    (key) => !process.env[key],
-  );
+/** Static env reads only — dynamic `process.env[key]` is not inlined in the browser. */
+function missingFirebaseClientEnvKeys(
+  config: FirebaseOptions,
+): (typeof FIREBASE_CLIENT_ENV_KEYS)[number][] {
+  const byKey: Record<
+    (typeof FIREBASE_CLIENT_ENV_KEYS)[number],
+    string | undefined
+  > = {
+    NEXT_PUBLIC_FIREBASE_API_KEY: config.apiKey,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: config.authDomain,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: config.projectId,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: config.storageBucket,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: config.messagingSenderId,
+    NEXT_PUBLIC_FIREBASE_APP_ID: config.appId,
+  };
 
-  return missing.length === 0 ? config : undefined;
+  return FIREBASE_CLIENT_ENV_KEYS.filter((key) => !byKey[key]);
 }
 
 function firebaseClientConfigError(missing: readonly string[]): Error {
@@ -62,11 +75,12 @@ export function clientApp(): FirebaseApp {
     return cachedApp;
   }
 
-  const config = resolveFirebaseClientConfig();
+  const config = readFirebaseClientConfig();
+  const missing = missingFirebaseClientEnvKeys(config);
   try {
-    cachedApp = config ? initializeApp(config) : initializeApp();
+    cachedApp =
+      missing.length === 0 ? initializeApp(config) : initializeApp();
   } catch {
-    const missing = FIREBASE_CLIENT_ENV_KEYS.filter((key) => !process.env[key]);
     throw firebaseClientConfigError(missing);
   }
   return cachedApp;

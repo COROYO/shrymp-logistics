@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Tag } from "lucide-react";
+import { Pencil, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -214,6 +214,14 @@ export function ProductAccordion({
                   ▶
                 </div>
               </button>
+              <Link
+                href={`/admin/products/${p.id}`}
+                title={t("editProduct")}
+                aria-label={t("editProduct")}
+                className="mr-1 grid h-10 w-10 shrink-0 place-items-center rounded-md text-brand-navy/50 transition hover:bg-brand-cream hover:text-brand-burgundy"
+              >
+                <Pencil className="h-4 w-4" />
+              </Link>
               <Link
                 href={`/admin/products/labels?product=${p.id}`}
                 target="_blank"

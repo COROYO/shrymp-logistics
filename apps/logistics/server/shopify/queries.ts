@@ -1,5 +1,6 @@
 import "server-only";
 import { shopifyGraphQL } from "./client";
+import type { ShopifyCatalogProductNode } from "./catalog-sync-types";
 
 /**
  * Read queries against the Shopify Admin GraphQL API.
@@ -19,7 +20,45 @@ const PRODUCTS_PAGE_QUERY = /* GraphQL */ `
         handle
         status
         updatedAt
+        descriptionHtml
+        vendor
+        productType
+        tags
         hasVariantsThatRequiresComponents
+        seo {
+          title
+          description
+        }
+        options {
+          name
+          position
+          values
+        }
+        collections(first: 20) {
+          nodes {
+            id
+          }
+        }
+        media(first: 10) {
+          nodes {
+            ... on MediaImage {
+              id
+              alt
+              image {
+                url(transform: { maxWidth: 800, maxHeight: 800 })
+              }
+            }
+          }
+        }
+        metafields(first: 250) {
+          nodes {
+            namespace
+            key
+            value
+            jsonValue
+            type
+          }
+        }
         featuredMedia {
           preview {
             image {
@@ -34,11 +73,23 @@ const PRODUCTS_PAGE_QUERY = /* GraphQL */ `
             sku
             barcode
             price
+            compareAtPrice
+            inventoryPolicy
+            inventoryQuantity
+            selectedOptions {
+              name
+              value
+            }
             image {
               url(transform: { maxWidth: 400, maxHeight: 400 })
             }
             inventoryItem {
               id
+              sku
+              tracked
+              unitCost {
+                amount
+              }
             }
           }
         }
@@ -52,26 +103,9 @@ export type ShopifyInventoryLevelNode = {
   quantities: { quantity: number }[];
 };
 
-export type ShopifyProductNode = {
-  id: string;
-  title: string;
-  handle: string;
-  status: "ACTIVE" | "DRAFT" | "ARCHIVED";
-  updatedAt: string;
-  hasVariantsThatRequiresComponents: boolean;
-  featuredMedia: { preview: { image: { url: string } | null } | null } | null;
-  variants: { nodes: ShopifyVariantNode[] };
-};
+export type ShopifyProductNode = ShopifyCatalogProductNode;
 
-export type ShopifyVariantNode = {
-  id: string;
-  title: string;
-  sku: string | null;
-  barcode: string | null;
-  price: string | null;
-  image: { url: string } | null;
-  inventoryItem: { id: string } | null;
-};
+export type ShopifyVariantNode = ShopifyCatalogProductNode["variants"]["nodes"][number];
 
 type ProductsPageResponse = {
   products: {

@@ -4,6 +4,7 @@
  */
 export const OAUTH_SCOPES = [
   "read_products",
+  "read_files",
   "write_products",
   "read_orders",
   "write_orders",

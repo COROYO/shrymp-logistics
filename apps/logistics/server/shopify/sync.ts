@@ -3,14 +3,13 @@ import { FieldValue, type WriteBatch } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import {
   Collections,
-  type Product,
-  type Variant,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import {
   iterateAllProducts,
   fetchInventoryLevelsByItemGids,
 } from "./queries";
+import { mapShopifyProductCatalogFields } from "./catalog-mapper";
 
 /**
  * Extract the numeric id at the tail of a Shopify GID:
@@ -31,6 +30,25 @@ export function parsePriceToCents(s: string | null | undefined): number | null {
   const fracPart = m[2] ?? "";
   const frac = parseInt((fracPart + "00").slice(0, 2), 10);
   return whole * 100 + (whole < 0 ? -frac : frac);
+}
+
+/** Coerce Shopify Money scalar or `{ amount }` object to a decimal string. */
+export function shopifyMoneyField(
+  v: string | null | undefined | { amount?: string | null },
+): string | null {
+  if (v == null) return null;
+  if (typeof v === "string") {
+    const trimmed = v.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  const amount = v.amount?.trim();
+  return amount ? amount : null;
+}
+
+export function shopifyMoneyToCents(
+  v: string | null | undefined | { amount?: string | null },
+): number | null {
+  return parsePriceToCents(shopifyMoneyField(v));
 }
 
 const FIRESTORE_BATCH_MAX = 450;
@@ -108,70 +126,33 @@ export async function syncProductsAndVariants(
     await report({ phase: "catalog", product_count: 0, variant_count: 0 });
 
     for await (const p of iterateAllProducts(50)) {
-      const productId = numericIdFromGid(p.id);
-      const productImage = p.featuredMedia?.preview?.image?.url ?? null;
-
-      const productDoc: Omit<Product, "synced_at" | "updated_at_shopify"> & {
-        synced_at: FirebaseFirestore.FieldValue;
-        updated_at_shopify: Date;
-      } = {
-        id: productId,
-        shop_id: normalizedShopId,
-        shopify_gid: p.id,
-        title: p.title,
-        handle: p.handle,
-        status: p.status,
-        image_url: productImage,
-        is_bundle: p.hasVariantsThatRequiresComponents === true,
-        updated_at_shopify: new Date(p.updatedAt),
-        synced_at: FieldValue.serverTimestamp(),
-      };
+      const mapped = mapShopifyProductCatalogFields(p, normalizedShopId);
 
       batch.set(
-        db.collection(Collections.Products).doc(productId),
-        productDoc,
+        db.collection(Collections.Products).doc(mapped.productDoc.id),
+        mapped.productDoc,
         { merge: true },
       );
       opsInBatch++;
       productCount++;
 
-      for (const v of p.variants.nodes) {
-        const variantId = numericIdFromGid(v.id);
-        const inventoryItemGid = v.inventoryItem?.id;
-        if (!inventoryItemGid) {
-          log.warn("variant_without_inventory_item", { variantGid: v.id });
+      for (const v of mapped.variants) {
+        if (!v.inventoryItemGid) {
+          log.warn("variant_without_inventory_item", {
+            variantGid: v.doc.shopify_gid,
+          });
           continue;
         }
 
-        const variantDoc: Omit<
-          Variant,
-          "updated_at" | "on_hand_total" | "reserved_total" | "available"
-        > & {
-          updated_at: FirebaseFirestore.FieldValue;
-        } = {
-          id: variantId,
-          shop_id: normalizedShopId,
-          product_id: productId,
-          shopify_gid: v.id,
-          inventory_item_gid: inventoryItemGid,
-          sku: v.sku ?? null,
-          barcode: v.barcode ?? null,
-          title: v.title,
-          image_url: v.image?.url ?? null,
-          price_cents: parsePriceToCents(v.price),
-          currency: null,
-          updated_at: FieldValue.serverTimestamp(),
-        };
-
         batch.set(
-          db.collection(Collections.Variants).doc(variantId),
-          variantDoc,
+          db.collection(Collections.Variants).doc(v.variantId),
+          v.doc,
           { merge: true },
         );
         opsInBatch++;
         variantCount++;
 
-        inventoryItemToVariant.set(inventoryItemGid, variantId);
+        inventoryItemToVariant.set(v.inventoryItemGid, v.variantId);
 
         if (opsInBatch >= FIRESTORE_BATCH_MAX) {
           await flush(batch);

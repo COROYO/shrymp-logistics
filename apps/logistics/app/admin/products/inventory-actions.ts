@@ -2,6 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
+import { adminDb } from "@/server/firestore/admin";
+import { Collections, type Batch, type Variant } from "@/server/firestore/schema";
 import { receiveBatch } from "@/server/inventory/receive";
 import {
   archiveBatch as svcArchiveBatch,
@@ -9,6 +11,34 @@ import {
   editBatch as svcEditBatch,
 } from "@/server/inventory/edit-batch";
 import { log } from "@/lib/logger";
+
+async function revalidateInventoryViews(opts: {
+  variantId?: string;
+  batchId?: string;
+}): Promise<void> {
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/lagerbestand");
+
+  let variantId = opts.variantId;
+  if (!variantId && opts.batchId) {
+    const batchSnap = await adminDb()
+      .collection(Collections.Batches)
+      .doc(opts.batchId)
+      .get();
+    if (batchSnap.exists) {
+      variantId = (batchSnap.data() as Batch).variant_id;
+    }
+  }
+  if (!variantId) return;
+
+  const variantSnap = await adminDb()
+    .collection(Collections.Variants)
+    .doc(variantId)
+    .get();
+  if (!variantSnap.exists) return;
+  const productId = (variantSnap.data() as Variant).product_id;
+  if (productId) revalidatePath(`/admin/products/${productId}`);
+}
 
 // ----------------------- create / receive -----------------------
 
@@ -76,7 +106,7 @@ export async function receiveBatchAction(
       note: parsed.data.note || undefined,
       userId: user.uid,
     });
-    revalidatePath("/admin/products");
+    await revalidateInventoryViews({ variantId: parsed.data.variantId });
     return { ok: true, ...result };
   } catch (e) {
     log.warn("receive_batch_failed", { error: String(e) });
@@ -156,7 +186,7 @@ export async function editBatchAction(
       },
       user.uid,
     );
-    revalidatePath("/admin/products");
+    await revalidateInventoryViews({ batchId: parsed.data.batchId });
     return { ok: true, delta };
   } catch (e) {
     log.warn("edit_batch_failed", { error: String(e) });
@@ -180,7 +210,7 @@ export async function archiveBatchAction(
   }
   try {
     await svcArchiveBatch(batchId, user.uid);
-    revalidatePath("/admin/products");
+    await revalidateInventoryViews({ batchId });
     return { ok: true };
   } catch (e) {
     log.warn("archive_batch_failed", { error: String(e) });
@@ -269,7 +299,7 @@ export async function receiveVariantStockAction(
       note: parsed.data.note || undefined,
       userId: user.uid,
     });
-    revalidatePath("/admin/products");
+    await revalidateInventoryViews({ variantId: parsed.data.variantId });
     return { ok: true, ...result };
   } catch (e) {
     log.warn("receive_variant_failed", { error: String(e) });
@@ -319,7 +349,7 @@ export async function adjustVariantStockAction(
       reason: parsed.data.reason?.trim() || undefined,
       userId: user.uid,
     });
-    revalidatePath("/admin/products");
+    await revalidateInventoryViews({ variantId: parsed.data.variantId });
     return { ok: true, delta };
   } catch (e) {
     log.warn("adjust_variant_failed", { error: String(e) });

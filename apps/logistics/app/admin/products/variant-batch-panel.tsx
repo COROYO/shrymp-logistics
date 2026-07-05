@@ -1,6 +1,7 @@
 "use client";
 import { Fragment, useEffect, useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   archiveBatchAction,
@@ -22,6 +23,24 @@ import {
 } from "@/app/admin/_components/location-fields";
 import { TOGGLEABLE_COLUMNS, type ColumnVisibility } from "./columns";
 import type { BatchRow, VariantRow } from "./product-accordion";
+import {
+  VariantImageModal,
+  VariantImageThumbnail,
+} from "./variant-image-picker";
+import type { ProductEditorPayload } from "@/server/catalog/editor-types";
+
+type MediaItem = ProductEditorPayload["input"]["media"][number];
+
+type VariantImageEditorBinding = {
+  media: MediaItem[];
+  imageUrl: string | null;
+  imageMediaId: string | null;
+  onMediaChange: (next: MediaItem[]) => void;
+  onImageChange: (patch: {
+    image_url: string | null;
+    image_media_id: string | null;
+  }) => void;
+};
 
 function isArchivedBatch(b: BatchRow): boolean {
   return (
@@ -47,18 +66,23 @@ export function VariantBatchPanel({
   cols,
   locations,
   defaultLocationId,
+  imageEditor,
 }: {
   variant: VariantRow;
   priceLabel: string;
   cols: ColumnVisibility;
   locations: LocationOption[];
   defaultLocationId: string | null;
+  imageEditor?: VariantImageEditorBinding;
 }) {
   const t = useTranslations("batches.panel");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+
+  const thumbUrl = imageEditor?.imageUrl ?? variant.imageUrl;
 
   const colSpan = colSpanFor(cols);
   const archivedCount = variant.batches.filter(isArchivedBatch).length;
@@ -69,22 +93,42 @@ export function VariantBatchPanel({
   return (
     <div className="rounded-lg border border-zinc-200 bg-white shadow-sm">
       <div className="flex items-center gap-4 border-b border-zinc-200 px-4 py-3">
-        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-brand-cream ring-1 ring-zinc-200">
-          {variant.imageUrl ? (
-            <Image
-              src={variant.imageUrl}
-              alt={variant.title}
-              width={40}
-              height={40}
-              className="h-10 w-10 object-cover"
-              unoptimized
+        {imageEditor ? (
+          <>
+            <VariantImageThumbnail
+              imageUrl={thumbUrl}
+              title={variant.title}
+              onClick={() => setImageModalOpen(true)}
             />
-          ) : (
-            <div className="grid h-10 w-10 place-items-center text-xs text-brand-navy/40">
-              —
-            </div>
-          )}
-        </div>
+            <VariantImageModal
+              open={imageModalOpen}
+              onClose={() => setImageModalOpen(false)}
+              variantTitle={variant.title}
+              media={imageEditor.media}
+              onMediaChange={imageEditor.onMediaChange}
+              imageUrl={imageEditor.imageUrl}
+              imageMediaId={imageEditor.imageMediaId}
+              onSelect={imageEditor.onImageChange}
+            />
+          </>
+        ) : (
+          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-brand-cream ring-1 ring-zinc-200">
+            {thumbUrl ? (
+              <Image
+                src={thumbUrl}
+                alt={variant.title}
+                width={40}
+                height={40}
+                className="h-10 w-10 object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="grid h-10 w-10 place-items-center text-xs text-brand-navy/40">
+                —
+              </div>
+            )}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-brand-navy">
             {variant.title}
@@ -251,6 +295,7 @@ function BatchDisplayRow({
   onToggleHistory: () => void;
 }) {
   const t = useTranslations("batches.panel");
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const archived = isArchivedBatch(batch);
@@ -273,6 +318,7 @@ function BatchDisplayRow({
           title: "Charge",
           message: `Charge ${batch.chargeNumber} archiviert.`,
         });
+        router.refresh();
       } else {
         dispatchAdminJobError({ title: "Charge", message: res.error });
         setErr(res.error);
@@ -492,6 +538,7 @@ function EditBatchRow({
   onClose: () => void;
 }) {
   const t = useTranslations("batches.panel");
+  const router = useRouter();
   const [chargeNumber, setChargeNumber] = useState(batch.chargeNumber);
   const [expiry, setExpiry] = useState(batch.expiryDateIso);
   const [production, setProduction] = useState(batch.productionDateIso ?? "");
@@ -526,6 +573,7 @@ function EditBatchRow({
           title: "Charge",
           message: `Charge ${chargeNumber} gespeichert.`,
         });
+        router.refresh();
         onClose();
       } else {
         dispatchAdminJobError({ title: "Charge", message: res.error });
@@ -674,6 +722,7 @@ function NewBatchInlineForm({
   onClose: () => void;
 }) {
   const t = useTranslations("batches.panel");
+  const router = useRouter();
   const [chargeNumber, setChargeNumber] = useState("");
   const [locationId, setLocationId] = useState(
     defaultLocationId ?? locations[0]?.id ?? "",
@@ -705,6 +754,7 @@ function NewBatchInlineForm({
           title: "Charge",
           message: `Charge ${chargeNumber || "neu"} · ${qty} Stück eingebucht.`,
         });
+        router.refresh();
         onClose();
       } else if (res) {
         dispatchAdminJobError({ title: "Charge", message: res.error });

@@ -133,4 +133,51 @@ body {
   .chip-sky {
     @apply bg-sky-100 text-sky-800;
   }
+
+  /* Product description rich-text editor (contentEditable) */
+  .product-html-editor-content {
+    @apply text-sm leading-relaxed text-brand-navy;
+  }
+  .product-html-editor-content h1 {
+    @apply mt-4 mb-2 text-3xl font-bold tracking-tight text-brand-navy;
+  }
+  .product-html-editor-content h2 {
+    @apply mt-3 mb-2 text-2xl font-bold tracking-tight text-brand-navy;
+  }
+  .product-html-editor-content h3 {
+    @apply mt-3 mb-1.5 text-xl font-semibold text-brand-navy;
+  }
+  .product-html-editor-content h4 {
+    @apply mt-2 mb-1.5 text-lg font-semibold text-brand-navy;
+  }
+  .product-html-editor-content h5 {
+    @apply mt-2 mb-1 text-base font-semibold text-brand-navy;
+  }
+  .product-html-editor-content h6 {
+    @apply mt-2 mb-1 text-sm font-semibold uppercase tracking-wide text-brand-navy/80;
+  }
+  .product-html-editor-content p {
+    @apply my-2;
+  }
+  .product-html-editor-content ul {
+    @apply my-2 list-disc pl-5;
+  }
+  .product-html-editor-content ol {
+    @apply my-2 list-decimal pl-5;
+  }
+  .product-html-editor-content li {
+    @apply my-0.5;
+  }
+  .product-html-editor-content a {
+    @apply text-brand-burgundy underline;
+  }
+  .product-html-editor-content blockquote {
+    @apply my-2 border-l-4 border-zinc-300 pl-4 italic text-brand-navy/80;
+  }
+  .product-html-editor-content strong {
+    @apply font-bold;
+  }
+  .product-html-editor-content em {
+    @apply italic;
+  }
 }

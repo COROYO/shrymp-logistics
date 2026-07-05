@@ -21,6 +21,27 @@ const FirestoreTimestamp = z
 
 // ---------- products / variants ----------
 
+export const ProductMediaSchema = z.object({
+  /** Shopify MediaImage GID when synced. */
+  id: z.string().optional(),
+  url: z.string().url(),
+  alt: z.string().nullable().default(null),
+  position: z.number().int().nonnegative(),
+});
+
+export const ProductMetafieldSchema = z.object({
+  namespace: z.string().min(1),
+  key: z.string().min(1),
+  type: z.string().min(1),
+  value: z.string(),
+});
+
+export const ProductOptionSchema = z.object({
+  name: z.string().min(1),
+  position: z.number().int(),
+  values: z.array(z.string()),
+});
+
 export const ProductSchema = z.object({
   id: z.string(),
   /** Normalized myshopify.com domain — tenant scope. */
@@ -30,6 +51,17 @@ export const ProductSchema = z.object({
   handle: z.string(),
   status: z.enum(["ACTIVE", "DRAFT", "ARCHIVED"]).default("ACTIVE"),
   image_url: z.string().url().nullable().default(null),
+  description_html: z.string().nullable().default(null),
+  vendor: z.string().nullable().default(null),
+  product_type: z.string().nullable().default(null),
+  tags: z.array(z.string()).default([]),
+  seo_title: z.string().nullable().default(null),
+  seo_description: z.string().nullable().default(null),
+  /** Shopify collection GIDs (numeric id or full gid). */
+  collection_ids: z.array(z.string()).default([]),
+  media: z.array(ProductMediaSchema).default([]),
+  options: z.array(ProductOptionSchema).default([]),
+  metafields: z.array(ProductMetafieldSchema).default([]),
   /**
    * True if the product is a Shopify bundle parent
    * (`Product.hasVariantsThatRequiresComponents`). Bundle parents are virtual:
@@ -55,11 +87,19 @@ export const VariantSchema = z.object({
   image_url: z.string().url().nullable().default(null),
   /** Verkaufspreis in der Default-Währung, als Smallest-Unit-Integer (z.B. 4990 für 49,90 EUR). */
   price_cents: z.number().int().nonnegative().nullable().default(null),
+  compare_at_price_cents: z.number().int().nonnegative().nullable().default(null),
   /** Währungscode (z.B. EUR, USD), three-letter ISO. */
   currency: z.string().length(3).nullable().default(null),
+  option1: z.string().nullable().default(null),
+  option2: z.string().nullable().default(null),
+  option3: z.string().nullable().default(null),
+  position: z.number().int().nonnegative().default(0),
   on_hand_total: z.number().int().nonnegative().default(0),
   reserved_total: z.number().int().nonnegative().default(0),
   available: z.number().int().default(0),
+  inventory_tracked: z.boolean().default(true),
+  inventory_policy: z.enum(["DENY", "CONTINUE"]).default("DENY"),
+  unit_cost_cents: z.number().int().nonnegative().nullable().default(null),
   updated_at: FirestoreTimestamp,
 });
 
@@ -607,6 +647,11 @@ export const LagerConfigSchema = z.object({
    * Reprints bleiben unverändert.
    */
   batch_min_days_before_expiry: z.number().int().nonnegative().default(10),
+  /**
+   * When true (default), product edits in Admin are pushed back to Shopify.
+   * Can be overridden per save in the product editor.
+   */
+  catalog_sync_to_shopify: z.boolean().default(true),
   updated_at: FirestoreTimestamp,
   updated_by_uid: z.string().nullable().default(null),
 });
@@ -703,6 +748,7 @@ export const ShopSchema = z.object({
   batches_enabled: z.boolean().default(true),
   batch_min_days_before_expiry: z.number().int().nonnegative().default(10),
   inventory_source: InventorySourceSchema.default("APP"),
+  catalog_sync_to_shopify: z.boolean().default(true),
   lager_updated_at: FirestoreTimestamp.optional(),
   lager_updated_by_uid: z.string().nullable().optional(),
   /** Per-shop DHL Parcel DE config (same shape as legacy config/dhl_config). */
@@ -742,6 +788,9 @@ export const ApiKeySchema = z.object({
 // ---------- exported types ----------
 
 export type Product = z.infer<typeof ProductSchema>;
+export type ProductMedia = z.infer<typeof ProductMediaSchema>;
+export type ProductMetafield = z.infer<typeof ProductMetafieldSchema>;
+export type ProductOption = z.infer<typeof ProductOptionSchema>;
 export type Variant = z.infer<typeof VariantSchema>;
 export type Location = z.infer<typeof LocationSchema>;
 export type VariantLocationStock = z.infer<typeof VariantLocationStockSchema>;

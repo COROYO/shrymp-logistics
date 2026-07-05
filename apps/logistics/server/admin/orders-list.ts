@@ -16,6 +16,7 @@ import type {
   OrderRow,
 } from "@/app/admin/orders/orders-table";
 import type { OrdersListFilter } from "@/app/admin/orders/filters";
+import { UNPAID_FINANCIAL_STATUSES } from "@/server/orders/financial-status";
 
 function tsToIso(t: unknown): string {
   if (!t) return "";
@@ -73,10 +74,15 @@ export async function loadOrderRows(
   const q =
     filter === "ALL"
       ? baseCol.orderBy("created_at_shopify", "desc").limit(100)
-      : baseCol
-          .where("internal_status", "==", filter)
-          .orderBy("created_at_shopify", "desc")
-          .limit(100);
+      : filter === "UNPAID"
+        ? baseCol
+            .where("shopify_financial_status", "in", [...UNPAID_FINANCIAL_STATUSES])
+            .orderBy("created_at_shopify", "desc")
+            .limit(100)
+        : baseCol
+            .where("internal_status", "==", filter)
+            .orderBy("created_at_shopify", "desc")
+            .limit(100);
 
   const snap = await q.get();
   const orders = snap.docs.map((d) => d.data() as Order);
@@ -223,6 +229,7 @@ export async function loadOrderRows(
       id: o.id,
       name: o.name,
       status: o.internal_status,
+      financialStatus: o.shopify_financial_status ?? null,
       tags: o.tags,
       stopReason: o.stop_reason ?? null,
       createdIso: tsToIso(o.created_at_shopify),

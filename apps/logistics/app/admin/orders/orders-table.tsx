@@ -44,6 +44,7 @@ export type OrderRow = {
   id: string;
   name: string;
   status: OrderInternalStatus;
+  financialStatus: string | null;
   tags: string[];
   stopReason: string | null;
   createdIso: string;
@@ -60,6 +61,17 @@ const STATUS_BADGE: Record<OrderInternalStatus, string> = {
   PACKED: "chip chip-sky",
   CANCELLED: "chip chip-soft",
 };
+
+function financialStatusBadge(status: string | null): string {
+  if (!status) return "chip chip-soft";
+  const u = status.toUpperCase();
+  if (u === "PAID") return "chip chip-emerald";
+  if (u === "PENDING" || u === "AUTHORIZED" || u === "EXPIRED") {
+    return "chip chip-amber";
+  }
+  if (u === "PARTIALLY_PAID") return "chip chip-amber";
+  return "chip chip-soft";
+}
 
 export function OrdersTable({ orders }: { orders: OrderRow[] }) {
   const t = useTranslations("ordersAdmin");
@@ -91,6 +103,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             <th>{t("table.order")}</th>
             <th>{t("table.created")}</th>
             <th>{t("table.status")}</th>
+            <th>{t("table.payment")}</th>
             <th>{t("table.items")}</th>
             <th>{t("table.tags")}</th>
             <th>{t("table.stopReason")}</th>
@@ -179,6 +192,11 @@ function Row({
             </a>
           ) : null}
         </td>
+        <td>
+          <span className={financialStatusBadge(order.financialStatus)}>
+            {order.financialStatus ?? "—"}
+          </span>
+        </td>
         <td className="text-sm">
           <span className="font-semibold text-brand-navy">
             {order.itemCount}
@@ -205,7 +223,7 @@ function Row({
       </tr>
       {isOpen ? (
         <tr className="bg-brand-navy-50">
-          <td colSpan={7} className="px-4 pb-4 pt-0">
+          <td colSpan={8} className="px-4 pb-4 pt-0">
             <LineItems items={order.lineItems} />
           </td>
         </tr>
@@ -294,7 +312,7 @@ function BundleSection({
   return (
     <>
       <tr className="bg-indigo-50/60">
-        <td colSpan={6} className="px-3 py-2">
+        <td colSpan={7} className="px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
               {t("table.bundleBadge")}

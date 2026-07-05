@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { adminDb } from "@/server/firestore/admin";
-import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY, DEFAULT_BATCHES_ENABLED, DEFAULT_INVENTORY_SOURCE } from "@/lib/lager/defaults";
+import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY, DEFAULT_BATCHES_ENABLED, DEFAULT_CATALOG_SYNC_TO_SHOPIFY, DEFAULT_INVENTORY_SOURCE } from "@/lib/lager/defaults";
 import {
   Collections,
   ConfigDocs,
@@ -26,6 +26,8 @@ async function loadLagerConfigUncached(shopId?: string): Promise<LagerConfig> {
       batches_enabled: shop.batches_enabled,
       batch_min_days_before_expiry: shop.batch_min_days_before_expiry,
       inventory_source: shop.inventory_source ?? DEFAULT_INVENTORY_SOURCE,
+      catalog_sync_to_shopify:
+        shop.catalog_sync_to_shopify ?? DEFAULT_CATALOG_SYNC_TO_SHOPIFY,
       updated_at: shop.lager_updated_at ?? new Date(),
       updated_by_uid: shop.lager_updated_by_uid ?? null,
     });
@@ -41,6 +43,7 @@ async function loadLagerConfigUncached(shopId?: string): Promise<LagerConfig> {
     batches_enabled: DEFAULT_BATCHES_ENABLED,
     batch_min_days_before_expiry: DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY,
     inventory_source: DEFAULT_INVENTORY_SOURCE,
+    catalog_sync_to_shopify: DEFAULT_CATALOG_SYNC_TO_SHOPIFY,
     updated_at: new Date(),
     updated_by_uid: null,
   });
@@ -59,4 +62,10 @@ export async function isBatchesEnabled(shopId?: string): Promise<boolean> {
 export async function isAppInventorySource(shopId?: string): Promise<boolean> {
   const cfg = await loadLagerConfig(shopId);
   return cfg.inventory_source === "APP";
+}
+
+/** True when product edits should be pushed to Shopify by default. */
+export async function isCatalogSyncToShopify(shopId?: string): Promise<boolean> {
+  const cfg = await loadLagerConfig(shopId);
+  return cfg.catalog_sync_to_shopify;
 }

@@ -1,14 +1,11 @@
 import "server-only";
-import { FieldValue, type WriteBatch } from "firebase-admin/firestore";
+import { type WriteBatch } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
-import {
-  Collections,
-  type Product,
-  type Variant,
-} from "@/server/firestore/schema";
+import { Collections } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { mapShopifyProductCatalogFields } from "./catalog-mapper";
 import type { ShopifyProductNode } from "./queries";
-import { numericIdFromGid, parsePriceToCents } from "./sync";
+import { numericIdFromGid } from "./sync";
 
 const FIRESTORE_BATCH_MAX = 450;
 
@@ -35,62 +32,33 @@ export async function writeShopifyCatalogPage(
   };
 
   for (const p of products) {
-    const productId = numericIdFromGid(p.id);
-    const productImage = p.featuredMedia?.preview?.image?.url ?? null;
+    const mapped = mapShopifyProductCatalogFields(p, shopId);
 
     batch.set(
-      db.collection(Collections.Products).doc(productId),
-      {
-        id: productId,
-        shop_id: shopId,
-        shopify_gid: p.id,
-        title: p.title,
-        handle: p.handle,
-        status: p.status,
-        image_url: productImage,
-        is_bundle: p.hasVariantsThatRequiresComponents === true,
-        updated_at_shopify: new Date(p.updatedAt),
-        synced_at: FieldValue.serverTimestamp(),
-      } satisfies Omit<Product, "synced_at"> & {
-        synced_at: FirebaseFirestore.FieldValue;
-      },
+      db.collection(Collections.Products).doc(mapped.productDoc.id),
+      mapped.productDoc,
       { merge: true },
     );
     opsInBatch++;
     productsAdded++;
 
-    for (const v of p.variants.nodes) {
-      const variantId = numericIdFromGid(v.id);
-      const inventoryItemGid = v.inventoryItem?.id;
-      if (!inventoryItemGid) {
-        log.warn("variant_without_inventory_item", { variantGid: v.id });
+    for (const v of mapped.variants) {
+      if (!v.inventoryItemGid) {
+        log.warn("variant_without_inventory_item", { variantGid: v.doc.shopify_gid });
         continue;
       }
 
       batch.set(
-        db.collection(Collections.Variants).doc(variantId),
-        {
-          id: variantId,
-          shop_id: shopId,
-          product_id: productId,
-          shopify_gid: v.id,
-          inventory_item_gid: inventoryItemGid,
-          sku: v.sku ?? null,
-          barcode: v.barcode ?? null,
-          title: v.title,
-          image_url: v.image?.url ?? null,
-          price_cents: parsePriceToCents(v.price),
-          currency: null,
-          updated_at: FieldValue.serverTimestamp(),
-        } satisfies Omit<
-          Variant,
-          "updated_at" | "on_hand_total" | "reserved_total" | "available"
-        > & { updated_at: FirebaseFirestore.FieldValue },
+        db.collection(Collections.Variants).doc(v.variantId),
+        v.doc,
         { merge: true },
       );
       opsInBatch++;
       variantsAdded++;
-      inventoryItems.push({ inventoryItemGid, variantId });
+      inventoryItems.push({
+        inventoryItemGid: v.inventoryItemGid,
+        variantId: v.variantId,
+      });
 
       if (opsInBatch >= FIRESTORE_BATCH_MAX) {
         await flush(batch);

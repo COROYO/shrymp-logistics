@@ -23,6 +23,7 @@ const CLIENT_NAMESPACES = [
   "pickRun",
   "ordersAdmin",
   "products",
+  "productEditor",
   "lagerbestand",
   "batches",
   "customers",

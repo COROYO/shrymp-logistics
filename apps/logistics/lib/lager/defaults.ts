@@ -6,3 +6,6 @@ export const DEFAULT_BATCHES_ENABLED = true;
 
 /** App-owned inventory is the default — pushes to Shopify, ignores external drift. */
 export const DEFAULT_INVENTORY_SOURCE = "APP" as const;
+
+/** Product edits in Admin are pushed to Shopify by default. */
+export const DEFAULT_CATALOG_SYNC_TO_SHOPIFY = true;

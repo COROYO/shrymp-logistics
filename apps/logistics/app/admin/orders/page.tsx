@@ -26,6 +26,7 @@ export default async function OrdersPage({
 
   const filterLabel = (f: Filter): string => {
     if (f === "ALL") return t("filters.all");
+    if (f === "UNPAID") return t("filters.unpaid");
     if (f === "NEW") return t("filters.new");
     if (f === "SHIP") return t("filters.ship");
     if (f === "STOP") return t("filters.stop");

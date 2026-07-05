@@ -6,6 +6,8 @@ import { getLastCompletedProductSyncFinishedAtMs } from "@/server/shopify/produc
 import { getTranslations } from "next-intl/server";
 import { ShopifyConnectForm } from "@/app/_components/shopify-connect-form";
 import { ProductSyncButton } from "@/app/admin/products/sync-button";
+import { CatalogSyncForm } from "../catalog-sync-form";
+import { loadLagerConfig } from "@/server/lager/config";
 import { HealthPanel, type HealthSnapshot } from "../health-panel";
 import { readLastHealth } from "@/server/shopify/health";
 import { getMissingOAuthScopes } from "@/server/shopify/scopes";
@@ -50,10 +52,11 @@ async function getProductSyncStats(shopId: string) {
 
 export default async function ShopifySettingsPage() {
   const { shopId } = await requireTenantPageContext("/admin/settings/shopify");
-  const [status, lastHealth, syncStats, t] = await Promise.all([
+  const [status, lastHealth, syncStats, lagerCfg, t] = await Promise.all([
     getShopStatus(shopId),
     readLastHealth(shopId),
     getProductSyncStats(shopId),
+    loadLagerConfig(shopId),
     getTranslations("products"),
   ]);
 
@@ -213,6 +216,24 @@ export default async function ShopifySettingsPage() {
             </dl>
             <div className="mt-5">
               <ProductSyncButton />
+            </div>
+          </section>
+
+          <section className="card p-6">
+            <p className="eyebrow">Katalog</p>
+            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+              Produkt-Editor → Shopify
+            </h2>
+            <p className="mt-1 text-xs text-brand-navy/60">
+              Steuert, ob Änderungen aus dem Produkt-Editor standardmäßig zurück
+              zu Shopify geschrieben werden.
+            </p>
+            <div className="mt-5">
+              <CatalogSyncForm
+                current={{
+                  catalog_sync_to_shopify: lagerCfg.catalog_sync_to_shopify,
+                }}
+              />
             </div>
           </section>
         </>

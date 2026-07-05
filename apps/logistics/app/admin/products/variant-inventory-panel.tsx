@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   adjustVariantStockAction,
@@ -21,44 +22,88 @@ import {
   type LocationOption,
 } from "@/app/admin/_components/location-fields";
 import type { VariantRow } from "./product-accordion";
+import {
+  VariantImageModal,
+  VariantImageThumbnail,
+} from "./variant-image-picker";
+import type { ProductEditorPayload } from "@/server/catalog/editor-types";
+
+type MediaItem = ProductEditorPayload["input"]["media"][number];
+
+type VariantImageEditorBinding = {
+  media: MediaItem[];
+  imageUrl: string | null;
+  imageMediaId: string | null;
+  onMediaChange: (next: MediaItem[]) => void;
+  onImageChange: (patch: {
+    image_url: string | null;
+    image_media_id: string | null;
+  }) => void;
+};
 
 export function VariantInventoryPanel({
   variant,
   priceLabel,
   locations,
   defaultLocationId,
+  imageEditor,
+  displayImageUrl,
 }: {
   variant: VariantRow;
   priceLabel: string;
   locations: LocationOption[];
   defaultLocationId: string | null;
+  imageEditor?: VariantImageEditorBinding;
+  displayImageUrl?: string | null;
 }) {
   const t = useTranslations("products.inventoryPanel");
   const tb = useTranslations("batches.panel");
-  const ti = useTranslations("products.inventoryPanel");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [receiving, setReceiving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+
+  const thumbUrl = displayImageUrl ?? variant.imageUrl;
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white shadow-sm">
       <div className="flex items-center gap-4 border-b border-zinc-200 px-4 py-3">
-        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-brand-cream ring-1 ring-zinc-200">
-          {variant.imageUrl ? (
-            <Image
-              src={variant.imageUrl}
-              alt={variant.title}
-              width={40}
-              height={40}
-              className="h-10 w-10 object-cover"
-              unoptimized
+        {imageEditor ? (
+          <>
+            <VariantImageThumbnail
+              imageUrl={thumbUrl}
+              title={variant.title}
+              onClick={() => setImageModalOpen(true)}
             />
-          ) : (
-            <div className="grid h-10 w-10 place-items-center text-xs text-brand-navy/40">
-              —
-            </div>
-          )}
-        </div>
+            <VariantImageModal
+              open={imageModalOpen}
+              onClose={() => setImageModalOpen(false)}
+              variantTitle={variant.title}
+              media={imageEditor.media}
+              onMediaChange={imageEditor.onMediaChange}
+              imageUrl={imageEditor.imageUrl}
+              imageMediaId={imageEditor.imageMediaId}
+              onSelect={imageEditor.onImageChange}
+            />
+          </>
+        ) : (
+          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-brand-cream ring-1 ring-zinc-200">
+            {thumbUrl ? (
+              <Image
+                src={thumbUrl}
+                alt={variant.title}
+                width={40}
+                height={40}
+                className="h-10 w-10 object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="grid h-10 w-10 place-items-center text-xs text-brand-navy/40">
+                —
+              </div>
+            )}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-brand-navy">
             {variant.title}
@@ -177,6 +222,7 @@ function ReceiveStockForm({
 }) {
   const tb = useTranslations("batches.panel");
   const ti = useTranslations("products.inventoryPanel");
+  const router = useRouter();
   const [locationId, setLocationId] = useState(
     defaultLocationId ?? locations[0]?.id ?? "",
   );
@@ -202,6 +248,7 @@ function ReceiveStockForm({
           title: ti("receiveStock"),
           message: `${qty} Stück eingebucht.`,
         });
+        router.refresh();
         onClose();
       } else if (res) {
         dispatchAdminJobError({ title: ti("receiveStock"), message: res.error });
@@ -283,6 +330,7 @@ function AdjustStockForm({
 }) {
   const tb = useTranslations("batches.panel");
   const ti = useTranslations("products.inventoryPanel");
+  const router = useRouter();
   const [locationId, setLocationId] = useState(
     defaultLocationId ?? locations[0]?.id ?? "",
   );
@@ -322,6 +370,7 @@ function AdjustStockForm({
           title: ti("adjustStock"),
           message: `Bestand auf ${onHandNum} gesetzt (${delta >= 0 ? `+${delta}` : delta}).`,
         });
+        router.refresh();
         onClose();
       } else {
         dispatchAdminJobError({ title: ti("adjustStock"), message: res.error });

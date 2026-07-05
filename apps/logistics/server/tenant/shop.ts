@@ -134,19 +134,21 @@ export async function updateShopLagerSettings(
   patch: {
     batches_enabled: boolean;
     batch_min_days_before_expiry: number;
+    catalog_sync_to_shopify?: boolean;
     updated_by_uid: string | null;
   },
 ): Promise<void> {
-  await shopRef(shopId).set(
-    {
-      batches_enabled: patch.batches_enabled,
-      batch_min_days_before_expiry: patch.batch_min_days_before_expiry,
-      lager_updated_by_uid: patch.updated_by_uid,
-      lager_updated_at: FieldValue.serverTimestamp(),
-      updated_at: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+  const body: Record<string, unknown> = {
+    batches_enabled: patch.batches_enabled,
+    batch_min_days_before_expiry: patch.batch_min_days_before_expiry,
+    lager_updated_by_uid: patch.updated_by_uid,
+    lager_updated_at: FieldValue.serverTimestamp(),
+    updated_at: FieldValue.serverTimestamp(),
+  };
+  if (patch.catalog_sync_to_shopify !== undefined) {
+    body.catalog_sync_to_shopify = patch.catalog_sync_to_shopify;
+  }
+  await shopRef(shopId).set(body, { merge: true });
 }
 
 export async function updateShopInventorySource(
