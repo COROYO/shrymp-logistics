@@ -72,6 +72,7 @@ export const ProductEditorInputSchema = z.object({
 
 export type ProductEditorInput = z.infer<typeof ProductEditorInputSchema>;
 export type ProductEditorVariant = z.infer<typeof ProductEditorVariantSchema>;
+export type ProductEditorMetafield = z.infer<typeof ProductEditorMetafieldSchema>;
 export type ProductEditorOption = z.infer<typeof ProductEditorOptionSchema>;
 
 export type CollectionOption = {
