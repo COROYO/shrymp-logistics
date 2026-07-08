@@ -28,6 +28,7 @@ const CLIENT_NAMESPACES = [
   "batches",
   "customers",
   "settings",
+  "forecasting",
 ] as const;
 
 export function pickClientMessages(

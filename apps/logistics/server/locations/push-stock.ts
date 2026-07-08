@@ -174,6 +174,7 @@ export async function pushAllLocationStockToShopify(
     const ref = db.collection(Collections.ShopifyOutbox).doc();
     writeBatch.set(ref, {
       id: ref.id,
+      shop_id: normalizedShopId,
       op: "INVENTORY_SET",
       payload: {
         reason: "correction",

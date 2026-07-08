@@ -28,6 +28,12 @@ export function locationsForShop(db: Firestore, shopId: string) {
     .where("shop_id", "==", normalizeShopId(shopId));
 }
 
+export function forecastsForShop(db: Firestore, shopId: string) {
+  return db
+    .collection(Collections.Forecasts)
+    .where("shop_id", "==", normalizeShopId(shopId));
+}
+
 export function variantLocationStockForShop(db: Firestore, shopId: string) {
   return db
     .collection(Collections.VariantLocationStock)

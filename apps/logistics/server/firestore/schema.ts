@@ -785,6 +785,44 @@ export const ApiKeySchema = z.object({
   revoked_at: FirestoreTimestamp.optional(),
 });
 
+// ---------- forecasting ----------
+
+export const ForecastMethodSchema = z.enum([
+  "HOLT_WINTERS",
+  "CROSTON",
+  "MOVING_AVERAGE",
+  "NONE",
+]);
+
+/**
+ * Per-variant demand forecast, recomputed by the forecast job
+ * (`server/forecasting/run.ts`).
+ *
+ * Forecast values are statistical *rates* (fractional units/day), not
+ * inventory counts — the integer-quantities convention deliberately does
+ * not apply here. UIs round up when presenting "units needed".
+ * `history_total_units` can be fractional because legacy bundle-parent
+ * sales are exploded into per-unit component quantities.
+ */
+export const ForecastSchema = z.object({
+  id: z.string(), // `${shop_id}_${variant_id}`
+  shop_id: z.string(),
+  variant_id: z.string(),
+  method: ForecastMethodSchema,
+  horizon_days: z.number().int().positive(),
+  /** Point forecast per future day, index 0 = tomorrow. */
+  daily_forecast: z.array(z.number().nonnegative()),
+  sigma_daily: z.number().nonnegative(),
+  backtest_mae: z.number().nonnegative().nullable().default(null),
+  avg_daily_units: z.number().nonnegative(),
+  history_days: z.number().int().nonnegative(),
+  nonzero_days: z.number().int().nonnegative(),
+  history_total_units: z.number().nonnegative(),
+  /** True if the series contains exploded legacy bundle-parent sales. */
+  includes_exploded_bundles: z.boolean().default(false),
+  generated_at: FirestoreTimestamp,
+});
+
 // ---------- exported types ----------
 
 export type Product = z.infer<typeof ProductSchema>;
@@ -834,6 +872,8 @@ export type DhlConfig = z.infer<typeof DhlConfigSchema>;
 export type OrderDhlShipment = z.infer<typeof OrderDhlShipmentSchema>;
 export type ApiScope = z.infer<typeof ApiScopeSchema>;
 export type ApiKey = z.infer<typeof ApiKeySchema>;
+export type ForecastMethod = z.infer<typeof ForecastMethodSchema>;
+export type Forecast = z.infer<typeof ForecastSchema>;
 
 // ---------- collection name constants ----------
 
@@ -857,6 +897,7 @@ export const Collections = {
   ShopifyOutbox: "shopify_outbox",
   Config: "config",
   ApiKeys: "api_keys",
+  Forecasts: "forecasts",
 } as const;
 
 export const ConfigDocs = {

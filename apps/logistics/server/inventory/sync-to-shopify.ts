@@ -54,6 +54,7 @@ export async function queueInventoryPush(
   const now = FieldValue.serverTimestamp();
   await ref.set({
     id: ref.id,
+    shop_id: resolvedShopId,
     op: "INVENTORY_SET",
     payload: {
       reason,

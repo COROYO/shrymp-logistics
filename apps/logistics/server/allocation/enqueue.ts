@@ -1,6 +1,9 @@
 import "server-only";
+import { CloudTasksClient } from "@google-cloud/tasks";
 import { log } from "@/lib/logger";
 import type { AllocationTrigger } from "@/server/firestore/schema";
+import { runWithTenantAsync } from "@/server/tenant/context";
+import { runAllocationInFirestore } from "./run";
 
 /**
  * Enqueue an allocation run via Cloud Tasks.
@@ -49,8 +52,6 @@ export async function enqueueAllocationRun(
 
   if (!projectId || !location || !queue || !targetUrl) {
     log.info("allocation_enqueue_inline", opts);
-    const { runAllocationInFirestore } = await import("./run");
-    const { runWithTenantAsync } = await import("@/server/tenant/context");
     void runWithTenantAsync(opts.shopId, () =>
       runAllocationInFirestore(opts),
     ).catch((e) => log.error("inline_allocation_failed", { error: String(e) }));
@@ -58,7 +59,6 @@ export async function enqueueAllocationRun(
   }
 
   try {
-    const { CloudTasksClient } = await import("@google-cloud/tasks");
     const client = new CloudTasksClient();
 
     const now = Date.now();
@@ -110,8 +110,6 @@ export async function enqueueAllocationRun(
     }
     log.error("allocation_enqueue_failed", { error: msg });
     // Don't crash callers — fall back to inline.
-    const { runAllocationInFirestore } = await import("./run");
-    const { runWithTenantAsync } = await import("@/server/tenant/context");
     void runWithTenantAsync(opts.shopId, () =>
       runAllocationInFirestore(opts),
     ).catch((err) =>

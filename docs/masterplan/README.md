@@ -1,7 +1,9 @@
 # Masterplan — „Beste Lagersoftware, die je ein Shopify-Shop installiert hat"
 
-> Status: **Planungsdokument.** Nichts hiervon ist implementiert. Jedes Todo enthält
-> ein vollständiges, selbst-ausführbares KI-Briefing. Reihenfolge und Umfang siehe unten.
+> Status: **Planungsdokument mit fortschreitender Umsetzung.** Bereits gebaut: **F.1**
+> (Produkt-Editor) und **Epic C v1** (Forecast-Engine + `/admin/forecasting`, inkl.
+> Bundle-Explosion — siehe Umsetzungsstand in [Epic C](epic-c-forecasting.md)). Alles andere
+> ist Plan. Jedes Todo enthält ein vollständiges, selbst-ausführbares KI-Briefing.
 >
 > Dieses Dokument-Set ersetzt den veralteten Roadmap-Teil von [`../../PROJECT.md`](../../PROJECT.md).
 
@@ -211,14 +213,14 @@ Jedes Todo folgt diesem Template, damit eine KI es kalt umsetzen kann:
 - B.5 Picker-Leistung
 - B.6 Export & geplante Reports
 
-### [Epic C — KI-Forecasting](epic-c-forecasting.md)
-- C.1 Sales-History-Feature-Builder (inkl. Stockout-Zensierung, Feiertage)
-- C.2 Prognose-Engine (Holt-Winters + Croston)
-- C.3 Reorder-Point & Safety-Stock (MHD-bewusst)
-- C.4 ABC/XYZ-Klassifikation
-- C.5 Forecast-Speicherung + Nightly-Job
-- C.6 Admin-Forecasting-UI + Bestell-Vorschläge
-- C.7 Purchase-Order-Vorschlag (Fundament)
+### [Epic C — KI-Forecasting](epic-c-forecasting.md) — v1 ✅ (siehe Umsetzungsstand)
+- C.1 Sales-History-Feature-Builder — ✅ v1 (inkl. **Bundle-Explosion**; offen: Stockout-Zensierung, Feiertage)
+- C.2 Prognose-Engine (Holt-Winters + Croston) — ✅ v1 (Wochensaison + Backtest)
+- C.3 Reorder-Point & Safety-Stock (MHD-bewusst) — offen
+- C.4 ABC/XYZ-Klassifikation — offen
+- C.5 Forecast-Speicherung + Nightly-Job — ✅
+- C.6 Admin-Forecasting-UI + Bestell-Vorschläge — ✅ v1 (Tabelle/Zeitraum X; offen: SKU-Chart, CSV)
+- C.7 Purchase-Order-Vorschlag (Fundament) — offen
 
 ### [Epic D — Packer-UX & Auto-Label](epic-d-packer-ux.md)
 - D.1 Browser-Auto-Druck-Pipeline für Labels

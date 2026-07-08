@@ -69,27 +69,62 @@ export function mergeEditorVariantsWithDb(
   });
 }
 
-export function indexPushResultVariants(
-  pushVariants: Array<{ variantId: string; shopifyGid: string }>,
-): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const row of pushVariants) {
-    map.set(row.variantId, row.shopifyGid);
-    map.set(row.shopifyGid, row.shopifyGid);
-  }
-  return map;
-}
-
 export function applyPushVariantGids(
   input: ProductEditorInput,
-  gidByKey: Map<string, string>,
+  pushed: ShopifyPushProductResult["variants"],
 ): ProductEditorInput {
+  const byGid = new Map(pushed.map((row) => [row.shopifyGid, row]));
+  const byOptionKey = new Map(
+    pushed.map((row) => [
+      variantOptionKey({
+        option1: row.option1,
+        option2: row.option2,
+        option3: row.option3,
+      }),
+      row,
+    ]),
+  );
+
   return {
     ...input,
     variants: input.variants.map((variant) => {
-      const keys = variantLookupKeys(variant);
-      const shopifyGid = keys.map((key) => gidByKey.get(key)).find(Boolean);
-      return shopifyGid ? { ...variant, shopify_gid: shopifyGid } : variant;
+      const gid = variant.shopify_gid?.startsWith("local://")
+        ? null
+        : variant.shopify_gid
+          ? toVariantGid(variant.shopify_gid)
+          : null;
+      const row =
+        (gid ? byGid.get(gid) : undefined) ??
+        byOptionKey.get(variantOptionKey(variant));
+      if (!row) return variant;
+      return {
+        ...variant,
+        id: variant.id ?? row.variantId,
+        shopify_gid: row.shopifyGid,
+      };
+    }),
+  };
+}
+
+export function mergeVariantImagesFromSource(
+  target: ProductEditorInput,
+  source: ProductEditorInput,
+): ProductEditorInput {
+  const imagesByOption = new Map(
+    source.variants.map((v) => [
+      variantOptionKey(v),
+      {
+        image_url: v.image_url ?? null,
+        image_media_id: v.image_media_id ?? null,
+      },
+    ]),
+  );
+
+  return {
+    ...target,
+    variants: target.variants.map((variant) => {
+      const images = imagesByOption.get(variantOptionKey(variant));
+      return images ? { ...variant, ...images } : variant;
     }),
   };
 }

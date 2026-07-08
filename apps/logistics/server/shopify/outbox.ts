@@ -3,6 +3,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections, type ShopifyOutbox } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { runWithTenantAsync } from "@/server/tenant/context";
 import {
   fulfillmentCreateForOrder,
   inventorySetOnHand,
@@ -50,6 +51,7 @@ export async function processOutbox(limit = 50): Promise<OutboxDrainResult> {
 export async function enqueueLagerTagSet(
   orderId: string,
   status: "SHIP" | "STOP",
+  shopId: string,
 ): Promise<string> {
   const db = adminDb();
   const ref = db
@@ -58,6 +60,7 @@ export async function enqueueLagerTagSet(
   const now = FieldValue.serverTimestamp();
   await ref.set({
     id: ref.id,
+    shop_id: shopId,
     op: "LAGER_TAGS_SET",
     payload: { orderId, status },
     attempts: 0,
@@ -105,7 +108,8 @@ async function processRow(
   }
 
   try {
-    await dispatch(row);
+    const shopId = await resolveOutboxShopId(row);
+    await runWithTenantAsync(shopId, () => dispatch(row));
     await docSnap.ref.update({ done_at: FieldValue.serverTimestamp() });
     result.processed++;
     result.done++;
@@ -120,6 +124,40 @@ async function processRow(
     await docSnap.ref.update({ last_error: msg });
     result.failed++;
   }
+}
+
+async function resolveOutboxShopId(row: ShopifyOutbox): Promise<string> {
+  if (row.shop_id) return row.shop_id;
+
+  const orderId = row.payload.orderId;
+  if (typeof orderId === "string" && orderId) {
+    const snap = await adminDb()
+      .collection(Collections.Orders)
+      .doc(orderId)
+      .get();
+    const shopId = snap.data()?.shop_id;
+    if (typeof shopId === "string" && shopId) return shopId;
+  }
+
+  if (row.op === "INVENTORY_SET") {
+    const setQuantities = row.payload.setQuantities as
+      | { inventoryItemId: string }[]
+      | undefined;
+    const gid = setQuantities?.[0]?.inventoryItemId;
+    if (gid) {
+      const snap = await adminDb()
+        .collection(Collections.Variants)
+        .where("inventory_item_gid", "==", gid)
+        .limit(1)
+        .get();
+      const shopId = snap.docs[0]?.data()?.shop_id;
+      if (typeof shopId === "string" && shopId) return shopId;
+    }
+  }
+
+  throw new Error(
+    `OUTBOX_SHOP_ID_REQUIRED: cannot resolve shop for outbox row ${row.id} (${row.op})`,
+  );
 }
 
 async function dispatch(row: ShopifyOutbox): Promise<void> {

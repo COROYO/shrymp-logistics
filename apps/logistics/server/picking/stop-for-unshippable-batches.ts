@@ -121,7 +121,7 @@ async function stopOrderForBatchBlock(
   if (tagSyncNeeded === null) return false;
 
   if (tagSyncNeeded) {
-    const outboxId = await enqueueLagerTagSet(orderId, "STOP");
+    const outboxId = await enqueueLagerTagSet(orderId, "STOP", order.shop_id);
     try {
       await processOutboxByIds([outboxId]);
     } catch (e) {

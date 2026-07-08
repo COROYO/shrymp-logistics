@@ -7,6 +7,7 @@ import {
   BatchesIcon,
   BinsIcon,
   CustomersIcon,
+  ForecastIcon,
   HomeIcon,
   LagerIcon,
   OrdersIcon,
@@ -31,6 +32,7 @@ export type IconKey =
   | "customers"
   | "allocations"
   | "batches"
+  | "forecast"
   | "products"
   | "users"
   | "settings"
@@ -47,6 +49,7 @@ const ICON_MAP: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   customers: CustomersIcon,
   allocations: AllocationsIcon,
   batches: BatchesIcon,
+  forecast: ForecastIcon,
   products: ProductsIcon,
   users: UsersIcon,
   settings: SettingsIcon,

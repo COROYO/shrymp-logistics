@@ -83,7 +83,7 @@ export function useColumnVisibility(): {
     setCols((c) => ({ ...c, [key]: !c[key] }));
   }
   function reset() {
-    setCols(DEFAULT_VISIBILITY);
+    setCols(DEFAULT_COLUMN_VISIBILITY);
   }
 
   return { cols, toggle, reset };

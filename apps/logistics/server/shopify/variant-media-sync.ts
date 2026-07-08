@@ -6,7 +6,8 @@ import {
   syncVariantImagesWithGallery,
   type GalleryMediaRef,
 } from "@/lib/variant-image";
-import type { ProductEditorInput } from "@/server/catalog/editor-types";
+import type { ProductEditorInput, ProductEditorVariant } from "@/server/catalog/editor-types";
+import { variantOptionKey } from "@/server/catalog/variant-matrix";
 import { toProductGid, toVariantGid } from "./catalog-queries";
 
 const PRODUCT_VARIANT_MEDIA_QUERY = /* GraphQL */ `
@@ -26,6 +27,10 @@ const PRODUCT_VARIANT_MEDIA_QUERY = /* GraphQL */ `
       variants(first: 100) {
         nodes {
           id
+          selectedOptions {
+            name
+            value
+          }
           media(first: 10) {
             nodes {
               id
@@ -43,7 +48,7 @@ const VARIANT_APPEND_MEDIA = /* GraphQL */ `
     $variantMedia: [ProductVariantAppendMediaInput!]!
   ) {
     productVariantAppendMedia(
-      productId: $productId
+      productId: $productId,
       variantMedia: $variantMedia
     ) {
       userErrors {
@@ -60,7 +65,7 @@ const VARIANT_DETACH_MEDIA = /* GraphQL */ `
     $variantMedia: [ProductVariantDetachMediaInput!]!
   ) {
     productVariantDetachMedia(
-      productId: $productId
+      productId: $productId,
       variantMedia: $variantMedia
     ) {
       userErrors {
@@ -79,6 +84,41 @@ function throwMediaUserErrors(
   throw new ShopifyGraphQLError(
     `${scope}: ${errs.map((e) => e.message).join("; ")}`,
     errs.map((e) => ({ message: e.message })),
+  );
+}
+
+function remoteVariantOptionKey(
+  selectedOptions: Array<{ name: string; value: string }>,
+): string {
+  return variantOptionKey({
+    option1: selectedOptions[0]?.value ?? null,
+    option2: selectedOptions[1]?.value ?? null,
+    option3: selectedOptions[2]?.value ?? null,
+  });
+}
+
+function indexEditorVariants(variants: ProductEditorVariant[]) {
+  const byGid = new Map<string, ProductEditorVariant>();
+  const byOption = new Map<string, ProductEditorVariant>();
+  for (const variant of variants) {
+    byOption.set(variantOptionKey(variant), variant);
+    if (variant.shopify_gid && !variant.shopify_gid.startsWith("local://")) {
+      byGid.set(toVariantGid(variant.shopify_gid), variant);
+    }
+  }
+  return { byGid, byOption };
+}
+
+function findEditorVariant(
+  remote: {
+    id: string;
+    selectedOptions: Array<{ name: string; value: string }>;
+  },
+  index: ReturnType<typeof indexEditorVariants>,
+): ProductEditorVariant | undefined {
+  return (
+    index.byGid.get(remote.id) ??
+    index.byOption.get(remoteVariantOptionKey(remote.selectedOptions))
   );
 }
 
@@ -133,7 +173,11 @@ export async function syncVariantMediaToShopify(
         nodes: Array<{ id: string; image: { url: string } | null }>;
       };
       variants: {
-        nodes: Array<{ id: string; media: { nodes: Array<{ id: string }> } }>;
+        nodes: Array<{
+          id: string;
+          selectedOptions: Array<{ name: string; value: string }>;
+          media: { nodes: Array<{ id: string }> };
+        }>;
       };
     } | null;
   }>(PRODUCT_VARIANT_MEDIA_QUERY, { id: productId }, { shopId: opts.shopId });
@@ -150,17 +194,13 @@ export async function syncVariantMediaToShopify(
     url: m.url,
   }));
 
-  const variantByGid = new Map(
-    input.variants
-      .filter((v) => v.shopify_gid && !v.shopify_gid.startsWith("local://"))
-      .map((v) => [toVariantGid(v.shopify_gid!), v]),
-  );
+  const editorIndex = indexEditorVariants(input.variants);
 
   const toAppend: Array<{ variantId: string; mediaIds: string[] }> = [];
   const toDetach: Array<{ variantId: string; mediaIds: string[] }> = [];
 
   for (const remote of product.variants.nodes) {
-    const editor = variantByGid.get(remote.id);
+    const editor = findEditorVariant(remote, editorIndex);
     if (!editor) continue;
 
     const desiredMediaId = resolveShopifyMediaIdForVariant(

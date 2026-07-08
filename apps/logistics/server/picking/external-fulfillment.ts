@@ -182,7 +182,7 @@ export async function applyExternalFulfillment(
   }
 
   // ---- Outside-tx: Shopify outbox + audit ----
-  await queueShopifyOutboxForExternal(orderId, consumedByVariant);
+  await queueShopifyOutboxForExternal(orderId, order.shop_id, consumedByVariant);
 
   // Drain outbox synchronously so Shopify reflects tags + stock by the time
   // we return (serverless containers can die after the response).
@@ -213,6 +213,7 @@ export async function applyExternalFulfillment(
 
 async function queueShopifyOutboxForExternal(
   orderId: string,
+  shopId: string,
   consumedQtyByVariant: Record<string, number>,
 ): Promise<void> {
   const db = adminDb();
@@ -230,6 +231,7 @@ async function queueShopifyOutboxForExternal(
     const ref = db.collection(Collections.ShopifyOutbox).doc();
     batch.set(ref, {
       id: ref.id,
+      shop_id: shopId,
       op,
       payload: { orderId, tags },
       attempts: 0,
@@ -265,6 +267,7 @@ async function queueShopifyOutboxForExternal(
     const ref = db.collection(Collections.ShopifyOutbox).doc();
     batch.set(ref, {
       id: ref.id,
+      shop_id: shopId,
       op: "INVENTORY_SET",
       payload: {
         reason: "correction",

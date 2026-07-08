@@ -62,7 +62,8 @@
     "packedOrders": "Completed",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "mainNav": "Main navigation"
+    "mainNav": "Main navigation",
+    "forecasting": "Forecast"
   },
   "tenant": {
     "activeShop": "Tenant",
@@ -78,7 +79,10 @@
     "intro": "Inbound, stock, orders, allocation runs. Pick an area.",
     "open": "Open →",
     "tiles": {
-      "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW overview" },
+      "orders": {
+        "title": "Orders",
+        "desc": "SHIP / STOP / NEW overview"
+      },
       "products": {
         "title": "Products & stock",
         "desc": "Shopify sync, inbound, batches"
@@ -87,12 +91,18 @@
         "title": "Customers",
         "desc": "Customer list + order history"
       },
-      "users": { "title": "Users", "desc": "Manage warehouse staff + admins" },
+      "users": {
+        "title": "Users",
+        "desc": "Manage warehouse staff + admins"
+      },
       "settings": {
         "title": "Settings",
         "desc": "Shopify connection, webhooks, allocation"
       },
-      "lager": { "title": "Warehouse", "desc": "Open picking & packing view" }
+      "lager": {
+        "title": "Warehouse",
+        "desc": "Open picking & packing view"
+      }
     }
   },
   "dashboard": {
@@ -247,7 +257,9 @@
     "eyebrow": "Warehouse",
     "title": "Completed orders",
     "intro": "Orders that are already packed and shipped. Packing slips can be reprinted here.",
-    "stats": { "packed": "Completed" },
+    "stats": {
+      "packed": "Completed"
+    },
     "empty": "No completed orders yet.",
     "search": "Search (order, city, tag)…",
     "selected": "{count} selected",
@@ -1138,5 +1150,45 @@
     "htmlLink": "Link",
     "htmlLinkPrompt": "Enter URL:",
     "htmlHeadings": "Heading"
+  },
+  "forecasting": {
+    "eyebrow": "Planning",
+    "title": "Forecast",
+    "intro": "Predicted demand per variant from sales history. Bundle sales are automatically converted to component demand — including the era before unbundling.",
+    "run": {
+      "button": "Recompute forecast",
+      "loading": "Computing…",
+      "success": "{written} forecasts computed from {orders} orders."
+    },
+    "stats": {
+      "skus": "SKUs with forecast",
+      "reorder": "Stock insufficient ({days} days)",
+      "generated": "As of"
+    },
+    "horizon": {
+      "days": "{days} days"
+    },
+    "table": {
+      "search": "Search SKU or title…",
+      "product": "Product",
+      "sku": "SKU",
+      "avgPerDay": "Avg/day",
+      "needed": "Needed ({days} days)",
+      "available": "Available",
+      "cover": "Cover",
+      "coverDays": "{days} d",
+      "method": "Model",
+      "accuracy": "MAE",
+      "noHistory": "no history",
+      "reorderBadge": "Reorder",
+      "explodedHint": "Includes converted bundle sales (component history from the bundle era)"
+    },
+    "method": {
+      "HOLT_WINTERS": "Seasonal",
+      "CROSTON": "Intermittent",
+      "MOVING_AVERAGE": "Average",
+      "NONE": "—"
+    },
+    "empty": "No forecasts yet. Run “Recompute forecast” once — mirrored orders are the data source."
   }
 }

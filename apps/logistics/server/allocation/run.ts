@@ -445,7 +445,7 @@ async function commitDecisions(
 
   // --- Outbox entries for Shopify LAGER tag pushes ---
   if (lagerTagSyncs.size === 0) return [];
-  return enqueueLagerTagSync(lagerTagSyncs);
+  return enqueueLagerTagSync(shopId, lagerTagSyncs);
 }
 
 /**
@@ -546,6 +546,7 @@ async function recomputeReservedTotals(
 }
 
 async function enqueueLagerTagSync(
+  shopId: string,
   syncs: Map<string, "SHIP" | "STOP">,
 ): Promise<string[]> {
   const db = adminDb();
@@ -561,6 +562,7 @@ async function enqueueLagerTagSync(
       .doc(`lagertags_${orderId}`);
     void bulk.set(ref, {
       id: ref.id,
+      shop_id: shopId,
       op: "LAGER_TAGS_SET",
       payload: { orderId, status },
       attempts: 0,

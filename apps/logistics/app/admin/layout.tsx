@@ -57,6 +57,11 @@ export default async function AdminLayout({
       icon: "batches" as const,
     },
     {
+      href: "/admin/forecasting",
+      label: t("forecasting"),
+      icon: "forecast" as const,
+    },
+    {
       href: "/admin/lagerplaetze",
       label: t("lagerplaetze"),
       icon: "bins" as const,

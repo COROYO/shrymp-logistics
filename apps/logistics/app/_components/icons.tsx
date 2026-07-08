@@ -76,6 +76,15 @@ export function BatchesIcon({ className }: IconProps) {
   );
 }
 
+export function ForecastIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M3 16.5 8 11l3 3 6-6.5" />
+      <path d="M13 7.5h4v4" />
+    </Svg>
+  );
+}
+
 export function ProductsIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

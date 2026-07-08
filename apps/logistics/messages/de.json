@@ -62,7 +62,8 @@
     "packedOrders": "Abgeschlossen",
     "openMenu": "Menü öffnen",
     "closeMenu": "Menü schließen",
-    "mainNav": "Hauptnavigation"
+    "mainNav": "Hauptnavigation",
+    "forecasting": "Forecast"
   },
   "tenant": {
     "activeShop": "Mandant",
@@ -78,7 +79,10 @@
     "intro": "Wareneingang, Bestände, Aufträge und Verfügbarkeit. Wähle einen Bereich aus.",
     "open": "Öffnen →",
     "tiles": {
-      "orders": { "title": "Orders", "desc": "SHIP / STOP / NEW Übersicht" },
+      "orders": {
+        "title": "Orders",
+        "desc": "SHIP / STOP / NEW Übersicht"
+      },
       "products": {
         "title": "Produkte & Bestand",
         "desc": "Shopify-Sync, Wareneingang, Chargen"
@@ -87,12 +91,18 @@
         "title": "Kunden",
         "desc": "Kundenliste + Bestellhistorie"
       },
-      "users": { "title": "Benutzer", "desc": "Lager + Admins verwalten" },
+      "users": {
+        "title": "Benutzer",
+        "desc": "Lager + Admins verwalten"
+      },
       "settings": {
         "title": "Einstellungen",
         "desc": "Shopify, DHL und Lager-Optionen"
       },
-      "lager": { "title": "Lager", "desc": "Picking & Packing-Ansicht öffnen" }
+      "lager": {
+        "title": "Lager",
+        "desc": "Picking & Packing-Ansicht öffnen"
+      }
     }
   },
   "dashboard": {
@@ -247,7 +257,9 @@
     "eyebrow": "Lager",
     "title": "Abgeschlossene Bestellungen",
     "intro": "Bereits verpackte und versendete Orders. Lieferscheine können hier erneut gedruckt werden.",
-    "stats": { "packed": "Abgeschlossen" },
+    "stats": {
+      "packed": "Abgeschlossen"
+    },
     "empty": "Noch keine abgeschlossenen Orders.",
     "search": "Suche (Order, Stadt, Tag)…",
     "selected": "{count} ausgewählt",
@@ -1138,5 +1150,45 @@
     "htmlLink": "Link",
     "htmlLinkPrompt": "URL eingeben:",
     "htmlHeadings": "Überschrift"
+  },
+  "forecasting": {
+    "eyebrow": "Planung",
+    "title": "Forecast",
+    "intro": "Prognostizierter Bedarf je Variante aus der Verkaufshistorie. Bundle-Verkäufe werden automatisch auf Komponenten umgerechnet – auch aus der Zeit vor dem Entbündeln.",
+    "run": {
+      "button": "Forecast neu berechnen",
+      "loading": "Berechne…",
+      "success": "{written} Prognosen aus {orders} Bestellungen berechnet."
+    },
+    "stats": {
+      "skus": "SKUs mit Prognose",
+      "reorder": "Bestand reicht nicht ({days} Tage)",
+      "generated": "Stand"
+    },
+    "horizon": {
+      "days": "{days} Tage"
+    },
+    "table": {
+      "search": "SKU oder Titel suchen…",
+      "product": "Produkt",
+      "sku": "SKU",
+      "avgPerDay": "Ø/Tag",
+      "needed": "Bedarf ({days} Tage)",
+      "available": "Verfügbar",
+      "cover": "Reichweite",
+      "coverDays": "{days} T",
+      "method": "Modell",
+      "accuracy": "MAE",
+      "noHistory": "keine Historie",
+      "reorderBadge": "Nachbestellen",
+      "explodedHint": "Enthält umgerechnete Bundle-Verkäufe (Komponenten-Historie aus Bundle-Ära)"
+    },
+    "method": {
+      "HOLT_WINTERS": "Saisonal",
+      "CROSTON": "Sporadisch",
+      "MOVING_AVERAGE": "Durchschnitt",
+      "NONE": "—"
+    },
+    "empty": "Noch keine Prognosen. Einmal „Forecast neu berechnen“ ausführen – Grundlage sind die gespiegelten Bestellungen."
   }
 }

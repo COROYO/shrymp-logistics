@@ -4,6 +4,10 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // @google-cloud/tasks loads its gRPC proto JSONs via dynamic require —
+  // bundling it into SSR chunks breaks with "expression is too dynamic".
+  // firebase-admin is on Next's default external list; tasks is not.
+  serverExternalPackages: ["@google-cloud/tasks"],
   experimental: {
     optimizePackageImports: ["next-intl"],
   },

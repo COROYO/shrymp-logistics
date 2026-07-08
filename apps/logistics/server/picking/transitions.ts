@@ -460,6 +460,7 @@ async function queueShopifyOutbox(
     const ref = db.collection(Collections.ShopifyOutbox).doc();
     batch.set(ref, {
       id: ref.id,
+      shop_id: shopId,
       op: "FULFILLMENT_CREATE",
       payload: {
         orderId,
@@ -484,6 +485,7 @@ async function queueShopifyOutbox(
     const refA = db.collection(Collections.ShopifyOutbox).doc();
     batch.set(refA, {
       id: refA.id,
+      shop_id: shopId,
       op: "TAGS_ADD",
       payload: { orderId, tags: [TAG_PACKED] },
       attempts: 0,
@@ -494,6 +496,7 @@ async function queueShopifyOutbox(
     const refR = db.collection(Collections.ShopifyOutbox).doc();
     batch.set(refR, {
       id: refR.id,
+      shop_id: shopId,
       op: "TAGS_REMOVE",
       payload: { orderId, tags: [TAG_SHIP] },
       attempts: 0,
@@ -528,6 +531,7 @@ async function queueShopifyOutbox(
     const ref = db.collection(Collections.ShopifyOutbox).doc();
     batch.set(ref, {
       id: ref.id,
+      shop_id: shopId,
       op: "INVENTORY_SET",
       payload: {
         reason: "correction",

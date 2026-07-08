@@ -21,6 +21,35 @@ Safety-Stock; Safety-Stock = `Z(serviceLevel) × σ_Nachfrage × √Lead-Time`.
 
 ---
 
+## ⚙️ Umsetzungsstand — v1 implementiert (2026-07-06)
+
+Eine erste produktive Ausbaustufe ist **gebaut und getestet** (151 Tests grün):
+
+| Baustein | Status | Dateien |
+| --- | --- | --- |
+| Demand-History inkl. **Bundle-Explosion** | ✅ | `server/forecasting/history.ts` |
+| Engine: Holt-Winters (Wochensaison) + Croston/SBA + MA-Fallback, Holdout-Backtest | ✅ | `server/forecasting/engine.ts`, `models/` |
+| `forecasts`-Collection + Run-Job (1 Orders-Scan → alle Varianten) | ✅ | `schema.ts`, `server/forecasting/run.ts` |
+| Nightly-Cron (alle aktiven Shops) + Admin-Trigger (Job-Tray) | ✅ | `app/api/cron/forecast/route.ts`, `app/admin/forecasting/actions.ts` |
+| Admin-UI „Forecast": Zeitraum X (7/14/30/60/90), Bedarf, Reichweite, Nachbestell-Badge, Modell, MAE | ✅ | `app/admin/forecasting/` |
+| Tests (Unit + Property: nie negativ, deterministisch, Bundle-Explosion) | ✅ | `server/forecasting/**/*.test.ts` |
+
+**Noch offen aus diesem Epic:** C.1-Teile (Stockout-Zensierung, Feiertags-Features),
+Jahres-Saisonalität, C.3 (Reorder-Point/Safety-Stock/MHD-Deckel), C.4 (ABC/XYZ),
+C.6-Teile (Forecast-vs-Ist-Chart je SKU, CSV-Export), C.7 (PO-Vorschlag).
+
+### Stücklisten-Entscheidung (gelockt, 2026-07-06)
+
+**Keine separate BOM-/Stücklisten-Verwaltung.** Shopify-Bundles fungieren als Stückliste
+(Komponenten-Line-Items mit `bundle.group_id` → Parent). Der Forecast arbeitet auf
+**Komponenten-Ebene**: Bundle-Parents sind virtuell (kein Bestand, kein Forecast); die
+History-Pipeline **lernt die Stückliste aus beobachteten Orders** (neueste Zusammensetzung
+gewinnt) und **explodiert Legacy-Verkäufe** aus der „1 Korb = 1 SKU"-Ära in
+Komponenten-Nachfrage. Entbündelte SKUs erben so die volle Historie — exakt das Problem, an
+dem externe Tools (VOIDS) beim Kunden gescheitert sind.
+
+---
+
 ## C.1 — Sales-History-Feature-Builder {#c1}
 
 **Ziel:** Aus `sales_daily` je Variante eine saubere, lückenlose Tages-Zeitreihe mit Kalender-Features

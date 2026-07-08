@@ -25,7 +25,7 @@ import {
 } from "./variant-media-sync";
 import {
   applyPushVariantGids,
-  indexPushResultVariants,
+  mergeVariantImagesFromSource,
 } from "@/server/catalog/merge-editor-variants";
 import { reconcileEditorInputWithShopify } from "@/server/catalog/reconcile-shopify-push.server";
 
@@ -328,14 +328,13 @@ function mapPushResult(product: ShopifyProductNode): ShopifyPushProductResult {
 }
 
 async function runVariantMediaSync(
-  input: ProductEditorInput,
+  pushInput: ProductEditorInput,
+  sourceInput: ProductEditorInput,
   opts: { shopId: string; productGid: string; pushResult: ShopifyPushProductResult },
 ): Promise<void> {
   const shopifyMedia = await fetchProductGalleryMedia(opts.productGid, opts.shopId);
-  const withGids = applyPushVariantGids(
-    input,
-    indexPushResultVariants(opts.pushResult.variants),
-  );
+  const withImages = mergeVariantImagesFromSource(pushInput, sourceInput);
+  const withGids = applyPushVariantGids(withImages, opts.pushResult.variants);
   const hydrated = hydrateEditorInputForVariantMedia(withGids, shopifyMedia);
   await syncVariantMediaToShopify(hydrated, {
     shopId: opts.shopId,
@@ -380,7 +379,7 @@ export async function pushProductToShopify(
     const product = data.productSet.product;
     if (!product) throw new Error("productSet: no product returned");
     const result = mapPushResult(product);
-    await runVariantMediaSync(pushInput, {
+    await runVariantMediaSync(pushInput, input, {
       shopId: opts.shopId,
       productGid: result.productGid,
       pushResult: result,
@@ -427,7 +426,7 @@ export async function pushProductToShopify(
   }
 
   const result = mapPushResult(product);
-  await runVariantMediaSync(input, {
+  await runVariantMediaSync(input, input, {
     shopId: opts.shopId,
     productGid: result.productGid,
     pushResult: result,

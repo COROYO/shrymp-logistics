@@ -27,7 +27,7 @@ export function resolveVariantImageMediaId(
   return hit?.id ?? null;
 }
 
-/** Map freshly uploaded gallery rows to Shopify MediaImage IDs by order. */
+/** Map freshly uploaded gallery rows to Shopify MediaImage IDs by order or filename. */
 export function attachShopifyMediaIds(
   local: GalleryMediaRef[],
   shopifyMedia: GalleryMediaRef[],
@@ -36,14 +36,44 @@ export function attachShopifyMediaIds(
     local.map((m) => m.id).filter((id): id is string => Boolean(id)),
   );
   const spareShopify = shopifyMedia.filter((m) => m.id && !knownIds.has(m.id));
+  const usedSpare = new Set<string>();
   let spareIdx = 0;
+
+  function takeSpare(): GalleryMediaRef | undefined {
+    while (spareIdx < spareShopify.length) {
+      const candidate = spareShopify[spareIdx++];
+      if (candidate?.id && !usedSpare.has(candidate.id)) {
+        usedSpare.add(candidate.id);
+        return candidate;
+      }
+    }
+    return undefined;
+  }
+
+  function filenameHint(url: string): string {
+    const path = normalizeProductImageUrl(url);
+    return path.split("/").pop()?.toLowerCase() ?? path.toLowerCase();
+  }
 
   return local.map((item) => {
     if (item.id) {
       const remote = shopifyMedia.find((m) => m.id === item.id);
       return remote ? { ...item, url: remote.url, id: remote.id } : item;
     }
-    const assigned = spareShopify[spareIdx++];
+
+    const hint = filenameHint(item.url);
+    const byFilename = spareShopify.find(
+      (m) =>
+        m.id &&
+        !usedSpare.has(m.id) &&
+        filenameHint(m.url).includes(hint.slice(0, Math.min(hint.length, 12))),
+    );
+    if (byFilename?.id) {
+      usedSpare.add(byFilename.id);
+      return { ...item, id: byFilename.id, url: byFilename.url };
+    }
+
+    const assigned = takeSpare();
     if (!assigned?.id) return item;
     return { ...item, id: assigned.id, url: assigned.url };
   });
