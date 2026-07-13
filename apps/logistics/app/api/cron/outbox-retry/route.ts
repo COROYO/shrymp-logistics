@@ -10,7 +10,7 @@ import { log } from "@/lib/logger";
  * Trigger every 5 min from Cloud Scheduler:
  *   gcloud scheduler jobs create http outbox-retry \
  *     --location=europe-west3 \
- *     --schedule="*/5 * * * *" \
+ *     --schedule="every 5 minutes" \
  *     --uri="https://your-app/api/cron/outbox-retry" \
  *     --http-method=GET \
  *     --headers="Authorization=Bearer $CRON_SECRET"
