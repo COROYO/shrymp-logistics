@@ -4,6 +4,7 @@ import { adminDb } from "@/server/firestore/admin";
 import { Collections, type ShopifyOutbox } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { runWithTenantAsync } from "@/server/tenant/context";
+import { normalizeShopId } from "@/server/tenant/id";
 import {
   fulfillmentCreateForOrder,
   inventorySetOnHand,
@@ -109,8 +110,14 @@ async function processRow(
 
   try {
     const shopId = await resolveOutboxShopId(row);
-    await runWithTenantAsync(shopId, () => dispatch(row));
-    await docSnap.ref.update({ done_at: FieldValue.serverTimestamp() });
+    if (!row.shop_id) {
+      await docSnap.ref.update({ shop_id: shopId });
+    }
+    await runWithTenantAsync(shopId, async () => dispatch(row));
+    await docSnap.ref.update({
+      done_at: FieldValue.serverTimestamp(),
+      last_error: FieldValue.delete(),
+    });
     result.processed++;
     result.done++;
   } catch (e) {
@@ -126,8 +133,22 @@ async function processRow(
   }
 }
 
+function normalizeResolvedShopId(shopId: string | undefined | null): string | null {
+  const trimmed = shopId?.trim();
+  if (!trimmed) return null;
+  return normalizeShopId(trimmed);
+}
+
+/** Extract Firestore variant doc id from our reference URIs. */
+function parseVariantIdFromReferenceUri(uri: unknown): string | null {
+  if (typeof uri !== "string") return null;
+  const match = uri.match(/:\/\/variant\/([^/]+)\//);
+  return match?.[1] ?? null;
+}
+
 async function resolveOutboxShopId(row: ShopifyOutbox): Promise<string> {
-  if (row.shop_id) return row.shop_id;
+  const fromField = normalizeResolvedShopId(row.shop_id);
+  if (fromField) return fromField;
 
   const orderId = row.payload.orderId;
   if (typeof orderId === "string" && orderId) {
@@ -135,11 +156,23 @@ async function resolveOutboxShopId(row: ShopifyOutbox): Promise<string> {
       .collection(Collections.Orders)
       .doc(orderId)
       .get();
-    const shopId = snap.data()?.shop_id;
-    if (typeof shopId === "string" && shopId) return shopId;
+    const shopId = normalizeResolvedShopId(snap.data()?.shop_id as string);
+    if (shopId) return shopId;
   }
 
   if (row.op === "INVENTORY_SET") {
+    const variantId = parseVariantIdFromReferenceUri(
+      row.payload.referenceDocumentUri,
+    );
+    if (variantId) {
+      const snap = await adminDb()
+        .collection(Collections.Variants)
+        .doc(variantId)
+        .get();
+      const shopId = normalizeResolvedShopId(snap.data()?.shop_id as string);
+      if (shopId) return shopId;
+    }
+
     const setQuantities = row.payload.setQuantities as
       | { inventoryItemId: string }[]
       | undefined;
@@ -150,8 +183,10 @@ async function resolveOutboxShopId(row: ShopifyOutbox): Promise<string> {
         .where("inventory_item_gid", "==", gid)
         .limit(1)
         .get();
-      const shopId = snap.docs[0]?.data()?.shop_id;
-      if (typeof shopId === "string" && shopId) return shopId;
+      const shopId = normalizeResolvedShopId(
+        snap.docs[0]?.data()?.shop_id as string,
+      );
+      if (shopId) return shopId;
     }
   }
 

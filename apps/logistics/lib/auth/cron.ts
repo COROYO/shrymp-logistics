@@ -1,4 +1,5 @@
 import "server-only";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 /**
  * Shared auth gate for scheduled (cron) endpoints.
@@ -12,7 +13,7 @@ export type CronAuthResult =
   | { ok: false; status: 503 | 401; error: string };
 
 export function checkCronAuth(req: Request): CronAuthResult {
-  const expected = process.env.CRON_SECRET;
+  const expected = runtimeEnv("CRON_SECRET");
   if (!expected) {
     return { ok: false, status: 503, error: "cron_secret_not_configured" };
   }

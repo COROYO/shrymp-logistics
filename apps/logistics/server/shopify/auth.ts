@@ -7,6 +7,7 @@ import {
   type ShopOAuthTokenBundle,
 } from "@/server/tenant/shop";
 import { ensureValidShopCredentials } from "./token";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 /**
  * Minimal Shopify install/auth helpers for a Custom Distribution App.
@@ -29,8 +30,8 @@ export function isValidShopDomain(shop: string | null | undefined): boolean {
 }
 
 export function getAppCreds(): { apiKey: string; apiSecret: string } {
-  const apiKey = process.env.SHOPIFY_API_KEY;
-  const apiSecret = process.env.SHOPIFY_API_SECRET;
+  const apiKey = runtimeEnv("SHOPIFY_API_KEY");
+  const apiSecret = runtimeEnv("SHOPIFY_API_SECRET");
   if (!apiKey || !apiSecret) {
     throw new Error(
       "SHOPIFY_API_KEY and SHOPIFY_API_SECRET must be set in env",

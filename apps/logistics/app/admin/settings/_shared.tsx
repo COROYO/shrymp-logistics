@@ -24,9 +24,11 @@ export function Badge({ ok }: { ok: boolean }) {
 }
 
 export function getEnvHealth() {
+  // Dynamic reads — App Hosting secrets are runtime-only (see lib/runtime-env.ts).
+  const env = (name: string) => process.env[name];
   return {
-    apiKey: !!process.env.SHOPIFY_API_KEY,
-    apiSecret: !!process.env.SHOPIFY_API_SECRET,
+    apiKey: !!env("SHOPIFY_API_KEY"),
+    apiSecret: !!env("SHOPIFY_API_SECRET"),
     apiVersion: process.env.SHOPIFY_API_VERSION ?? null,
     allocationQueue: !!process.env.ALLOCATION_QUEUE,
     allocationTargetUrl: process.env.ALLOCATION_TARGET_URL ?? null,

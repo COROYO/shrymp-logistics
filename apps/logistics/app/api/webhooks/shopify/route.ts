@@ -5,6 +5,7 @@ import { log } from "@/lib/logger";
 import { verifyShopifyHmac } from "@/server/shopify/hmac";
 import { isSupportedTopic } from "@/server/shopify/topics";
 import { dispatchShopifyWebhook } from "@/server/shopify/webhook-handler";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 /**
  * Shopify webhook receiver.
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
   const webhookId = req.headers.get("x-shopify-webhook-id");
   const shop = req.headers.get("x-shopify-shop-domain");
 
-  const secret = process.env.SHOPIFY_API_SECRET;
+  const secret = runtimeEnv("SHOPIFY_API_SECRET");
   if (!secret) {
     log.error("shopify_api_secret_missing", { topic, webhookId, shop });
     // Still respond 200 to stop retries — Shopify can't fix this for us.

@@ -43,7 +43,9 @@ All three authenticate via the `CRON_SECRET` env var, passed as `?secret=…` or
 |-----|----------|----------|---------|
 | `allocate-tick` | every 2 min | `/api/cron/allocate` | Run allocation **iff** NEW orders exist and no run is in progress. Nearly free when idle. |
 | `reconcile-orders` | every 5 min | `/api/cron/reconcile` | Heavier safety net: stuck-NEW re-allocation + LAGER tag-drift repair. |
+| `outbox-retry` | every 5 min | `/api/cron/outbox-retry` | Drain pending `shopify_outbox` rows (Shopify inventory/tags/fulfillments). Safety net when inline drains miss. |
 | `shopify-health` | every 15 min | `/api/cron/shopify-health` | Re-creates missing webhook subscriptions, flags token revocation. |
+| `outbox-cleanup` | daily 03:00 UTC | `/api/cron/outbox-cleanup` | Delete completed/stale outbox rows so the collection doesn't grow forever. |
 
 ```bash
 # 2-minute allocation tick
@@ -59,6 +61,14 @@ gcloud scheduler jobs create http reconcile-orders \
   --schedule="*/5 * * * *" \
   --uri="$APP_URL/api/cron/reconcile?secret=$CRON_SECRET" \
   --http-method=GET
+
+# 5-minute Shopify outbox drain
+gcloud scheduler jobs create http outbox-retry \
+  --location=europe-west3 \
+  --schedule="*/5 * * * *" \
+  --uri="$APP_URL/api/cron/outbox-retry" \
+  --http-method=GET \
+  --headers="Authorization=Bearer $CRON_SECRET"
 
 # 15-minute Shopify health check
 gcloud scheduler jobs create http shopify-health \

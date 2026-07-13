@@ -2,6 +2,7 @@ import "server-only";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getAuth, type Auth } from "firebase-admin/auth";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 /**
  * Firebase Admin SDK initialization.
@@ -86,7 +87,7 @@ function getAdminApp(): App {
   }
 
   const projectId = resolveFirebaseProjectId();
-  const saJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const saJson = runtimeEnv("FIREBASE_SERVICE_ACCOUNT_JSON");
   if (saJson && saJson.trim().length > 0) {
     if (!projectId) {
       throw new Error(

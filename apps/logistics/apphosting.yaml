@@ -42,8 +42,12 @@ env:
   # ---------- Shopify ----------
   - variable: SHOPIFY_API_KEY
     secret: SHOPIFY_API_KEY
+    availability:
+      - RUNTIME
   - variable: SHOPIFY_API_SECRET
     secret: SHOPIFY_API_SECRET
+    availability:
+      - RUNTIME
   - variable: SHOPIFY_API_VERSION
     value: "2026-04"
 
@@ -70,6 +74,8 @@ env:
     value: https://lager.shrymp.de
   - variable: CRON_SECRET
     secret: CRON_SECRET
+    availability:
+      - RUNTIME
   - variable: NODE_ENV
     value: production
   - variable: SUPER_ADMIN_EMAILS

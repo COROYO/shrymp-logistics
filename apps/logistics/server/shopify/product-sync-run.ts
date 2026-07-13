@@ -7,6 +7,7 @@ import {
   type ProductSyncRunPhase,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { runtimeEnv } from "@/lib/runtime-env";
 import { normalizeShopId } from "@/server/tenant/id";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { fetchProductsPage, fetchInventoryLevelsByItemGids } from "./queries";
@@ -501,7 +502,7 @@ async function scheduleProductSyncChunkHttp(
   shopId: string,
 ): Promise<boolean> {
   const baseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "");
-  const secret = process.env.CRON_SECRET;
+  const secret = runtimeEnv("CRON_SECRET");
   if (!baseUrl || !secret) return false;
 
   try {
