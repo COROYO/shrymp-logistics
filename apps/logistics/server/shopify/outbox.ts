@@ -92,11 +92,18 @@ async function processRow(
   result: OutboxDrainResult,
 ): Promise<void> {
   const row = docSnap.data() as ShopifyOutbox;
-  if (row.done_at) return;
+  if (row.done_at) {
+    try {
+      await docSnap.ref.delete();
+      result.done++;
+    } catch (e) {
+      log.warn("outbox_legacy_done_delete_failed", { id: row.id, error: String(e) });
+    }
+    return;
+  }
 
   // Claim: bump attempts + push next_retry_at out, so a concurrent worker
-  // ignores it. If we succeed below, we mark done_at and the row drops out
-  // of the due query for good.
+  // ignores it. On success we delete the row — only failures stay for retry.
   try {
     const nextRetry = Timestamp.fromMillis(Date.now() + backoffMs(row.attempts));
     await docSnap.ref.update({
@@ -114,10 +121,7 @@ async function processRow(
       await docSnap.ref.update({ shop_id: shopId });
     }
     await runWithTenantAsync(shopId, async () => dispatch(row));
-    await docSnap.ref.update({
-      done_at: FieldValue.serverTimestamp(),
-      last_error: FieldValue.delete(),
-    });
+    await docSnap.ref.delete();
     result.processed++;
     result.done++;
   } catch (e) {
@@ -276,12 +280,11 @@ export type OutboxCleanupResult = {
 };
 
 /**
- * Räumt die `shopify_outbox` auf — sonst wächst sie unbegrenzt, weil
- * `processRow` erledigte Zeilen nur mit `done_at` markiert, aber nie löscht.
+ * Räumt die `shopify_outbox` auf — hauptsächlich für Legacy-`done_at`-Zeilen
+ * (vor dem Sofort-Löschen bei Erfolg) und hängengebliebene Fehler.
  *
  * Gelöscht werden:
- *   1. **Erledigte** Zeilen (`done_at`), deren Abschluss älter als
- *      `doneRetentionDays` ist (kleine Karenz für Debugging/Idempotenz).
+ *   1. **Erledigte** Legacy-Zeilen (`done_at`), älter als `doneRetentionDays`.
  *   2. **Beliebige** Zeilen, die älter als `staleRetentionDays` sind —
  *      fängt abgebrochene/fehlgeschlagene Zeilen ab, die nach tagelangem
  *      Retry nie erfolgreich werden.

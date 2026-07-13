@@ -6,10 +6,9 @@ import { log } from "@/lib/logger";
 /**
  * Scheduled outbox cleanup — keeps `shopify_outbox` from growing unbounded.
  *
- * `processRow` marks completed entries with `done_at` but never deletes them,
- * so without this sweep every order/inbound permanently adds documents
- * (storage + cost). This deletes:
- *   - completed rows older than 2 days (short debug/idempotency grace),
+ * Successful rows are deleted immediately by `processRow`. This sweep removes
+ * legacy `done_at` backlog and abandoned failures:
+ *   - completed rows older than 2 days (legacy `done_at` only),
  *   - any row older than 14 days (abandoned/stuck failures).
  *
  * Trigger once a day from Cloud Scheduler:
