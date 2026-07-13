@@ -81,5 +81,7 @@ env:
       - RUNTIME
   - variable: NODE_ENV
     value: production
+    availability:
+      - RUNTIME
   - variable: SUPER_ADMIN_EMAILS
     value: roman@shrymp-commerce.com

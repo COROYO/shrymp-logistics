@@ -16,5 +16,8 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @shrymp/logistics test"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["firebase"]
   }
 }
