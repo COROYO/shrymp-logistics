@@ -1,3 +1,6 @@
+runConfig:
+  runCommand: pnpm --filter @shrymp/logistics start
+
 env:
   # ---------- Firebase (server) ----------
   - variable: FIREBASE_PROJECT_ID

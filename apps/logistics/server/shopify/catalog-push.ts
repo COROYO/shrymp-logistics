@@ -282,7 +282,10 @@ function buildProductCreateInput(
     tags: setInput.tags,
     seo: setInput.seo,
     productOptions: setInput.productOptions,
-    variants: setInput.variants.map(({ id: _id, ...rest }) => rest),
+    variants: setInput.variants.map((v) => {
+      const { id: _id, ...rest } = v as typeof v & { id?: string };
+      return rest;
+    }),
     metafields: setInput.metafields,
     collections: setInput.collections,
     media: input.media.map((m) => ({

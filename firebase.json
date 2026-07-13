@@ -1,7 +1,7 @@
 {
   "apphosting": {
     "backendId": "shrymp-logistics",
-    "rootDir": "apps/logistics",
+    "rootDir": ".",
     "ignore": [
       "node_modules",
       ".git",

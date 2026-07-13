@@ -88,7 +88,7 @@ async function stopOrderForBatchBlock(
 ): Promise<boolean> {
   const db = adminDb();
 
-  const tagSyncNeeded = await db.runTransaction(async (tx) => {
+  const tagResult = await db.runTransaction(async (tx) => {
     const orderRef = db.collection(Collections.Orders).doc(orderId);
     const snap = await tx.get(orderRef);
     if (!snap.exists) return null;
@@ -115,13 +115,16 @@ async function stopOrderForBatchBlock(
       });
     }
 
-    return order.lager_tag_synced !== "STOP";
+    return {
+      tagSyncNeeded: order.lager_tag_synced !== "STOP",
+      shopId: order.shop_id,
+    };
   });
 
-  if (tagSyncNeeded === null) return false;
+  if (tagResult === null) return false;
 
-  if (tagSyncNeeded) {
-    const outboxId = await enqueueLagerTagSet(orderId, "STOP", order.shop_id);
+  if (tagResult.tagSyncNeeded) {
+    const outboxId = await enqueueLagerTagSet(orderId, "STOP", tagResult.shopId);
     try {
       await processOutboxByIds([outboxId]);
     } catch (e) {

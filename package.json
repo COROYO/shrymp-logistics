@@ -7,6 +7,7 @@
     "dev": "pnpm --filter @shrymp/logistics dev",
     "dev:logistics": "pnpm --filter @shrymp/logistics dev",
     "dev:website": "pnpm --filter @monolith/website dev",
+    "apphosting:build": "pnpm --filter @shrymp/logistics build",
     "build": "pnpm --filter @shrymp/logistics build",
     "start": "pnpm --filter @shrymp/logistics start",
     "build:logistics": "pnpm --filter @shrymp/logistics build",

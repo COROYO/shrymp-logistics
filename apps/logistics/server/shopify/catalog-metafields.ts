@@ -170,21 +170,22 @@ export async function fetchAllProductMetafields(
 ): Promise<ProductMetafield[]> {
   const out: ProductMetafield[] = [];
   let cursor: string | null = null;
+  type ProductMetafieldsPageData = {
+    product: {
+      metafields: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: Array<{
+          namespace: string;
+          key: string;
+          value?: string | null;
+          jsonValue?: unknown;
+          type?: { name?: string | null } | null;
+        }>;
+      };
+    } | null;
+  };
   for (let i = 0; i < 20; i++) {
-    const data = await shopifyGraphQL<{
-      product: {
-        metafields: {
-          pageInfo: { hasNextPage: boolean; endCursor: string | null };
-          nodes: Array<{
-            namespace: string;
-            key: string;
-            value?: string | null;
-            jsonValue?: unknown;
-            type?: { name?: string | null } | null;
-          }>;
-        };
-      } | null;
-    }>(
+    const data: ProductMetafieldsPageData = await shopifyGraphQL<ProductMetafieldsPageData>(
       PRODUCT_METAFIELDS_PAGE_QUERY,
       { id: productGid, cursor },
       shopId ? { shopId } : undefined,
@@ -215,18 +216,19 @@ async function fetchGlobalProductMetafieldDefinitions(
 ): Promise<ProductMetafieldDefinitionRow[]> {
   const out: ProductMetafieldDefinitionRow[] = [];
   let cursor: string | null = null;
+  type GlobalDefinitionsPageData = {
+    metafieldDefinitions: {
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      nodes: Array<{
+        namespace: string;
+        key: string;
+        name: string | null;
+        type?: { name?: string | null } | null;
+      }>;
+    };
+  };
   for (let i = 0; i < 20; i++) {
-    const data = await shopifyGraphQL<{
-      metafieldDefinitions: {
-        pageInfo: { hasNextPage: boolean; endCursor: string | null };
-        nodes: Array<{
-          namespace: string;
-          key: string;
-          name: string | null;
-          type?: { name?: string | null } | null;
-        }>;
-      };
-    }>(
+    const data: GlobalDefinitionsPageData = await shopifyGraphQL<GlobalDefinitionsPageData>(
       METAFIELD_DEFINITIONS_PAGE_QUERY,
       { cursor },
       shopId ? { shopId } : undefined,
@@ -247,20 +249,22 @@ async function fetchProductScopedMetafieldDefinitions(
 ): Promise<ProductMetafieldDefinitionRow[]> {
   const out: ProductMetafieldDefinitionRow[] = [];
   let cursor: string | null = null;
+  type ProductScopedDefinitionsPageData = {
+    product: {
+      metafieldDefinitions: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: Array<{
+          namespace: string;
+          key: string;
+          name: string | null;
+          type?: { name?: string | null } | null;
+        }>;
+      };
+    } | null;
+  };
   for (let i = 0; i < 20; i++) {
-    const data = await shopifyGraphQL<{
-      product: {
-        metafieldDefinitions: {
-          pageInfo: { hasNextPage: boolean; endCursor: string | null };
-          nodes: Array<{
-            namespace: string;
-            key: string;
-            name: string | null;
-            type?: { name?: string | null } | null;
-          }>;
-        };
-      } | null;
-    }>(
+    const data: ProductScopedDefinitionsPageData =
+      await shopifyGraphQL<ProductScopedDefinitionsPageData>(
       PRODUCT_SCOPED_DEFINITIONS_QUERY,
       { id: productGid, cursor },
       shopId ? { shopId } : undefined,

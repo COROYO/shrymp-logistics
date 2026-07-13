@@ -5,6 +5,7 @@ import {
   normalizeProductEditorInput,
   resolveVariantSku,
 } from "@/server/catalog/shopify-catalog-normalize";
+import type { ProductEditorFormInput } from "@/server/catalog/editor-types";
 import type {
   ProductMedia,
   ProductMetafield,

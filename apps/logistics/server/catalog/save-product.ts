@@ -475,7 +475,7 @@ export async function saveProductEditor(input: {
         editorVariantByKey.get(v.shopifyGid) ??
         null;
       if (!editorV) continue;
-      const priorOnHand = prior?.on_hand_total ?? 0;
+      const priorOnHand = 0;
       if (editorV.on_hand === priorOnHand) continue;
 
       if (defaultLocationId) {
