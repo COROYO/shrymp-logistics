@@ -91,6 +91,7 @@ export async function saveShopOAuthTokens(
     if (!existing.exists) {
       patch.created_at = FieldValue.serverTimestamp();
       patch.api_version = "2026-04";
+      patch.test_mode = true;
     }
   }
   await ref.set(patch, { merge: true });
@@ -176,6 +177,24 @@ export async function updateShopDhlConfig(
   await shopRef(shopId).set(
     {
       dhl_config: dhlConfig,
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+export async function updateShopTestMode(
+  shopId: string,
+  patch: {
+    test_mode: boolean;
+    updated_by_uid: string | null;
+  },
+): Promise<void> {
+  await shopRef(shopId).set(
+    {
+      test_mode: patch.test_mode,
+      lager_updated_by_uid: patch.updated_by_uid,
+      lager_updated_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
     },
     { merge: true },

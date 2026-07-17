@@ -5,6 +5,7 @@ import { Collections, type ShopifyOutbox } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { normalizeShopId } from "@/server/tenant/id";
+import { isShopifyTestMode } from "./test-mode";
 import {
   fulfillmentCreateForOrder,
   inventorySetOnHand,
@@ -377,6 +378,8 @@ async function verifyOrderTagState(
   tags: string[],
   mode: "must_include" | "must_exclude",
 ): Promise<void> {
+  if (await isShopifyTestMode()) return;
+
   const { shopifyGraphQL } = await import("./client");
   const id = String(orderIdOrGid).startsWith("gid://")
     ? String(orderIdOrGid)

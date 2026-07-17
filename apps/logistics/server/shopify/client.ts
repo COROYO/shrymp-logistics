@@ -1,5 +1,10 @@
 import "server-only";
 import { log } from "@/lib/logger";
+import {
+  handleTestModeGraphQLMutation,
+  isGraphQLMutation,
+  isShopifyTestMode,
+} from "./test-mode";
 import { loadStoredToken } from "./auth";
 import { getTenantShopIdFromContext } from "@/server/tenant/context";
 
@@ -125,6 +130,16 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
   override?: Partial<ShopifyClientConfig> & { shopId?: string },
 ): Promise<TData> {
   const cfg = { ...(await getShopifyConfig(override?.shopId)), ...override };
+
+  if (isGraphQLMutation(query) && (await isShopifyTestMode(cfg.shopId))) {
+    const mocked = await handleTestModeGraphQLMutation<TData>({
+      query,
+      variables,
+      shopId: cfg.shopId,
+    });
+    if (mocked !== null) return mocked;
+  }
+
   const url = `https://${cfg.shopDomain}/admin/api/${cfg.apiVersion}/graphql.json`;
 
   let lastErr: unknown;

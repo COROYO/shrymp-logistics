@@ -12,7 +12,9 @@ import {
 } from "@/app/_components/sidebar";
 import { MobileNav } from "@/app/_components/mobile-nav";
 import { AdminJobsTray } from "@/app/admin/_components/admin-jobs-tray";
+import { TestModeBanner } from "@/app/admin/_components/test-mode-banner";
 import { ShopSwitcher } from "@/app/_components/shop-switcher";
+import { isShopifyTestMode } from "@/server/shopify/test-mode";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import {
   listAccessibleShopOptions,
@@ -29,13 +31,14 @@ export default async function AdminLayout({
   if (!user) redirect("/login?next=/admin");
   if (user.role !== "ADMIN") redirect("/lager");
 
-  const [needsConnect, needsOnboarding, t, shopId, shopOptions] =
+  const shopId = await resolveActiveShopIdOrRedirect(user);
+  const [needsConnect, needsOnboarding, t, shopOptions, testMode] =
     await Promise.all([
       merchantNeedsShopifyConnect(user),
       merchantNeedsOnboarding(user),
       getTranslations("nav"),
-      resolveActiveShopIdOrRedirect(user),
       listAccessibleShopOptions(user),
+      runWithTenantAsync(shopId, () => isShopifyTestMode(shopId)),
     ]);
   if (needsConnect) redirect("/onboarding");
   if (needsOnboarding) redirect("/onboarding/setup");
@@ -129,7 +132,10 @@ export default async function AdminLayout({
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 px-6 py-8 md:px-10">{children}</main>
+        <main className="flex-1 px-6 py-8 md:px-10">
+          {testMode ? <TestModeBanner /> : null}
+          {children}
+        </main>
         <AdminJobsTray />
       </div>
     </div>

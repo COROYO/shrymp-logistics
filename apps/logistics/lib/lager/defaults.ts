@@ -9,3 +9,6 @@ export const DEFAULT_INVENTORY_SOURCE = "APP" as const;
 
 /** Product edits in Admin are pushed to Shopify by default. */
 export const DEFAULT_CATALOG_SYNC_TO_SHOPIFY = true;
+
+/** New shops start in test mode — no writes to Shopify until disabled. */
+export const DEFAULT_TEST_MODE = true;

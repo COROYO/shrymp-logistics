@@ -22,6 +22,7 @@ import {
   type ProductEditorPayload,
 } from "./editor-types";
 import { pushProductToShopify } from "@/server/shopify/catalog-push";
+import { ShopifyTestModeSkippedError } from "@/server/shopify/test-mode";
 import { normalizeProductEditorInput } from "./shopify-catalog-normalize";
 import { mergeEditorInputWithShopify } from "./merge-editor-input";
 import { mergeEditorVariantsWithDb, mapPushVariantsToFirestore } from "./merge-editor-variants";
@@ -306,14 +307,18 @@ export async function saveProductEditor(input: {
       existing?.exists && existing.data()
         ? ((existing.data() as Product).shopify_gid ?? null)
         : null;
-    pushResult = await pushProductToShopify(editorInput, {
-      shopId: input.shopId,
-      productGid: shopifyGid,
-      primaryLocationGid,
-      pushInventoryQuantities: !appInventorySource,
-    });
-    productId = pushResult.productId;
-    shopifyGid = pushResult.productGid;
+    try {
+      pushResult = await pushProductToShopify(editorInput, {
+        shopId: input.shopId,
+        productGid: shopifyGid,
+        primaryLocationGid,
+        pushInventoryQuantities: !appInventorySource,
+      });
+      productId = pushResult.productId;
+      shopifyGid = pushResult.productGid;
+    } catch (e) {
+      if (!(e instanceof ShopifyTestModeSkippedError)) throw e;
+    }
   } else if (!productId) {
     productId = db.collection(Collections.Products).doc().id;
   }

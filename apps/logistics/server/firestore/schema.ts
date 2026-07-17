@@ -607,6 +607,17 @@ export const ShopifyOutboxSchema = z.object({
   done_at: FirestoreTimestamp.optional(),
 });
 
+// ---------- test mode log (dry-run Shopify writes) ----------
+
+export const TestModeLogSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  mutation: z.string(),
+  summary: z.string(),
+  variables: z.record(z.string(), z.unknown()).nullable().optional(),
+  created_at: FirestoreTimestamp,
+});
+
 // ---------- shopify config (legacy singletons in config/) ----------
 // Deprecated — new installs use `shops/{shopId}`. Kept for one-time migration.
 // `config/shopify_meta` — fulfillment-location reference + api version
@@ -749,6 +760,11 @@ export const ShopSchema = z.object({
   batch_min_days_before_expiry: z.number().int().nonnegative().default(10),
   inventory_source: InventorySourceSchema.default("APP"),
   catalog_sync_to_shopify: z.boolean().default(true),
+  /**
+   * When true (default), outbound Shopify mutations are skipped and logged
+   * instead of executed — safe for merchant onboarding / demos.
+   */
+  test_mode: z.boolean().default(true),
   lager_updated_at: FirestoreTimestamp.optional(),
   lager_updated_by_uid: z.string().nullable().optional(),
   /** Per-shop DHL Parcel DE config (same shape as legacy config/dhl_config). */
@@ -860,6 +876,7 @@ export type ProductSyncRunStatus = z.infer<typeof ProductSyncRunStatusSchema>;
 export type ProductSyncRunPhase = z.infer<typeof ProductSyncRunPhaseSchema>;
 export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 export type ShopifyOutbox = z.infer<typeof ShopifyOutboxSchema>;
+export type TestModeLog = z.infer<typeof TestModeLogSchema>;
 export type Shop = z.infer<typeof ShopSchema>;
 export type SlipBranding = z.infer<typeof SlipBrandingSchema>;
 export type ShopStatus = z.infer<typeof ShopStatusSchema>;
@@ -895,6 +912,7 @@ export const Collections = {
   ProductSyncRuns: "product_sync_runs",
   WebhookEvents: "webhook_events",
   ShopifyOutbox: "shopify_outbox",
+  TestModeLog: "test_mode_log",
   Config: "config",
   ApiKeys: "api_keys",
   Forecasts: "forecasts",

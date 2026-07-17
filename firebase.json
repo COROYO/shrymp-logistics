@@ -18,11 +18,7 @@
     {
       "target": "logistics",
       "source": "apps/logistics",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "frameworksBackend": {
         "region": "europe-west3"
       }
@@ -30,11 +26,7 @@
     {
       "target": "website",
       "public": "apps/website/out",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "cleanUrls": true
     }
   ],

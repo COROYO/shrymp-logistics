@@ -1,5 +1,9 @@
 import "server-only";
 import { shopifyGraphQL, ShopifyGraphQLError } from "./client";
+import {
+  isShopifyTestMode,
+  logTestModeMutation,
+} from "./test-mode";
 
 const STAGED_UPLOADS_CREATE = /* GraphQL */ `
   mutation StagedUploadsCreate($input: [StagedUploadInput!]!) {
@@ -86,6 +90,16 @@ export async function uploadProductImageToShopify(
   }
   if (file.buffer.byteLength > MAX_BYTES) {
     throw new Error("file_too_large");
+  }
+
+  if (await isShopifyTestMode(shopId)) {
+    await logTestModeMutation({
+      shopId,
+      mutation: "stagedUploadsCreate",
+      summary: `Produktbild hochladen: ${file.filename} (${file.mimeType})`,
+      variables: { filename: file.filename, mimeType: file.mimeType },
+    });
+    return { resourceUrl: `test-mode://upload/${file.filename}` };
   }
 
   const data = await shopifyGraphQL<{

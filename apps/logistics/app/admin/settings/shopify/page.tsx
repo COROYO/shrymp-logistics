@@ -7,7 +7,11 @@ import { getTranslations } from "next-intl/server";
 import { ShopifyConnectForm } from "@/app/_components/shopify-connect-form";
 import { ProductSyncButton } from "@/app/admin/products/sync-button";
 import { CatalogSyncForm } from "../catalog-sync-form";
+import { TestModeForm } from "../test-mode-form";
+import { TestModeLogPanel } from "../test-mode-log-panel";
 import { loadLagerConfig } from "@/server/lager/config";
+import { listTestModeLogEntries } from "@/server/shopify/test-mode";
+import { DEFAULT_TEST_MODE } from "@/lib/lager/defaults";
 import { HealthPanel, type HealthSnapshot } from "../health-panel";
 import { readLastHealth } from "@/server/shopify/health";
 import { getMissingOAuthScopes } from "@/server/shopify/scopes";
@@ -52,11 +56,14 @@ async function getProductSyncStats(shopId: string) {
 
 export default async function ShopifySettingsPage() {
   const { shopId } = await requireTenantPageContext("/admin/settings/shopify");
-  const [status, lastHealth, syncStats, lagerCfg, t] = await Promise.all([
+  const [status, lastHealth, syncStats, lagerCfg, shop, testModeLog, t] =
+    await Promise.all([
     getShopStatus(shopId),
     readLastHealth(shopId),
     getProductSyncStats(shopId),
     loadLagerConfig(shopId),
+    getShop(shopId),
+    listTestModeLogEntries(shopId, 50),
     getTranslations("products"),
   ]);
 
@@ -74,6 +81,7 @@ export default async function ShopifySettingsPage() {
   const reconnectHref = status.token_shop_domain
     ? `/api/shopify/install?${new URLSearchParams({ shop: status.token_shop_domain }).toString()}`
     : null;
+  const testMode = shop?.test_mode ?? DEFAULT_TEST_MODE;
 
   return (
     <>
@@ -171,6 +179,33 @@ export default async function ShopifySettingsPage() {
 
       {status.token_installed ? (
         <>
+          <section className="card p-6">
+            <p className="eyebrow">Testmodus</p>
+            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+              Sicheres Testen
+            </h2>
+            <p className="mt-1 text-xs text-brand-navy/60">
+              Im Testmodus bleibt Shopify unverändert. Die App arbeitet normal
+              weiter; geplante Schreibzugriffe werden protokolliert.
+            </p>
+            <div className="mt-5">
+              <TestModeForm current={{ test_mode: testMode }} />
+            </div>
+          </section>
+
+          <section className="card p-6">
+            <p className="eyebrow">Testmodus-Protokoll</p>
+            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+              Geplante Shopify-Änderungen
+            </h2>
+            <p className="mt-1 text-xs text-brand-navy/60">
+              Was die App zu Shopify senden würde, wenn der Testmodus aus ist.
+            </p>
+            <div className="mt-5">
+              <TestModeLogPanel rows={testModeLog} />
+            </div>
+          </section>
+
           <section className="card p-6">
             <p className="eyebrow">Standorte</p>
             <h2 className="mt-1 text-sm font-semibold text-brand-navy">
