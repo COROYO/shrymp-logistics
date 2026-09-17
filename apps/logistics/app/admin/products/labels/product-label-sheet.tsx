@@ -8,16 +8,23 @@ import {
   dispatchAdminJobError,
   dispatchAdminJobSuccess,
 } from "@/app/admin/_components/admin-jobs-events";
-import { barcodeToPngBlob } from "@/lib/barcode/code128-png";
+import { labelBarcodeToPngBlob } from "@/lib/barcode/code128-png";
+import { parseEan } from "@/lib/barcode/ean";
 import { createZip } from "@/lib/zip";
 import type { VariantLabel } from "@/server/warehouse/product-labels";
 import { assignSkuAction, generateSkuAction } from "./actions";
 
 type Cols = 2 | 3 | 4;
 
-/** The value encoded on a label's barcode: EAN/barcode, then SKU. */
+/**
+ * Value encoded on a label: valid EAN (native symbology) wins; else SKU
+ * (Code 128). Non-EAN barcode strings are ignored for encoding — same rule
+ * as ProductLabel.
+ */
 function labelCode(l: VariantLabel): string {
-  return (l.barcode || l.sku || "").trim();
+  const ean = l.barcode ? parseEan(l.barcode) : null;
+  if (ean) return ean.digits;
+  return (l.sku || "").trim();
 }
 
 function safeFileName(value: string): string {
@@ -109,7 +116,7 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
   async function downloadOne(label: VariantLabel) {
     const code = labelCode(label);
     if (!code) return;
-    const blob = await barcodeToPngBlob(code);
+    const blob = await labelBarcodeToPngBlob(code);
     if (!blob) return;
     downloadBlob(blob, `${safeFileName(label.sku || label.barcode || code)}.png`);
   }
@@ -130,7 +137,7 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
       const used = new Set<string>();
       const entries: { name: string; data: Uint8Array<ArrayBuffer> }[] = [];
       for (const { label, code } of chosen) {
-        const blob = await barcodeToPngBlob(code);
+        const blob = await labelBarcodeToPngBlob(code);
         if (!blob) continue;
         const base = safeFileName(label.sku || label.barcode || code);
         let name = `${base}.png`;

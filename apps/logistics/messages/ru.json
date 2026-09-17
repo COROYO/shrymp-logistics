@@ -63,7 +63,8 @@
     "openMenu": "Открыть меню",
     "closeMenu": "Закрыть меню",
     "mainNav": "Главная навигация",
-    "forecasting": "Прогноз"
+    "forecasting": "Прогноз",
+    "automation": "Автоматизация"
   },
   "tenant": {
     "activeShop": "Магазин",
@@ -1107,7 +1108,8 @@
     "variantImageUploadFirst": "Сначала загрузите изображения в галерею",
     "variantTitle": "Название",
     "variantSku": "SKU",
-    "variantBarcode": "Штрихкод",
+    "variantBarcode": "Штрихкод / EAN",
+    "eanReplacesSkuConfirm": "Этот EAN заменит SKU в качестве штрихкода на этикетках. Продолжить?",
     "variantPrice": "Цена (EUR)",
     "variantCompareAt": "Старая цена (EUR)",
     "variantOnHand": "Остаток (шт.)",
@@ -1190,5 +1192,10 @@
       "NONE": "—"
     },
     "empty": "Прогнозов пока нет. Запустите «Пересчитать прогноз» — источник данных: зеркалированные заказы."
+  },
+  "automation": {
+    "eyebrow": "Процессы",
+    "title": "Автоматизация",
+    "intro": "Правила срабатывают локально по триггеру (импорт, оплата, SHIP/STOP, …). Старые заказы не пересчитываются — Dry-Run / «Применить сейчас» для теста."
   }
 }

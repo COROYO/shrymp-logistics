@@ -95,6 +95,57 @@ describe("allocate — EXPRESS_DHL priority", () => {
     expect(byId.get("express-big")?.status).toBe("STOP");
     expect(byId.get("std-fits")?.status).toBe("SHIP");
   });
+
+  it("respects configured priorityTags (e.g. PRIO)", () => {
+    const input: AllocationInput = {
+      variants: [variant("v1", 3)],
+      orders: [
+        order("std-small", 1, [{ variantId: "v1", qty: 2 }]),
+        order("prio-big", 2, [{ variantId: "v1", qty: 3 }], ["PRIO"]),
+      ],
+      priorityTags: ["PRIO"],
+    };
+    const { decisions } = allocate(input);
+    const byId = new Map(decisions.map((d) => [d.orderId, d]));
+    expect(byId.get("prio-big")?.status).toBe("SHIP");
+    expect(byId.get("std-small")?.status).toBe("STOP");
+  });
+
+  it("treats EXPRESS_DHL as standard when not in priorityTags", () => {
+    const input: AllocationInput = {
+      variants: [variant("v1", 3)],
+      orders: [
+        order("std-old", 1, [{ variantId: "v1", qty: 2 }]),
+        order("express-new", 2, [{ variantId: "v1", qty: 3 }], [EXPRESS_TAG]),
+      ],
+      priorityTags: ["PRIO"],
+    };
+    const { decisions } = allocate(input);
+    const byId = new Map(decisions.map((d) => [d.orderId, d]));
+    // Chronological: older std ships first; express no longer prioritized.
+    expect(byId.get("std-old")?.status).toBe("SHIP");
+    expect(byId.get("express-new")?.status).toBe("STOP");
+  });
+});
+
+describe("allocate — priority_score within lane", () => {
+  it("ships higher score first among standard orders", () => {
+    const high: OrderInput = {
+      ...order("high", 2, [{ variantId: "v1", qty: 3 }]),
+      priorityScore: 90,
+    };
+    const low: OrderInput = {
+      ...order("low", 1, [{ variantId: "v1", qty: 3 }]),
+      priorityScore: 10,
+    };
+    const { decisions } = allocate({
+      variants: [variant("v1", 3)],
+      orders: [low, high],
+    });
+    const byId = new Map(decisions.map((d) => [d.orderId, d]));
+    expect(byId.get("high")?.status).toBe("SHIP");
+    expect(byId.get("low")?.status).toBe("STOP");
+  });
 });
 
 describe("allocate — edge cases", () => {

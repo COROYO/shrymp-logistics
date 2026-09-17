@@ -69,6 +69,18 @@ export const ProductSchema = z.object({
    * component variants. They are excluded from the Chargen / inventory views.
    */
   is_bundle: z.boolean().default(false),
+  /**
+   * Fulfillment process flags (Epic H.4) — drive automation conditions /
+   * packing variants. Local only; never synced to Shopify.
+   */
+  fulfillment_flags: z
+    .object({
+      fragile: z.boolean().default(false),
+      oversized: z.boolean().default(false),
+      hazmat: z.boolean().default(false),
+      giftwrap_default: z.boolean().default(false),
+    })
+    .optional(),
   updated_at_shopify: FirestoreTimestamp.optional(),
   synced_at: FirestoreTimestamp,
 });
@@ -220,13 +232,17 @@ export const OrderLineItemBundleSchema = z.object({
 });
 
 export const OrderLineItemSchema = z.object({
-  id: z.string(), // shopify line item id
+  id: z.string(), // shopify line item id — or `auto:{ruleId}:{variantId}` for local gifts
   variant_id: z.string(), // firestore variant doc id
   variant_gid: z.string(),
   qty: z.number().int().positive(),
   title: z.string(),
   sku: z.string().nullable().default(null),
   bundle: OrderLineItemBundleSchema.optional(),
+  /** shopify = mirrored; automation = local-only (never pushed to Shopify). */
+  source: z.enum(["shopify", "automation"]).optional(),
+  automation_rule_id: z.string().optional(),
+  is_free_gift: z.boolean().optional(),
 });
 
 export const ShippingAddressSchema = z.object({
@@ -350,6 +366,19 @@ export const OrderSchema = z.object({
   packed_by_uid: z.string().optional(),
   /** True when the order was fulfilled on Shopify's side, not via our packing UI. */
   externally_fulfilled: z.boolean().optional(),
+  /**
+   * Tags added by local automation rules (Epic H). Never written back to Shopify.
+   * Priority lane = Shopify `tags` ∪ `local_tags` matched against settings
+   * `priority_tags`.
+   */
+  local_tags: z.array(z.string()).optional().default([]),
+  /**
+   * Fine-grained priority within a lane (0–100). Settings `priority_tags`
+   * still decide Phase A; within each phase we sort by this score DESC.
+   */
+  priority_score: z.number().int().min(0).max(100).optional().default(0),
+  /** When true, allocation skips this order (stays NEW until released). */
+  automation_hold: z.boolean().optional().default(false),
   created_at_shopify: FirestoreTimestamp,
   updated_at: FirestoreTimestamp,
 });
@@ -663,6 +692,11 @@ export const LagerConfigSchema = z.object({
    * Can be overridden per save in the product editor.
    */
   catalog_sync_to_shopify: z.boolean().default(true),
+  /**
+   * Shopify order tags that receive allocation Phase-A priority and appear
+   * first in the pick queue. Empty = no priority lane. Default EXPRESS_DHL.
+   */
+  priority_tags: z.array(z.string().min(1).max(100)).max(50).default(["EXPRESS_DHL"]),
   updated_at: FirestoreTimestamp,
   updated_by_uid: z.string().nullable().default(null),
 });
@@ -761,6 +795,11 @@ export const ShopSchema = z.object({
   inventory_source: InventorySourceSchema.default("APP"),
   catalog_sync_to_shopify: z.boolean().default(true),
   /**
+   * Shopify order tags with allocation / pick-queue priority.
+   * See LagerConfigSchema.priority_tags.
+   */
+  priority_tags: z.array(z.string().min(1).max(100)).max(50).default(["EXPRESS_DHL"]),
+  /**
    * When true (default), outbound Shopify mutations are skipped and logged
    * instead of executed — safe for merchant onboarding / demos.
    */
@@ -839,6 +878,118 @@ export const ForecastSchema = z.object({
   generated_at: FirestoreTimestamp,
 });
 
+// ---------- automation rules (Epic H) ----------
+// Local-only: actions never mutate Shopify. Free gifts stay on our order doc.
+
+export const AutomationTriggerSchema = z.enum([
+  "ORDER_IMPORTED",
+  "ORDER_PAID",
+  "ORDER_SHIP",
+  "ORDER_STOP",
+  "PICKING_STARTED",
+  "PACKED",
+  "ORDER_CANCELLED",
+  "ORDER_REFUNDED",
+  "INBOUND",
+]);
+
+export const AutomationConditionOpSchema = z.enum([
+  "eq",
+  "neq",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "in",
+  "contains",
+  "exists",
+]);
+
+export type AutomationConditionNode = {
+  field?: string;
+  op?: z.infer<typeof AutomationConditionOpSchema>;
+  value?: unknown;
+  all?: AutomationConditionNode[];
+  any?: AutomationConditionNode[];
+};
+
+export const AutomationConditionNodeSchema: z.ZodType<AutomationConditionNode> =
+  z.lazy(() =>
+    z.object({
+      field: z.string().optional(),
+      op: AutomationConditionOpSchema.optional(),
+      value: z.unknown().optional(),
+      all: z.array(AutomationConditionNodeSchema).optional(),
+      any: z.array(AutomationConditionNodeSchema).optional(),
+    }),
+  );
+
+export const AutomationActionSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("add_local_tag"),
+    tag: z.string().min(1).max(100),
+  }),
+  z.object({
+    type: z.literal("remove_local_tag"),
+    tag: z.string().min(1).max(100),
+  }),
+  z.object({
+    type: z.literal("set_priority_score"),
+    score: z.number().int().min(0).max(100),
+  }),
+  z.object({
+    type: z.literal("add_free_gift"),
+    variant_id: z.string().min(1),
+    qty: z.number().int().positive().default(1),
+  }),
+  z.object({ type: z.literal("hold_order") }),
+  z.object({ type: z.literal("release_hold") }),
+]);
+
+export const AutomationRuleSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  name: z.string().min(1).max(120),
+  enabled: z.boolean().default(true),
+  trigger: AutomationTriggerSchema,
+  /** AND/OR tree. Empty / missing = always match. */
+  conditions: AutomationConditionNodeSchema.optional(),
+  actions: z.array(AutomationActionSchema).min(1).max(20),
+  /** Lower runs first. */
+  priority: z.number().int().default(100),
+  stop_on_match: z.boolean().default(false),
+  created_at: FirestoreTimestamp,
+  updated_at: FirestoreTimestamp,
+  updated_by_uid: z.string().nullable().default(null),
+});
+
+export const AutomationRunSchema = z.object({
+  id: z.string(),
+  shop_id: z.string(),
+  trigger: AutomationTriggerSchema,
+  order_id: z.string().nullable().default(null),
+  variant_id: z.string().nullable().default(null),
+  dry_run: z.boolean().default(false),
+  matched_rule_ids: z.array(z.string()).default([]),
+  results: z.array(
+    z.object({
+      rule_id: z.string(),
+      matched: z.boolean(),
+      actions: z.array(
+        z.object({
+          type: z.string(),
+          ok: z.boolean(),
+          detail: z.string().optional(),
+        }),
+      ),
+      error: z.string().optional(),
+    }),
+  ),
+  created_at: FirestoreTimestamp,
+  /** TTL hint for audit cleanup (optional Cloud Firestore TTL policy). */
+  expires_at: FirestoreTimestamp.optional(),
+});
+
 // ---------- exported types ----------
 
 export type Product = z.infer<typeof ProductSchema>;
@@ -891,6 +1042,11 @@ export type ApiScope = z.infer<typeof ApiScopeSchema>;
 export type ApiKey = z.infer<typeof ApiKeySchema>;
 export type ForecastMethod = z.infer<typeof ForecastMethodSchema>;
 export type Forecast = z.infer<typeof ForecastSchema>;
+export type AutomationRule = z.infer<typeof AutomationRuleSchema>;
+export type AutomationRun = z.infer<typeof AutomationRunSchema>;
+export type AutomationTrigger = z.infer<typeof AutomationTriggerSchema>;
+export type AutomationAction = z.infer<typeof AutomationActionSchema>;
+// AutomationConditionNode is declared above (recursive Zod type).
 
 // ---------- collection name constants ----------
 
@@ -916,6 +1072,8 @@ export const Collections = {
   Config: "config",
   ApiKeys: "api_keys",
   Forecasts: "forecasts",
+  AutomationRules: "automation_rules",
+  AutomationRuns: "automation_runs",
 } as const;
 
 export const ConfigDocs = {

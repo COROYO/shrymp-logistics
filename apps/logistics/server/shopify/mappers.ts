@@ -171,6 +171,9 @@ export function mapShopifyOrderToFirestore(
     note_attributes: mapNoteAttributes(payload.note_attributes),
     customer: mapCustomerRef(payload),
     total_price_cents: moneyDecimalToCents(payload.current_total_price),
+    local_tags: [],
+    priority_score: 0,
+    automation_hold: false,
     created_at_shopify: new Date(payload.created_at),
   };
 }

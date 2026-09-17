@@ -26,6 +26,8 @@ import { loadLagerConfig } from "@/server/lager/config";
 import { loadPreAssignedShippableOrderIds } from "@/server/picking/pre-assigned-orders";
 import { ordersForShop } from "@/server/tenant/queries";
 import { normalizeShopId } from "@/server/tenant/id";
+import { effectiveOrderTags } from "@/server/automation/order-tags";
+import { dispatchAutomationEvent } from "@/server/automation/dispatch";
 
 /**
  * Firestore-backed allocation run.
@@ -89,7 +91,9 @@ export async function runAllocationInFirestore(
     const ordersSnap = await ordersForShop(db, shopId)
       .where("internal_status", "in", [...ORDER_STATUSES_TO_REALLOCATE])
       .get();
-    const ordersRaw = ordersSnap.docs.map((d) => d.data() as Order);
+    const ordersRaw = ordersSnap.docs
+      .map((d) => d.data() as Order)
+      .filter((o) => !o.automation_hold);
     const lagerCfg = await loadLagerConfig(shopId);
     const batchesEnabled = lagerCfg.batches_enabled;
 
@@ -173,7 +177,8 @@ export async function runAllocationInFirestore(
     const orders: OrderInput[] = ordersRaw.map((o) => ({
       id: o.id,
       createdAtMs: toMs(o.created_at_shopify),
-      tags: o.tags ?? [],
+      tags: effectiveOrderTags(o),
+      priorityScore: o.priority_score ?? 0,
       lineItems: o.line_items.map((li) => ({
         id: li.id,
         variantId: li.variant_id,
@@ -186,6 +191,7 @@ export async function runAllocationInFirestore(
       variants,
       orders,
       preAssignedOrderIds,
+      priorityTags: lagerCfg.priority_tags,
     };
     const result = allocate(input);
 
@@ -206,6 +212,19 @@ export async function runAllocationInFirestore(
       recomputeMode,
       batchesEnabled,
     );
+
+    // Fire SHIP/STOP automation for status transitions (best-effort).
+    for (const d of result.decisions) {
+      const prev = ordersRaw.find((o) => o.id === d.orderId);
+      if (!prev) continue;
+      const nextStatus = d.status === "SHIP" ? "SHIP" : "STOP";
+      if (prev.internal_status === nextStatus) continue;
+      await dispatchAutomationEvent({
+        shopId,
+        trigger: nextStatus === "SHIP" ? "ORDER_SHIP" : "ORDER_STOP",
+        orderId: d.orderId,
+      });
+    }
 
     await runRef.update({
       finished_at: FieldValue.serverTimestamp(),

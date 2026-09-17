@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import type { OrderInternalStatus } from "@/server/firestore/schema";
@@ -73,9 +73,16 @@ function financialStatusBadge(status: string | null): string {
   return "chip chip-soft";
 }
 
-export function OrdersTable({ orders }: { orders: OrderRow[] }) {
+export function OrdersTable({
+  orders,
+  priorityTags = [],
+}: {
+  orders: OrderRow[];
+  priorityTags?: readonly string[];
+}) {
   const t = useTranslations("ordersAdmin");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const prioritySet = useMemo(() => new Set(priorityTags), [priorityTags]);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -118,6 +125,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 order={o}
                 isOpen={isOpen}
                 onToggle={() => toggle(o.id)}
+                prioritySet={prioritySet}
               />
             );
           })}
@@ -131,10 +139,12 @@ function Row({
   order,
   isOpen,
   onToggle,
+  prioritySet,
 }: {
   order: OrderRow;
   isOpen: boolean;
   onToggle: () => void;
+  prioritySet: Set<string>;
 }) {
   const t = useTranslations("ordersAdmin");
   return (
@@ -207,14 +217,14 @@ function Row({
         </td>
         <td>
           <div className="flex flex-wrap gap-1">
-            {order.tags.map((t) => (
+            {order.tags.map((tag) => (
               <span
-                key={t}
+                key={tag}
                 className={
-                  t === "EXPRESS_DHL" ? "chip chip-burgundy" : "chip chip-soft"
+                  prioritySet.has(tag) ? "chip chip-burgundy" : "chip chip-soft"
                 }
               >
-                {t}
+                {tag}
               </span>
             ))}
           </div>

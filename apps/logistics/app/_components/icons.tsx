@@ -206,6 +206,18 @@ export function DownloadIcon({ className }: IconProps) {
   );
 }
 
+export function AutomationIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 6h8" />
+      <path d="M4 10h12" />
+      <path d="M4 14h7" />
+      <circle cx="15.5" cy="6" r="1.5" />
+      <path d="M14 14.5 16 12l2 2.5" />
+    </Svg>
+  );
+}
+
 export function UploadIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

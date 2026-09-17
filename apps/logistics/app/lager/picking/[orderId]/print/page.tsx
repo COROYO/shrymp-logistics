@@ -9,7 +9,8 @@ import {
 } from "@/server/firestore/schema";
 import { PrintTrigger } from "./print-trigger";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
-import { isBatchesEnabled } from "@/server/lager/config";
+import { isBatchesEnabled, loadLagerConfig } from "@/server/lager/config";
+import { orderHasPriorityTag, effectiveOrderTags } from "@/lib/lager/priority-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -142,12 +143,16 @@ async function load(orderId: string) {
     });
   }
 
-  const batchesEnabled = await isBatchesEnabled(order.shop_id ?? undefined);
+  const [batchesEnabled, lagerCfg] = await Promise.all([
+    isBatchesEnabled(order.shop_id ?? undefined),
+    loadLagerConfig(order.shop_id ?? undefined),
+  ]);
 
   return {
     order,
     mergedLines: mergeLines(order.line_items, allocsByLi),
     batchesEnabled,
+    priorityTags: lagerCfg.priority_tags,
   };
 }
 
@@ -159,8 +164,8 @@ export default async function PrintPicklist({
   const { orderId } = await params;
   const data = await load(orderId);
   if (!data) notFound();
-  const { order, mergedLines, batchesEnabled } = data;
-  const isExpress = order.tags.includes("EXPRESS_DHL");
+  const { order, mergedLines, batchesEnabled, priorityTags } = data;
+  const isExpress = orderHasPriorityTag(effectiveOrderTags(order), priorityTags);
   // Picklist always in German — internal warehouse document, locale-pinned
   // so a Russian/English warehouse user still gets the standard form.
   const t = await getTranslations({ locale: "de", namespace: "picklistPrint" });

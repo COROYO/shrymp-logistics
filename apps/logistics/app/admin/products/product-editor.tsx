@@ -25,10 +25,26 @@ import {
   variantOptionColumns,
 } from "./product-options-panel";
 import type { ProductEditorPayload } from "@/server/catalog/editor-types";
+import { parseEan } from "@/lib/barcode/ean";
 
 type EditorState = ProductEditorPayload["input"] & {
   sync_to_shopify: boolean;
 };
+
+/**
+ * True when setting `nextBarcode` would switch label encoding from SKU
+ * (Code 128) to a valid EAN — needs an explicit admin confirmation.
+ */
+function eanWouldReplaceSkuLabel(
+  prevBarcode: string | null | undefined,
+  nextBarcode: string,
+  sku: string | null | undefined,
+): boolean {
+  if (!(sku ?? "").trim()) return false;
+  if (!parseEan(nextBarcode)) return false;
+  if (prevBarcode && parseEan(prevBarcode)) return false;
+  return true;
+}
 
 function slugify(title: string): string {
   return title
@@ -259,10 +275,22 @@ export function ProductEditor({
                   <input
                     value={simpleVariant.barcode ?? ""}
                     onChange={(e) => {
+                      const next = e.target.value || null;
+                      if (
+                        next &&
+                        eanWouldReplaceSkuLabel(
+                          simpleVariant.barcode,
+                          next,
+                          simpleVariant.sku,
+                        ) &&
+                        !window.confirm(t("eanReplacesSkuConfirm"))
+                      ) {
+                        return;
+                      }
                       const variants = [...state.variants];
                       variants[0] = {
                         ...variants[0],
-                        barcode: e.target.value || null,
+                        barcode: next,
                       };
                       update("variants", variants);
                     }}
@@ -371,10 +399,22 @@ export function ProductEditor({
                         <input
                           value={variant.barcode ?? ""}
                           onChange={(e) => {
+                            const next = e.target.value || null;
+                            if (
+                              next &&
+                              eanWouldReplaceSkuLabel(
+                                variant.barcode,
+                                next,
+                                variant.sku,
+                              ) &&
+                              !window.confirm(t("eanReplacesSkuConfirm"))
+                            ) {
+                              return;
+                            }
                             const variants = [...state.variants];
                             variants[index] = {
                               ...variants[index],
-                              barcode: e.target.value || null,
+                              barcode: next,
                             };
                             update("variants", variants);
                           }}

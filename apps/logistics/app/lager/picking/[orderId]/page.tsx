@@ -8,7 +8,8 @@ import {
   type Order,
 } from "@/server/firestore/schema";
 import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
-import { isBatchesEnabled } from "@/server/lager/config";
+import { isBatchesEnabled, loadLagerConfig } from "@/server/lager/config";
+import { orderHasPriorityTag, effectiveOrderTags } from "@/lib/lager/priority-tags";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 import { loadPickScanItems } from "@/server/warehouse/pick-scan";
@@ -204,9 +205,10 @@ async function loadOrder(orderId: string) {
 
   const lineItems = mergeLineItems(rawLineItems);
 
-  const [batchesEnabled, pickItems] = await Promise.all([
+  const [batchesEnabled, pickItems, lagerCfg] = await Promise.all([
     isBatchesEnabled(shopId),
     runWithTenantAsync(shopId, () => loadPickScanItems(order, shopId)),
+    loadLagerConfig(shopId),
   ]);
 
   const binByVariant = new Map<string, { code: string; name: string }>();
@@ -216,7 +218,14 @@ async function loadOrder(orderId: string) {
     }
   }
 
-  return { order, lineItems, batchesEnabled, pickItems, binByVariant };
+  return {
+    order,
+    lineItems,
+    batchesEnabled,
+    pickItems,
+    binByVariant,
+    priorityTags: lagerCfg.priority_tags,
+  };
 }
 
 export default async function PickingDetailPage({
@@ -227,11 +236,18 @@ export default async function PickingDetailPage({
   const { orderId } = await params;
   const result = await loadOrder(orderId);
   if (!result) notFound();
-  const { order, lineItems, batchesEnabled, pickItems, binByVariant } = result;
+  const {
+    order,
+    lineItems,
+    batchesEnabled,
+    pickItems,
+    binByVariant,
+    priorityTags,
+  } = result;
 
   const isPickable = order.internal_status === "SHIP";
   const isPicking = order.internal_status === "PICKING";
-  const isExpress = order.tags.includes("EXPRESS_DHL");
+  const isExpress = orderHasPriorityTag(effectiveOrderTags(order), priorityTags);
   const t = await getTranslations("pickingDetail");
 
   return (

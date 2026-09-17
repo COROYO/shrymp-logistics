@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { adminDb } from "@/server/firestore/admin";
-import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY, DEFAULT_BATCHES_ENABLED, DEFAULT_CATALOG_SYNC_TO_SHOPIFY, DEFAULT_INVENTORY_SOURCE } from "@/lib/lager/defaults";
+import { DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY, DEFAULT_BATCHES_ENABLED, DEFAULT_CATALOG_SYNC_TO_SHOPIFY, DEFAULT_INVENTORY_SOURCE, DEFAULT_PRIORITY_TAGS } from "@/lib/lager/defaults";
 import {
   Collections,
   ConfigDocs,
@@ -28,6 +28,7 @@ async function loadLagerConfigUncached(shopId?: string): Promise<LagerConfig> {
       inventory_source: shop.inventory_source ?? DEFAULT_INVENTORY_SOURCE,
       catalog_sync_to_shopify:
         shop.catalog_sync_to_shopify ?? DEFAULT_CATALOG_SYNC_TO_SHOPIFY,
+      priority_tags: shop.priority_tags ?? [...DEFAULT_PRIORITY_TAGS],
       updated_at: shop.lager_updated_at ?? new Date(),
       updated_by_uid: shop.lager_updated_by_uid ?? null,
     });
@@ -44,6 +45,7 @@ async function loadLagerConfigUncached(shopId?: string): Promise<LagerConfig> {
     batch_min_days_before_expiry: DEFAULT_BATCH_MIN_DAYS_BEFORE_EXPIRY,
     inventory_source: DEFAULT_INVENTORY_SOURCE,
     catalog_sync_to_shopify: DEFAULT_CATALOG_SYNC_TO_SHOPIFY,
+    priority_tags: [...DEFAULT_PRIORITY_TAGS],
     updated_at: new Date(),
     updated_by_uid: null,
   });

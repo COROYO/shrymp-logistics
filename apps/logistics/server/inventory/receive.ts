@@ -6,6 +6,7 @@ import { log } from "@/lib/logger";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 import { queueInventoryPush } from "./sync-to-shopify";
 import { processOutbox } from "@/server/shopify/outbox";
+import { dispatchAutomationEvent } from "@/server/automation/dispatch";
 
 export type ReceiveBatchInput = {
   shopId: string;
@@ -143,6 +144,13 @@ export async function receiveBatch(
     shopId: input.shopId,
     triggeredBy: "INBOUND",
     triggerEventId: batchRef.id,
+  });
+
+  await dispatchAutomationEvent({
+    shopId: input.shopId,
+    trigger: "INBOUND",
+    variantId: input.variantId,
+    inboundQty: input.qty,
   });
 
   return { batchId: batchRef.id, newOnHandTotal };

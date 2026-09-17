@@ -23,6 +23,7 @@ out/
 # misc
 .DS_Store
 *.pem
+google-cloud-sdk/
 
 # debug
 npm-debug.log*

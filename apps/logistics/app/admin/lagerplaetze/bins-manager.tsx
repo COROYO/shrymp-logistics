@@ -73,15 +73,6 @@ export function BinsManager({
           transErr={transErr}
         />
       </Modal>
-      <BinList
-        t={t}
-        bins={bins}
-        pending={pending}
-        startTransition={startTransition}
-        onDone={reload}
-        transErr={transErr}
-        onCreateClick={() => setCreateOpen(true)}
-      />
       <AssignSection
         t={t}
         bins={bins}
@@ -90,6 +81,15 @@ export function BinsManager({
         startTransition={startTransition}
         onDone={reload}
         transErr={transErr}
+      />
+      <BinList
+        t={t}
+        bins={bins}
+        pending={pending}
+        startTransition={startTransition}
+        onDone={reload}
+        transErr={transErr}
+        onCreateClick={() => setCreateOpen(true)}
       />
     </div>
   );
@@ -216,6 +216,7 @@ function BinList({
   onCreateClick,
 }: Common & { bins: BinRow[] | null; onCreateClick: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   if (bins === null) {
     return <p className="text-sm text-brand-navy/50">{t("loading")}</p>;
@@ -255,10 +256,29 @@ function BinList({
 
   return (
     <section className="card overflow-hidden">
-      <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-        <h2 className="text-sm font-semibold text-brand-navy">
-          {t("list.title", { count: bins.length })}
-        </h2>
+      <div className="flex items-center justify-between gap-3 px-6 py-4">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <svg
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className={`h-4 w-4 shrink-0 text-brand-navy/50 transition-transform ${open ? "rotate-90" : ""}`}
+            aria-hidden
+          >
+            <path
+              fillRule="evenodd"
+              d="M7.21 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L10.94 10 7.21 6.28a.75.75 0 0 1 0-1.06Z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <h2 className="text-sm font-semibold text-brand-navy">
+            {t("list.title", { count: bins.length })}
+          </h2>
+        </button>
         <button
           type="button"
           onClick={onCreateClick}
@@ -268,57 +288,59 @@ function BinList({
           {t("create.add")}
         </button>
       </div>
-      {bins.length === 0 ? (
-        <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
-          {t("list.empty")}
-        </p>
-      ) : (
-        <ul className="divide-y divide-zinc-100">
-          {bins.map((bin) => (
-            <li key={bin.id} className="px-6 py-3">
-              {editing === bin.id ? (
-                <form onSubmit={(e) => handleSaveEdit(bin, e)} className="grid gap-2 sm:grid-cols-4">
-                  <input name="code" defaultValue={bin.code} className="input-sm font-mono" required />
-                  <input name="name" defaultValue={bin.name} className="input-sm sm:col-span-2" required />
-                  <input name="zone" defaultValue={bin.zone ?? ""} className="input-sm" placeholder="Zone" />
-                  <div className="flex gap-2 sm:col-span-4">
-                    <button type="submit" disabled={pending} className="btn-primary text-xs">
-                      {t("save")}
-                    </button>
-                    <button type="button" onClick={() => setEditing(null)} className="btn-ghost text-xs">
-                      {t("cancel")}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-md bg-brand-navy px-2.5 py-1 font-mono text-sm font-bold text-white">
-                      {bin.code}
-                    </span>
-                    <div>
-                      <div className="text-sm font-semibold text-brand-navy">{bin.name}</div>
-                      <div className="text-xs text-brand-navy/50">
-                        {bin.zone ? `${bin.zone} · ` : ""}
-                        {t("list.variantCount", { count: bin.variantCount })}
-                        {!bin.active ? ` · ${t("list.inactive")}` : ""}
+      {open ? (
+        bins.length === 0 ? (
+          <p className="border-t border-zinc-200 px-6 py-10 text-center text-sm text-brand-navy/60">
+            {t("list.empty")}
+          </p>
+        ) : (
+          <ul className="max-h-[28rem] divide-y divide-zinc-100 overflow-y-auto border-t border-zinc-200">
+            {bins.map((bin) => (
+              <li key={bin.id} className="px-6 py-3">
+                {editing === bin.id ? (
+                  <form onSubmit={(e) => handleSaveEdit(bin, e)} className="grid gap-2 sm:grid-cols-4">
+                    <input name="code" defaultValue={bin.code} className="input-sm font-mono" required />
+                    <input name="name" defaultValue={bin.name} className="input-sm sm:col-span-2" required />
+                    <input name="zone" defaultValue={bin.zone ?? ""} className="input-sm" placeholder="Zone" />
+                    <div className="flex gap-2 sm:col-span-4">
+                      <button type="submit" disabled={pending} className="btn-primary text-xs">
+                        {t("save")}
+                      </button>
+                      <button type="button" onClick={() => setEditing(null)} className="btn-ghost text-xs">
+                        {t("cancel")}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-md bg-brand-navy px-2.5 py-1 font-mono text-sm font-bold text-white">
+                        {bin.code}
+                      </span>
+                      <div>
+                        <div className="text-sm font-semibold text-brand-navy">{bin.name}</div>
+                        <div className="text-xs text-brand-navy/50">
+                          {bin.zone ? `${bin.zone} · ` : ""}
+                          {t("list.variantCount", { count: bin.variantCount })}
+                          {!bin.active ? ` · ${t("list.inactive")}` : ""}
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
+                      <button type="button" onClick={() => setEditing(bin.id)} className="text-brand-navy/70 hover:text-brand-burgundy">
+                        {t("edit")}
+                      </button>
+                      <button type="button" onClick={() => handleDelete(bin)} className="text-red-600 hover:text-red-700">
+                        {t("delete")}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
-                    <button type="button" onClick={() => setEditing(bin.id)} className="text-brand-navy/70 hover:text-brand-burgundy">
-                      {t("edit")}
-                    </button>
-                    <button type="button" onClick={() => handleDelete(bin)} className="text-red-600 hover:text-red-700">
-                      {t("delete")}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                )}
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
     </section>
   );
 }

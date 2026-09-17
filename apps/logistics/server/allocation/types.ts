@@ -31,6 +31,12 @@ export type OrderInput = {
   createdAtMs: number;
   tags: string[];
   lineItems: OrderLineItemInput[];
+  /**
+   * Fine-grained priority within a lane (0–100). Phase A membership still
+   * comes from configured priority tags; within each phase we sort by score
+   * DESC, then createdAt ASC.
+   */
+  priorityScore?: number;
 };
 
 export type Decision =
@@ -57,6 +63,11 @@ export type AllocationInput = {
   orders: OrderInput[];
   /** Complete, shippable Charge assignment — SHIP without consuming remaining pool. */
   preAssignedOrderIds?: ReadonlySet<string>;
+  /**
+   * Shopify tags that put an order into Phase A (priority lane).
+   * Defaults to `[EXPRESS_TAG]` when omitted — keeps unit tests simple.
+   */
+  priorityTags?: readonly string[];
 };
 
 export type AllocationStats = {
@@ -71,4 +82,15 @@ export type AllocationResult = {
   stats: AllocationStats;
 };
 
+/** @deprecated Prefer shop-configured `priority_tags`; kept as default fallback. */
 export const EXPRESS_TAG = "EXPRESS_DHL";
+
+/** True when the order carries any configured priority tag. */
+export function hasPriorityTag(
+  tags: readonly string[],
+  priorityTags: readonly string[],
+): boolean {
+  if (priorityTags.length === 0 || tags.length === 0) return false;
+  const set = new Set(priorityTags);
+  return tags.some((t) => set.has(t));
+}

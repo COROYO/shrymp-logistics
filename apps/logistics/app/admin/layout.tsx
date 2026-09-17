@@ -81,6 +81,11 @@ export default async function AdminLayout({
       items: [
         { href: "/admin/orders", label: t("orders"), icon: "orders" },
         { href: "/admin/customers", label: t("customers"), icon: "customers" },
+        {
+          href: "/admin/automation",
+          label: t("automation"),
+          icon: "automation",
+        },
       ],
     },
     {

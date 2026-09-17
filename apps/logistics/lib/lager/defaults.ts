@@ -12,3 +12,9 @@ export const DEFAULT_CATALOG_SYNC_TO_SHOPIFY = true;
 
 /** New shops start in test mode — no writes to Shopify until disabled. */
 export const DEFAULT_TEST_MODE = true;
+
+/**
+ * Shopify order tags that get allocation Phase-A / pick-queue priority.
+ * Merchants can override this list in Admin → Einstellungen → Aufträge.
+ */
+export const DEFAULT_PRIORITY_TAGS = ["EXPRESS_DHL"] as const;

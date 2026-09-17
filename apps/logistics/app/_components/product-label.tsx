@@ -1,10 +1,12 @@
+import { parseEan } from "@/lib/barcode/ean";
 import { Barcode128 } from "./barcode-128";
+import { BarcodeEan } from "./barcode-ean";
 
 /**
  * A single printable product label: title, optional variant + price, and a
- * Code 128 barcode of the EAN/barcode (falls back to SKU). The encoded value
- * is what the warehouse scanner reads — it matches `variant.barcode` then
- * `variant.sku` in the scan resolver, so these labels work for scan-to-pick.
+ * barcode. Valid EAN-8/13 (or UPC-A) on `barcode` → native EAN symbology;
+ * otherwise Code 128 of the SKU. Matches warehouse scan resolution
+ * (barcode first, then sku).
  */
 export function ProductLabel({
   productTitle,
@@ -23,7 +25,8 @@ export function ProductLabel({
   showPrice?: boolean;
   showSku?: boolean;
 }) {
-  const code = (barcode || sku || "").trim();
+  const ean = barcode ? parseEan(barcode) : null;
+  const skuCode = (sku || "").trim();
   const hasVariant =
     variantTitle && variantTitle !== "Default Title" && variantTitle !== "—";
 
@@ -44,8 +47,10 @@ export function ProductLabel({
       </div>
 
       <div className="mt-2 flex items-end justify-center">
-        {code ? (
-          <Barcode128 value={code} height={44} moduleWidth={1.3} showValue />
+        {ean ? (
+          <BarcodeEan parsed={ean} height={44} moduleWidth={1.3} showValue />
+        ) : skuCode ? (
+          <Barcode128 value={skuCode} height={44} moduleWidth={1.3} showValue />
         ) : (
           <span className="py-3 text-[11px] font-medium text-amber-700">
             {showSku ? "kein Barcode / SKU" : ""}
@@ -53,9 +58,9 @@ export function ProductLabel({
         )}
       </div>
 
-      {showSku && sku && code !== sku ? (
+      {showSku && skuCode && ean ? (
         <div className="mt-1 text-center font-mono text-[10px] text-zinc-500">
-          SKU {sku}
+          SKU {skuCode}
         </div>
       ) : null}
     </div>

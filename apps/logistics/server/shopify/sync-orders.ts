@@ -13,6 +13,8 @@ import { moneyDecimalToCents } from "./mappers";
 import { mirrorInternalStatus } from "@/server/allocation/status-guard";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { normalizeShopId } from "@/server/tenant/id";
+import { mergeAutomationLineItems } from "@/server/automation/order-tags";
+import { dispatchAutomationEvent } from "@/server/automation/dispatch";
 
 /**
  * Backfill existing orders from the shop into Firestore.
@@ -203,6 +205,8 @@ export async function backfillOrders(
   let mirroredCount = 0;
   let batch = db.batch();
   let opsInBatch = 0;
+  /** Newly created orders — fire ORDER_IMPORTED after the batch commits. */
+  const newlyImported: { orderId: string; paid: boolean }[] = [];
   const flushIf = async (force: boolean) => {
     if (opsInBatch > 0 && (force || opsInBatch >= 450)) {
       await batch.commit();
@@ -289,7 +293,8 @@ export async function backfillOrders(
           if (!line?.title) return null;
           return { title: line.title, code: line.code ?? null };
         })(),
-        line_items: n.lineItems.nodes
+        line_items: mergeAutomationLineItems(
+          n.lineItems.nodes
           .filter((li) => li.variant?.id)
           .map((li) => {
             const vid = numericIdFromGid(li.variant!.id);
@@ -319,6 +324,8 @@ export async function backfillOrders(
                 : {}),
             };
           }),
+          (existingData as Order | undefined)?.line_items,
+        ),
         shopify_financial_status: n.displayFinancialStatus ?? null,
         shopify_fulfillment_status: n.displayFulfillmentStatus ?? null,
         internal_status: internalStatus,
@@ -345,6 +352,10 @@ export async function backfillOrders(
         total_price_cents: moneyDecimalToCents(
           n.currentTotalPriceSet?.shopMoney?.amount ?? null,
         ),
+        local_tags: (existingData as Order | undefined)?.local_tags ?? [],
+        priority_score: (existingData as Order | undefined)?.priority_score ?? 0,
+        automation_hold:
+          (existingData as Order | undefined)?.automation_hold ?? false,
         created_at_shopify: new Date(n.createdAt),
       };
 
@@ -358,6 +369,13 @@ export async function backfillOrders(
       );
       opsInBatch++;
       mirroredCount++;
+      if (!existingData) {
+        newlyImported.push({
+          orderId,
+          paid:
+            (n.displayFinancialStatus ?? "").toLowerCase() === "paid",
+        });
+      }
 
       if (opsInBatch >= 450) await flushIf(false);
     }
@@ -371,7 +389,28 @@ export async function backfillOrders(
 
   await flushIf(true);
 
-  log.info("orders_backfill_done", { mirroredCount, pages, query: opts.query, shopId });
+  for (const row of newlyImported) {
+    await dispatchAutomationEvent({
+      shopId,
+      trigger: "ORDER_IMPORTED",
+      orderId: row.orderId,
+    });
+    if (row.paid) {
+      await dispatchAutomationEvent({
+        shopId,
+        trigger: "ORDER_PAID",
+        orderId: row.orderId,
+      });
+    }
+  }
+
+  log.info("orders_backfill_done", {
+    mirroredCount,
+    newlyImported: newlyImported.length,
+    pages,
+    query: opts.query,
+    shopId,
+  });
   return { mirroredCount, pages };
   });
 }

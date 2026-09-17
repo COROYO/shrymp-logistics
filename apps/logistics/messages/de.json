@@ -63,7 +63,8 @@
     "openMenu": "Menü öffnen",
     "closeMenu": "Menü schließen",
     "mainNav": "Hauptnavigation",
-    "forecasting": "Forecast"
+    "forecasting": "Forecast",
+    "automation": "Automatismen"
   },
   "tenant": {
     "activeShop": "Mandant",
@@ -455,7 +456,7 @@
   "productLabels": {
     "back": "← Produkte",
     "title": "Produkt-Etiketten",
-    "intro": "Drucke Etiketten mit Titel, Preis, SKU und Barcode (EAN bzw. SKU als Code 128) — scanbar im Picking.",
+    "intro": "Drucke Etiketten mit Titel, Preis, SKU und Barcode",
     "empty": "Keine Produkte vorhanden. Zuerst von Shopify syncen.",
     "columns": "Spalten",
     "copies": "Kopien je Produkt",
@@ -1107,7 +1108,8 @@
     "variantImageUploadFirst": "Zuerst Bilder in der Galerie hochladen",
     "variantTitle": "Titel",
     "variantSku": "SKU",
-    "variantBarcode": "Barcode",
+    "variantBarcode": "Barcode / EAN",
+    "eanReplacesSkuConfirm": "Diese EAN ersetzt die SKU als Barcode auf Produktlabels. Fortfahren?",
     "variantPrice": "Preis (EUR)",
     "variantCompareAt": "Vergleichspreis (EUR)",
     "variantOnHand": "Lagerbestand (Stück)",
@@ -1190,5 +1192,10 @@
       "NONE": "—"
     },
     "empty": "Noch keine Prognosen. Einmal „Forecast neu berechnen“ ausführen – Grundlage sind die gespiegelten Bestellungen."
+  },
+  "automation": {
+    "eyebrow": "Workflows",
+    "title": "Automatismen",
+    "intro": ""
   }
 }

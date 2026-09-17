@@ -4,6 +4,8 @@ import { type Order } from "@/server/firestore/schema";
 import { ordersForShop } from "@/server/tenant/queries";
 import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import { PackedTable, type PackedRow } from "./packed-table";
+import { loadLagerConfig } from "@/server/lager/config";
+import { orderHasPriorityTag, effectiveOrderTags } from "@/lib/lager/priority-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,10 @@ function tsToIso(t: unknown): string {
   return "";
 }
 
-async function loadPacked(shopId: string): Promise<PackedRow[]> {
+async function loadPacked(
+  shopId: string,
+  priorityTags: readonly string[],
+): Promise<PackedRow[]> {
   const db = adminDb();
   const snap = await ordersForShop(db, shopId)
     .where("internal_status", "==", "PACKED")
@@ -34,7 +39,7 @@ async function loadPacked(shopId: string): Promise<PackedRow[]> {
       positionCount: data.line_items.length,
       city: data.shipping_address?.city ?? null,
       tags: data.tags,
-      isExpress: data.tags.includes("EXPRESS_DHL"),
+      isExpress: orderHasPriorityTag(effectiveOrderTags(data), priorityTags),
       externallyFulfilled: data.externally_fulfilled === true,
       customerNote: data.customer_note ?? null,
     };
@@ -47,7 +52,8 @@ async function loadPacked(shopId: string): Promise<PackedRow[]> {
 
 export default async function PackedOrdersPage() {
   const { shopId } = await requireTenantPageContext("/lager/packed-orders");
-  const rows = await loadPacked(shopId);
+  const lagerCfg = await loadLagerConfig(shopId);
+  const rows = await loadPacked(shopId, lagerCfg.priority_tags);
   const t = await getTranslations("packedOrders");
 
   return (
@@ -76,7 +82,7 @@ export default async function PackedOrdersPage() {
           {t("empty")}
         </div>
       ) : (
-        <PackedTable rows={rows} />
+        <PackedTable rows={rows} priorityTags={lagerCfg.priority_tags} />
       )}
     </div>
   );

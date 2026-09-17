@@ -15,6 +15,8 @@ import { fetchOrderLineItems } from "./bundles";
 import { normalizeShopId } from "@/server/tenant/id";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { markShopUninstalled } from "@/server/tenant/shop";
+import { mergeAutomationLineItems } from "@/server/automation/order-tags";
+import { dispatchAutomationEvent } from "@/server/automation/dispatch";
 
 /**
  * Result of dispatching a verified, deduped webhook event.
@@ -117,6 +119,9 @@ async function mirrorOrder(
     });
   }
 
+  // Preserve local automation free-gifts across Shopify mirrors.
+  doc.line_items = mergeAutomationLineItems(doc.line_items, prev?.line_items);
+
   // Atomic, status-preserving write. `internal_status` is owned by OUR state
   // machine (allocation / picking / fulfillment) — a mirror must NEVER change an
   // existing order's status. We re-read the CURRENT status INSIDE the txn and
@@ -131,10 +136,16 @@ async function mirrorOrder(
     const before: OrderInternalStatus | null = cur.exists
       ? ((cur.data() as Order).internal_status ?? null)
       : null;
+    const curData = cur.exists ? (cur.data() as Order) : undefined;
     tx.set(
       ref,
       {
         ...doc,
+        // Keep local gifts if another writer raced between read and txn.
+        line_items: mergeAutomationLineItems(
+          doc.line_items,
+          curData?.line_items,
+        ),
         internal_status: mirrorInternalStatus(before, isCancelled),
         updated_at: FieldValue.serverTimestamp(),
       },
@@ -174,6 +185,34 @@ async function mirrorOrder(
       // Fall through to normal allocation enqueue so the order at least
       // stays on the queue.
     }
+  }
+
+  // Automation before allocation so free gifts / holds / priority land first.
+  // First-seen orders (also via ORDERS_UPDATED if create webhook was missed)
+  // get ORDER_IMPORTED; paid transitions get ORDER_PAID.
+  const paidNow =
+    (doc.shopify_financial_status ?? "").toLowerCase() === "paid";
+  const paidBefore =
+    (prev?.shopify_financial_status ?? "").toLowerCase() === "paid";
+  if (statusBefore === null) {
+    await dispatchAutomationEvent({
+      shopId,
+      trigger: "ORDER_IMPORTED",
+      orderId: doc.id,
+    });
+    if (paidNow) {
+      await dispatchAutomationEvent({
+        shopId,
+        trigger: "ORDER_PAID",
+        orderId: doc.id,
+      });
+    }
+  } else if (paidNow && !paidBefore) {
+    await dispatchAutomationEvent({
+      shopId,
+      trigger: "ORDER_PAID",
+      orderId: doc.id,
+    });
   }
 
   await enqueueAllocationRun({
@@ -227,10 +266,14 @@ async function cancelOrder(
       error: e instanceof Error ? e.message : String(e),
     });
   }
+  doc.line_items = mergeAutomationLineItems(doc.line_items, prevData?.line_items);
 
   await ref.set(
     {
       ...doc,
+      local_tags: prevData?.local_tags ?? [],
+      priority_score: prevData?.priority_score ?? 0,
+      automation_hold: prevData?.automation_hold ?? false,
       internal_status: "CANCELLED",
       cancelled_at: payload.cancelled_at
         ? new Date(payload.cancelled_at)
@@ -240,6 +283,12 @@ async function cancelOrder(
     },
     { merge: false },
   );
+
+  await dispatchAutomationEvent({
+    shopId,
+    trigger: "ORDER_CANCELLED",
+    orderId,
+  });
 
   // Release any open allocations so the reserved stock comes back. We did
   // NOT release if the order was already PACKED — those products already

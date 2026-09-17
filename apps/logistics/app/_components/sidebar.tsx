@@ -17,6 +17,7 @@ import {
   ScanIcon,
   SettingsIcon,
   UsersIcon,
+  AutomationIcon,
 } from "./icons";
 import { LogoutButton } from "./logout-button";
 import { useTranslations } from "next-intl";
@@ -41,7 +42,8 @@ export type IconKey =
   | "lager"
   | "bins"
   | "scan"
-  | "admin";
+  | "admin"
+  | "automation";
 
 const ICON_MAP: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   home: HomeIcon,
@@ -59,6 +61,7 @@ const ICON_MAP: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   bins: BinsIcon,
   scan: ScanIcon,
   admin: AdminIcon,
+  automation: AutomationIcon,
 };
 
 export type SidebarItem = {

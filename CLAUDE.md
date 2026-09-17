@@ -70,7 +70,8 @@ The allocation run decides **SHIP/STOP only** and reserves quantity at the
 Function consumer with queue concurrency = 1. See `server/allocation/`.
 
 - **All-or-nothing** per order (no partial fulfillment).
-- **EXPRESS_DHL** orders are allocated first, ignoring everything else.
+- **Priority tags** (default `EXPRESS_DHL`, configurable per shop in Admin →
+  Einstellungen → Aufträge) are allocated first, ignoring everything else.
 - SHIP iff `variant.on_hand_total - reserved_total` covers the order
   (chronological, oldest order first; tiebreak by order id).
 - `reserved_total` = Σ line-item qty over orders in `SHIP`/`PICKING`.

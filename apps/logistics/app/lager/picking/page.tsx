@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { adminDb } from "@/server/firestore/admin";
-import { Collections, type Order } from "@/server/firestore/schema";
+import { type Order } from "@/server/firestore/schema";
 import { QueueTable, type QueueRow } from "./queue-table";
 
 import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import { ordersForShop } from "@/server/tenant/queries";
 import { loadActivePickRuns } from "@/server/picking/pick-runs";
+import { loadLagerConfig } from "@/server/lager/config";
+import { orderHasPriorityTag, effectiveOrderTags } from "@/lib/lager/priority-tags";
 
 export const dynamic = "force-dynamic";
 
-async function loadQueue(shopId: string): Promise<QueueRow[]> {
+async function loadQueue(
+  shopId: string,
+  priorityTags: readonly string[],
+): Promise<QueueRow[]> {
   const db = adminDb();
   const snap = await ordersForShop(db, shopId)
     .where("internal_status", "in", ["SHIP", "PICKING"])
@@ -29,7 +34,10 @@ async function loadQueue(shopId: string): Promise<QueueRow[]> {
       iso = new Date((ts as { seconds: number }).seconds * 1000).toISOString();
     }
     const itemCount = data.line_items.reduce((sum, li) => sum + li.qty, 0);
-    const isExpress = data.tags.includes("EXPRESS_DHL");
+    const isExpress = orderHasPriorityTag(
+      effectiveOrderTags(data),
+      priorityTags,
+    );
     return {
       id: data.id,
       name: data.name,
@@ -37,7 +45,8 @@ async function loadQueue(shopId: string): Promise<QueueRow[]> {
       itemCount,
       positionCount: data.line_items.length,
       city: data.shipping_address?.city ?? null,
-      tags: data.tags,
+      tags: effectiveOrderTags(data),
+      priorityScore: data.priority_score ?? 0,
       internal_status: data.internal_status as "SHIP" | "PICKING",
       isExpress,
       customerNote: data.customer_note ?? null,
@@ -46,6 +55,9 @@ async function loadQueue(shopId: string): Promise<QueueRow[]> {
 
   rows.sort((a, b) => {
     if (a.isExpress !== b.isExpress) return a.isExpress ? -1 : 1;
+    if (a.priorityScore !== b.priorityScore) {
+      return b.priorityScore - a.priorityScore;
+    }
     return a.createdIso.localeCompare(b.createdIso);
   });
 
@@ -54,8 +66,9 @@ async function loadQueue(shopId: string): Promise<QueueRow[]> {
 
 export default async function PickingQueuePage() {
   const { shopId } = await requireTenantPageContext("/lager/picking");
+  const lagerCfg = await loadLagerConfig(shopId);
   const [rows, activeRuns] = await Promise.all([
-    loadQueue(shopId),
+    loadQueue(shopId, lagerCfg.priority_tags),
     loadActivePickRuns(shopId),
   ]);
   const t = await getTranslations("picking.queue");
@@ -138,7 +151,7 @@ export default async function PickingQueuePage() {
           {t("empty")}
         </div>
       ) : (
-        <QueueTable rows={rows} />
+        <QueueTable rows={rows} priorityTags={lagerCfg.priority_tags} />
       )}
     </div>
   );

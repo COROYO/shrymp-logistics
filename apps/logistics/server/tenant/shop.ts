@@ -136,6 +136,7 @@ export async function updateShopLagerSettings(
     batches_enabled: boolean;
     batch_min_days_before_expiry: number;
     catalog_sync_to_shopify?: boolean;
+    priority_tags?: string[];
     updated_by_uid: string | null;
   },
 ): Promise<void> {
@@ -149,7 +150,28 @@ export async function updateShopLagerSettings(
   if (patch.catalog_sync_to_shopify !== undefined) {
     body.catalog_sync_to_shopify = patch.catalog_sync_to_shopify;
   }
+  if (patch.priority_tags !== undefined) {
+    body.priority_tags = patch.priority_tags;
+  }
   await shopRef(shopId).set(body, { merge: true });
+}
+
+export async function updateShopPriorityTags(
+  shopId: string,
+  patch: {
+    priority_tags: string[];
+    updated_by_uid: string | null;
+  },
+): Promise<void> {
+  await shopRef(shopId).set(
+    {
+      priority_tags: patch.priority_tags,
+      lager_updated_by_uid: patch.updated_by_uid,
+      lager_updated_at: FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
 }
 
 export async function updateShopInventorySource(

@@ -12,6 +12,7 @@ import {
 } from "@/server/firestore/schema";
 import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
+import { loadLagerConfig } from "@/server/lager/config";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,13 @@ async function load(orderId: string) {
     if (b.exists) batchById.set(b.id, b.data() as Batch);
   }
 
-  return { order, allocs, movs, batchById };
+  return {
+    order,
+    allocs,
+    movs,
+    batchById,
+    priorityTags: (await loadLagerConfig(order.shop_id)).priority_tags,
+  };
 }
 
 export default async function AdminOrderDetailPage({
@@ -73,10 +80,10 @@ export default async function AdminOrderDetailPage({
   const { id } = await params;
   const data = await load(id);
   if (!data) notFound();
-  const { order, allocs, movs, batchById } = data;
+  const { order, allocs, movs, batchById, priorityTags } = data;
   const createdIso = tsToIso(order.created_at_shopify);
   const t = await getTranslations("orderDetail");
-
+  const prioritySet = new Set(priorityTags);
   return (
     <div className="space-y-8">
       <div>
@@ -102,14 +109,14 @@ export default async function AdminOrderDetailPage({
           >
             {order.internal_status}
           </span>
-          {order.tags.map((t) => (
+          {order.tags.map((tag) => (
             <span
-              key={t}
+              key={tag}
               className={
-                t === "EXPRESS_DHL" ? "chip chip-burgundy" : "chip chip-soft"
+                prioritySet.has(tag) ? "chip chip-burgundy" : "chip chip-soft"
               }
             >
-              {t}
+              {tag}
             </span>
           ))}
         </div>

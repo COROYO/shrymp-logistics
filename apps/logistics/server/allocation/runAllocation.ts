@@ -3,6 +3,7 @@ import {
   type AllocationResult,
   type Decision,
   EXPRESS_TAG,
+  hasPriorityTag,
   type OrderInput,
 } from "./types";
 
@@ -14,7 +15,8 @@ import {
  * time (FEFO), so this algorithm no longer knows about batches at all.
  *
  * Two phases (see plan):
- *   A. Express priority — orders tagged EXPRESS_DHL, ordered by createdAt ASC.
+ *   A. Priority — orders matching configured priority tags (default
+ *      EXPRESS_DHL), ordered by createdAt ASC.
  *   B. Standard — chronological, oldest createdAt first (tiebreak order id ASC).
  *      All-or-nothing per order; an order that doesn't fit is stopped and
  *      skipped, leaving stock for later (smaller) orders.
@@ -29,19 +31,20 @@ export function allocate(input: AllocationInput): AllocationResult {
   for (const v of input.variants) avail.set(v.variantId, v.available);
 
   const decisions = new Map<string, Decision>();
+  const priorityTags = input.priorityTags ?? [EXPRESS_TAG];
 
-  // Phase A: Express orders (hard priority).
+  // Phase A: Priority orders (hard priority via configured tags).
   const express = input.orders
-    .filter((o) => o.tags.includes(EXPRESS_TAG))
-    .sort(byCreatedAtThenId);
+    .filter((o) => hasPriorityTag(o.tags, priorityTags))
+    .sort(byPriorityThenCreatedAtThenId);
   const preAssigned = input.preAssignedOrderIds;
   for (const order of express)
     tryAllocate(order, avail, decisions, "EXPRESS", preAssigned);
 
-  // Phase B: Standard orders, chronological (oldest createdAt first).
+  // Phase B: Standard orders — score DESC within chronological lane.
   const standard = input.orders
-    .filter((o) => !o.tags.includes(EXPRESS_TAG))
-    .sort(byCreatedAtThenId);
+    .filter((o) => !hasPriorityTag(o.tags, priorityTags))
+    .sort(byPriorityThenCreatedAtThenId);
   for (const order of standard)
     tryAllocate(order, avail, decisions, "STANDARD", preAssigned);
 
@@ -138,7 +141,10 @@ function tryAllocate(
   });
 }
 
-function byCreatedAtThenId(a: OrderInput, b: OrderInput): number {
+function byPriorityThenCreatedAtThenId(a: OrderInput, b: OrderInput): number {
+  const sa = a.priorityScore ?? 0;
+  const sb = b.priorityScore ?? 0;
+  if (sa !== sb) return sb - sa; // higher score first
   if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs;
   return a.id.localeCompare(b.id);
 }

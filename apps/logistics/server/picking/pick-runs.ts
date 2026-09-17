@@ -21,10 +21,11 @@ import {
   TransitionError,
 } from "@/server/picking/transitions";
 import { log } from "@/lib/logger";
+import { loadLagerConfig } from "@/server/lager/config";
+import { orderHasPriorityTag, effectiveOrderTags } from "@/lib/lager/priority-tags";
 
 /** Hard cap on cart slots (totes) per run — matches typical cluster carts. */
 export const MAX_PICK_RUN_SLOTS = 12;
-const EXPRESS_TAG = "EXPRESS_DHL";
 
 export class PickRunError extends Error {
   constructor(
@@ -217,10 +218,16 @@ export async function createPickRun(
   if (candidates.length === 0) throw new PickRunError("no_eligible");
   if (candidates.length > MAX_PICK_RUN_SLOTS) throw new PickRunError("too_many");
 
+  const lagerCfg = await loadLagerConfig(shopId);
+  const priorityTags = lagerCfg.priority_tags;
+
   candidates.sort((a, b) => {
-    const ea = a.order.tags.includes(EXPRESS_TAG);
-    const eb = b.order.tags.includes(EXPRESS_TAG);
+    const ea = orderHasPriorityTag(effectiveOrderTags(a.order), priorityTags);
+    const eb = orderHasPriorityTag(effectiveOrderTags(b.order), priorityTags);
     if (ea !== eb) return ea ? -1 : 1;
+    const sa = a.order.priority_score ?? 0;
+    const sb = b.order.priority_score ?? 0;
+    if (sa !== sb) return sb - sa;
     return tsToMs(a.order.created_at_shopify) - tsToMs(b.order.created_at_shopify);
   });
 
@@ -249,7 +256,7 @@ export async function createPickRun(
       slot: i + 1,
       order_id: o.id,
       order_name: o.name,
-      express: o.tags.includes(EXPRESS_TAG),
+      express: orderHasPriorityTag(effectiveOrderTags(o), priorityTags),
     }));
     const orderById = new Map(started.map((o) => [o.id, o]));
 

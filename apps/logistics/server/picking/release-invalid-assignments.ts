@@ -23,10 +23,22 @@ import { maybeStopOrderForUnassignableBatches } from "./stop-for-unshippable-bat
 export async function releaseUnshippableBatchAssignments(
   orderId: string,
 ): Promise<number> {
-  const lagerCfg = await loadLagerConfig();
+  const db = adminDb();
+  const orderPeek = await db.collection(Collections.Orders).doc(orderId).get();
+  if (!orderPeek.exists) return 0;
+  const peeked = orderPeek.data() as Order;
+  if (
+    peeked.internal_status !== "SHIP" &&
+    peeked.internal_status !== "PICKING"
+  ) {
+    return 0;
+  }
+  if (!peeked.shop_id) throw new Error(`order ${orderId} has no shop_id`);
+
+  // Prefer explicit shop_id — ALS tenant context is often lost across RSC async.
+  const lagerCfg = await loadLagerConfig(peeked.shop_id);
   if (!lagerCfg.batches_enabled) return 0;
 
-  const db = adminDb();
   const minDays = lagerCfg.batch_min_days_before_expiry;
   const referenceDate = new Date();
 

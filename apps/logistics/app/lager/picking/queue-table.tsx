@@ -15,6 +15,7 @@ export type QueueRow = {
   positionCount: number;
   city: string | null;
   tags: string[];
+  priorityScore: number;
   internal_status: "SHIP" | "PICKING";
   isExpress: boolean;
   customerNote: string | null;
@@ -22,7 +23,13 @@ export type QueueRow = {
 
 type Failure = { orderId: string; error: string };
 
-export function QueueTable({ rows }: { rows: QueueRow[] }) {
+export function QueueTable({
+  rows,
+  priorityTags = [],
+}: {
+  rows: QueueRow[];
+  priorityTags?: readonly string[];
+}) {
   const t = useTranslations("picking.queue");
   const tBulk = useTranslations("picking.queue.bulk");
   const router = useRouter();
@@ -34,6 +41,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
   } | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
+  const prioritySet = useMemo(() => new Set(priorityTags), [priorityTags]);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someSelected = selected.size > 0 && !allSelected;
@@ -266,7 +274,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
                           <span
                             key={tag}
                             className={
-                              tag === "EXPRESS_DHL"
+                              prioritySet.has(tag)
                                 ? "chip chip-burgundy"
                                 : "chip chip-soft"
                             }

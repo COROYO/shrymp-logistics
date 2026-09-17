@@ -17,10 +17,17 @@ export type PackedRow = {
   customerNote: string | null;
 };
 
-export function PackedTable({ rows }: { rows: PackedRow[] }) {
+export function PackedTable({
+  rows,
+  priorityTags = [],
+}: {
+  rows: PackedRow[];
+  priorityTags?: readonly string[];
+}) {
   const t = useTranslations("packedOrders");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+  const prioritySet = useMemo(() => new Set(priorityTags), [priorityTags]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -165,7 +172,7 @@ export function PackedTable({ rows }: { rows: PackedRow[] }) {
                           <span
                             key={tag}
                             className={
-                              tag === "EXPRESS_DHL"
+                              prioritySet.has(tag)
                                 ? "chip chip-burgundy"
                                 : "chip chip-soft"
                             }

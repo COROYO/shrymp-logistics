@@ -27,13 +27,7 @@ import { orderAssignmentCoversLineItems } from "./assignment-coverage";
 export async function maybeStopOrderForUnassignableBatches(
   orderId: string,
 ): Promise<boolean> {
-  const lagerCfg = await loadLagerConfig();
-  if (!lagerCfg.batches_enabled) return false;
-
   const db = adminDb();
-  const minDays = lagerCfg.batch_min_days_before_expiry;
-  const referenceDate = new Date();
-
   const orderSnap = await db.collection(Collections.Orders).doc(orderId).get();
   if (!orderSnap.exists) return false;
   const order = orderSnap.data() as Order;
@@ -43,6 +37,14 @@ export async function maybeStopOrderForUnassignableBatches(
   ) {
     return false;
   }
+  if (!order.shop_id) throw new Error(`order ${orderId} has no shop_id`);
+
+  // Prefer explicit shop_id — ALS tenant context is often lost across RSC async.
+  const lagerCfg = await loadLagerConfig(order.shop_id);
+  if (!lagerCfg.batches_enabled) return false;
+
+  const minDays = lagerCfg.batch_min_days_before_expiry;
+  const referenceDate = new Date();
 
   const allocSnap = await db
     .collection(Collections.Allocations)

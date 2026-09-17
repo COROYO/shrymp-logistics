@@ -63,7 +63,8 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "mainNav": "Main navigation",
-    "forecasting": "Forecast"
+    "forecasting": "Forecast",
+    "automation": "Automations"
   },
   "tenant": {
     "activeShop": "Tenant",
@@ -1107,7 +1108,8 @@
     "variantImageUploadFirst": "Upload images to the gallery first",
     "variantTitle": "Title",
     "variantSku": "SKU",
-    "variantBarcode": "Barcode",
+    "variantBarcode": "Barcode / EAN",
+    "eanReplacesSkuConfirm": "This EAN will replace the SKU as the barcode on product labels. Continue?",
     "variantPrice": "Price (EUR)",
     "variantCompareAt": "Compare-at (EUR)",
     "variantOnHand": "Stock (units)",
@@ -1190,5 +1192,10 @@
       "NONE": "—"
     },
     "empty": "No forecasts yet. Run “Recompute forecast” once — mirrored orders are the data source."
+  },
+  "automation": {
+    "eyebrow": "Workflows",
+    "title": "Automations",
+    "intro": "Rules run locally on a trigger (import, paid, SHIP/STOP, …). Existing orders are not backfilled — use Dry-Run / Apply now to test."
   }
 }

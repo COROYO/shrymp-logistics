@@ -63,6 +63,8 @@ const DATE_LOCALE: Record<string, string> = {
   de: "de-DE",
   en: "en-GB",
   ru: "ru-RU",
+  pl: "pl-PL",
+  tr: "tr-TR",
 };
 
 export async function SlipBody({

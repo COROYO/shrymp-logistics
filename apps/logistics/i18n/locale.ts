@@ -6,7 +6,7 @@
  * be churn for no benefit. The cookie sticks per session.
  */
 
-export const LOCALES = ["de", "en", "ru"] as const;
+export const LOCALES = ["de", "en", "ru", "pl", "tr"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "de";
 export const LOCALE_COOKIE = "monolith-locale";
@@ -19,4 +19,6 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   de: "Deutsch",
   en: "English",
   ru: "Русский",
+  pl: "Polski",
+  tr: "Türkçe",
 };

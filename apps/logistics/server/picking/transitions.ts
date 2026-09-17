@@ -8,6 +8,7 @@ import {
   type OrderInternalStatus,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { dispatchAutomationEvent } from "@/server/automation/dispatch";
 import { loadLagerConfig } from "@/server/lager/config";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 import { assignBatchesForOrder } from "./assign-batches";
@@ -50,16 +51,19 @@ export async function startPicking(
   const db = adminDb();
   const ref = db.collection(Collections.Orders).doc(orderId);
 
+  let shopId: string | null = null;
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new TransitionError("order_not_found");
-    const status = snap.data()?.internal_status as OrderInternalStatus;
+    const data = snap.data() as Order;
+    const status = data.internal_status as OrderInternalStatus;
     if (status !== "SHIP") {
       throw new TransitionError(
         "not_in_ship_state",
         `Order ist in Status "${status}", erwartet "SHIP".`,
       );
     }
+    shopId = data.shop_id ?? null;
     tx.update(ref, {
       internal_status: "PICKING",
       picking_started_at: FieldValue.serverTimestamp(),
@@ -69,6 +73,13 @@ export async function startPicking(
   });
 
   log.info("picking_started", { orderId, userId });
+  if (shopId) {
+    await dispatchAutomationEvent({
+      shopId,
+      trigger: "PICKING_STARTED",
+      orderId,
+    });
+  }
 }
 
 // ----------------------- cancelPicking -----------------------
@@ -370,6 +381,12 @@ export async function confirmPacking(
     shopId,
     triggeredBy: "PACKING_DONE",
     triggerEventId: orderId,
+  });
+
+  await dispatchAutomationEvent({
+    shopId,
+    trigger: "PACKED",
+    orderId,
   });
 
   log.info("packing_confirmed", {

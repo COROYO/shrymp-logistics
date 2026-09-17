@@ -264,6 +264,15 @@
         { "fieldPath": "shop_id", "order": "ASCENDING" },
         { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "automation_rules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shop_id", "order": "ASCENDING" },
+        { "fieldPath": "trigger", "order": "ASCENDING" },
+        { "fieldPath": "enabled", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

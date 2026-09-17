@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/roman/Code/monolith-lager log --oneline -5)",
+      "mcp__plugin_shopify-plugin_shopify-mcp__learn_shopify_api",
+      "mcp__plugin_shopify-plugin_shopify-mcp__search_docs_chunks",
+      "Bash(pnpm exec *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm test *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,1\\)\\); console.log\\('--- deps tsx/ts-node ---'\\); console.log\\(Object.keys\\({...p.dependencies,...p.devDependencies}\\).filter\\(d=>/tsx|ts-node|dotenv/.test\\(d\\)\\)\\)\")",
+      "Bash(gcloud config *)",
+      "Bash(gcloud scheduler *)",
+      "Bash(gcloud tasks *)",
+      "Bash(firebase apphosting:backends:list)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
