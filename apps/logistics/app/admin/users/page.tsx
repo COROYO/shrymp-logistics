@@ -29,10 +29,7 @@ export default async function UsersPage() {
           <p className="eyebrow">Team</p>
           <h1 className="h-display mt-1 text-3xl">Benutzer</h1>
           <p className="mt-2 max-w-2xl text-sm text-brand-navy/70">
-            Mitarbeiter:innen anlegen und Rollen verwalten. Nur Admins können
-            hier ändern. Du selbst (
-            <span className="font-mono">{me?.email}</span>) kannst dich nicht
-            versehentlich aussperren.
+            Mitarbeiter anlegen und Rollen verwalten.
           </p>
         </div>
         <UsersHeaderActions />
