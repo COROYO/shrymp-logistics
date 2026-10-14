@@ -8,6 +8,7 @@ import {
 } from "@/server/shopify/oauth-state";
 import { normalizeShopDomainInput } from "@/server/tenant/id";
 import { REQUIRED_OAUTH_SCOPE_STRING } from "@/server/shopify/scopes";
+import { publicOrigin } from "@/lib/public-origin";
 import { log } from "@/lib/logger";
 
 /**
@@ -18,11 +19,13 @@ import { log } from "@/lib/logger";
  * reconnect, from the shop doc / env fallback).
  */
 export async function GET(req: Request) {
+  const origin = publicOrigin(req);
+  const url = new URL(req.url);
   const user = await getSessionUser();
   if (!user) {
-    const url = new URL("/login", req.url);
-    url.searchParams.set("next", new URL(req.url).pathname + new URL(req.url).search);
-    return NextResponse.redirect(url);
+    const login = new URL("/login", origin);
+    login.searchParams.set("next", url.pathname + url.search);
+    return NextResponse.redirect(login);
   }
   if (user.role !== "ADMIN") {
     return new Response("Nur Shop-Admins können Shopify verbinden.", {
@@ -30,7 +33,6 @@ export async function GET(req: Request) {
     });
   }
 
-  const url = new URL(req.url);
   const rawShop = url.searchParams.get("shop") ?? "";
   const shop =
     normalizeShopDomainInput(rawShop) ??
@@ -45,7 +47,7 @@ export async function GET(req: Request) {
 
   const creds = await resolveInstallAppCreds(shop, user.uid);
   if (!creds) {
-    const back = new URL("/onboarding", url.origin);
+    const back = new URL("/onboarding", origin);
     back.searchParams.set(
       "error",
       "Shopify-App-Zugangsdaten fehlen. Bitte Client ID und Client Secret eintragen.",
@@ -62,7 +64,7 @@ export async function GET(req: Request) {
     apiSecret,
   );
 
-  const redirectUri = `${url.origin}/api/shopify/callback`;
+  const redirectUri = `${origin}/api/shopify/callback`;
   const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
   authorize.searchParams.set("client_id", apiKey);
   authorize.searchParams.set("scope", REQUIRED_OAUTH_SCOPE_STRING);

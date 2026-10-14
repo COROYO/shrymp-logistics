@@ -24,6 +24,7 @@ import {
 import { SHOP_COOKIE } from "@/lib/auth/tenant";
 import { normalizeShopId } from "@/server/tenant/id";
 import { REQUIRED_OAUTH_SCOPE_STRING } from "@/server/shopify/scopes";
+import { publicOrigin } from "@/lib/public-origin";
 import { log } from "@/lib/logger";
 
 /** Reject install/callback requests with a stale timestamp (replay defense). */
@@ -67,6 +68,7 @@ export async function GET(req: Request) {
 
 async function handle(req: Request): Promise<Response> {
   const url = new URL(req.url);
+  const origin = publicOrigin(req);
   const params = url.searchParams;
   const shop = (params.get("shop") ?? "").trim();
   const code = params.get("code");
@@ -104,7 +106,7 @@ async function handle(req: Request): Promise<Response> {
 
   // ----- Case (A): initial install hit — no code yet, kick off OAuth ------
   if (!code) {
-    const redirectUri = `${url.origin}/api/shopify/callback`;
+    const redirectUri = `${origin}/api/shopify/callback`;
     const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
     authorize.searchParams.set("client_id", apiKey);
     authorize.searchParams.set("scope", REQUIRED_OAUTH_SCOPE_STRING);
@@ -172,7 +174,7 @@ async function handle(req: Request): Promise<Response> {
         return NextResponse.redirect(
           new URL(
             `/onboarding?error=${encodeURIComponent(e.message)}`,
-            url.origin,
+            origin,
           ),
         );
       }
@@ -211,7 +213,7 @@ async function handle(req: Request): Promise<Response> {
   });
 
   const res = NextResponse.redirect(
-    new URL("/onboarding/setup?installed=1", url.origin),
+    new URL("/onboarding/setup?installed=1", origin),
   );
   res.cookies.set(SHOP_COOKIE, shopId, {
     httpOnly: true,
