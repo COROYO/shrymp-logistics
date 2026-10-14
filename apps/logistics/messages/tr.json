@@ -1067,6 +1067,7 @@
     "bin": "Lagerplatz",
     "noBin": "—",
     "sku": "Art.-Nr.",
+    "bundle": "Set",
     "qty": "Menge",
     "charge": "Charge",
     "expiry": "MHD",

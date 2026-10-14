@@ -1,63 +1,7 @@
+import { Fragment } from "react";
 import { getTranslations } from "next-intl/server";
-import {
-  tsToDate,
-  type SlipAllocLine,
-  type SlipData,
-} from "@/server/picking/slip-data";
-
-type MergedSlipLine = {
-  key: string;
-  title: string;
-  variantTitle: string | null;
-  sku: string | null;
-  binCode: string | null;
-  qty: number;
-  allocs: { chargeNumber: string; qty: number }[];
-};
-
-function mergeSlipLines(
-  lineItems: SlipData["order"]["line_items"],
-  allocsByLi: Map<string, SlipAllocLine[]>,
-  variantTitleByLi: Map<string, string | null>,
-  binByVariant: Map<string, string | null>,
-): MergedSlipLine[] {
-  const groups = new Map<string, MergedSlipLine>();
-  const order: string[] = [];
-
-  for (const li of lineItems) {
-    const key = `${li.title}\u0001${li.sku ?? ""}`;
-    let g = groups.get(key);
-    if (!g) {
-      g = {
-        key,
-        title: li.title,
-        variantTitle: variantTitleByLi.get(li.id) ?? null,
-        sku: li.sku ?? null,
-        binCode: binByVariant.get(li.variant_id) ?? null,
-        qty: 0,
-        allocs: [],
-      };
-      groups.set(key, g);
-      order.push(key);
-    }
-    g.qty += li.qty;
-    for (const a of allocsByLi.get(li.id) ?? []) {
-      g.allocs.push({ chargeNumber: a.chargeNumber, qty: a.qty });
-    }
-  }
-
-  for (const g of groups.values()) {
-    const byCharge = new Map<string, number>();
-    for (const a of g.allocs) {
-      byCharge.set(a.chargeNumber, (byCharge.get(a.chargeNumber) ?? 0) + a.qty);
-    }
-    g.allocs = [...byCharge.entries()]
-      .map(([chargeNumber, qty]) => ({ chargeNumber, qty }))
-      .sort((a, b) => a.chargeNumber.localeCompare(b.chargeNumber));
-  }
-
-  return order.map((k) => groups.get(k)!);
-}
+import { tsToDate, type SlipData } from "@/server/picking/slip-data";
+import { buildSlipSections } from "./slip-lines";
 
 const DATE_LOCALE: Record<string, string> = {
   de: "de-DE",
@@ -76,12 +20,13 @@ export async function SlipBody({
 }) {
   const { order, allocsByLi, variantTitleByLi, branding, batchesEnabled, binByVariant } =
     data;
-  const mergedLines = mergeSlipLines(
+  const sections = buildSlipSections(
     order.line_items,
     allocsByLi,
     variantTitleByLi,
     binByVariant,
   );
+  const columnCount = batchesEnabled ? 4 : 3;
 
   const locale = "de" as const;
   const t = await getTranslations({ locale, namespace: "packingSlip" });
@@ -224,60 +169,106 @@ export async function SlipBody({
           </tr>
         </thead>
         <tbody>
-          {mergedLines.map((line) => (
-            <tr key={line.key} className="border-b border-zinc-300 align-top">
-              <td className="px-3 py-2 pr-4">
-                <div className="font-semibold" style={{ color: header }}>
-                  {line.title}
-                  {line.variantTitle ? (
-                    <span className="font-normal text-brand-navy">
-                      {" "}
-                      {line.variantTitle}
+          {sections.map((section) => (
+            <Fragment key={section.key}>
+              {section.bundle ? (
+                <tr
+                  className="border-b border-l-4 border-zinc-300"
+                  style={{
+                    borderLeftColor: accent,
+                    backgroundColor: `color-mix(in srgb, ${accent} 8%, white)`,
+                  }}
+                >
+                  <td colSpan={columnCount} className="px-3 py-2">
+                    <span
+                      className="text-[9pt] font-semibold uppercase tracking-[0.12em]"
+                      style={{ color: header }}
+                    >
+                      {t("bundle")}
+                    </span>{" "}
+                    <span className="font-semibold" style={{ color: header }}>
+                      {section.bundle.title}
                     </span>
-                  ) : null}
-                </div>
-                {line.sku ? (
-                  <div className="mt-0.5 font-mono text-[9pt] text-brand-navy/55">
-                    {t("sku")} {line.sku}
-                  </div>
-                ) : null}
-              </td>
-              <td className="px-3 py-2 pr-4 font-mono text-[11pt] font-bold text-brand-navy">
-                {line.binCode ?? (
-                  <span className="font-normal italic text-brand-navy/40">
-                    {t("noBin")}
-                  </span>
-                )}
-              </td>
-              <td className="px-3 py-2 pr-4 text-right text-brand-navy">
-                {line.allocs.length > 1 ? (
-                  <div className="space-y-0.5">
-                    {line.allocs.map((a) => (
-                      <div key={a.chargeNumber}>{a.qty}</div>
-                    ))}
-                  </div>
-                ) : (
-                  line.qty
-                )}
-              </td>
-              {batchesEnabled ? (
-                <td className="px-3 py-2 pr-4 font-mono">
-                  {line.allocs.length === 0 ? (
-                    <span className="italic text-brand-navy/40">
-                      {t("noCharge")}
-                    </span>
-                  ) : line.allocs.length === 1 ? (
-                    line.allocs[0]!.chargeNumber
-                  ) : (
-                    <div className="space-y-0.5">
-                      {line.allocs.map((a) => (
-                        <div key={a.chargeNumber}>{a.chargeNumber}</div>
-                      ))}
-                    </div>
-                  )}
-                </td>
+                    {section.bundle.quantity > 1 ? (
+                      <span className="text-brand-navy/70">
+                        {" "}
+                        × {section.bundle.quantity}
+                      </span>
+                    ) : null}
+                    {section.bundle.sku ? (
+                      <span className="ml-2 font-mono text-[9pt] text-brand-navy/55">
+                        {t("sku")} {section.bundle.sku}
+                      </span>
+                    ) : null}
+                  </td>
+                </tr>
               ) : null}
-            </tr>
+              {section.lines.map((line) => (
+                <tr
+                  key={line.key}
+                  className={`border-b border-zinc-300 align-top ${
+                    section.bundle ? "border-l-4" : ""
+                  }`}
+                  style={
+                    section.bundle
+                      ? { borderLeftColor: `color-mix(in srgb, ${accent} 35%, white)` }
+                      : undefined
+                  }
+                >
+                  <td className={`px-3 py-2 pr-4 ${section.bundle ? "pl-6" : ""}`}>
+                    <div className="font-semibold" style={{ color: header }}>
+                      {line.title}
+                      {line.variantTitle ? (
+                        <span className="font-normal text-brand-navy">
+                          {" "}
+                          {line.variantTitle}
+                        </span>
+                      ) : null}
+                    </div>
+                    {line.sku ? (
+                      <div className="mt-0.5 font-mono text-[9pt] text-brand-navy/55">
+                        {t("sku")} {line.sku}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-2 pr-4 font-mono text-[11pt] font-bold text-brand-navy">
+                    {line.binCode ?? (
+                      <span className="font-normal italic text-brand-navy/40">
+                        {t("noBin")}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 pr-4 text-right text-brand-navy">
+                    {line.allocs.length > 1 ? (
+                      <div className="space-y-0.5">
+                        {line.allocs.map((a) => (
+                          <div key={a.chargeNumber}>{a.qty}</div>
+                        ))}
+                      </div>
+                    ) : (
+                      line.qty
+                    )}
+                  </td>
+                  {batchesEnabled ? (
+                    <td className="px-3 py-2 pr-4 font-mono">
+                      {line.allocs.length === 0 ? (
+                        <span className="italic text-brand-navy/40">
+                          {t("noCharge")}
+                        </span>
+                      ) : line.allocs.length === 1 ? (
+                        line.allocs[0]!.chargeNumber
+                      ) : (
+                        <div className="space-y-0.5">
+                          {line.allocs.map((a) => (
+                            <div key={a.chargeNumber}>{a.chargeNumber}</div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </Fragment>
           ))}
         </tbody>
       </table>
