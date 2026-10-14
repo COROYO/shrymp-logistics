@@ -3,7 +3,11 @@ import { getSessionUser } from "@/lib/auth/session";
 import {
   merchantNeedsShopifyConnect,
 } from "@/lib/auth/merchant";
-import { merchantNeedsOnboarding } from "@/server/onboarding/state";
+import {
+  getOnboardingStep,
+  merchantNeedsOnboarding,
+  resolveOnboardingImport,
+} from "@/server/onboarding/state";
 import { requireActiveShopId } from "@/lib/auth/tenant";
 import { loadLagerConfig } from "@/server/lager/config";
 import { loadSlipBranding } from "@/server/slip/branding";
@@ -30,16 +34,19 @@ export default async function OnboardingSetupPage({
   const shopId = await requireActiveShopId(user);
   const sp = await searchParams;
 
-  const [lagerCfg, slipBranding, shop, onboardingState] = await Promise.all([
-    loadLagerConfig(shopId),
-    loadSlipBranding(shopId),
-    getShop(shopId),
-    import("@/server/onboarding/state").then((m) => m.getOnboardingStep(shopId)),
-  ]);
+  const [lagerCfg, slipBranding, shop, onboardingState, imported] =
+    await Promise.all([
+      loadLagerConfig(shopId),
+      loadSlipBranding(shopId),
+      getShop(shopId),
+      getOnboardingStep(shopId),
+      resolveOnboardingImport(shopId),
+    ]);
 
   return (
     <SetupWizard
       initialStep={onboardingState}
+      initialImport={imported}
       justInstalled={sp.installed === "1"}
       shopDomain={shop?.shop_domain ?? shopId}
       lagerConfig={{

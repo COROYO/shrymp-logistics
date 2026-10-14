@@ -36,6 +36,96 @@ export async function getOnboardingStep(shopId: string): Promise<number> {
   return shop?.onboarding_step ?? 0;
 }
 
+export type OnboardingImportState = {
+  productsDone: boolean;
+  productCount: number;
+  variantCount: number;
+  openOrdersDone: boolean;
+  openOrdersCount: number;
+  historyDone: boolean;
+  historyOrdersCount: number;
+};
+
+export async function getOnboardingImport(
+  shopId: string,
+): Promise<OnboardingImportState> {
+  const shop = await getShop(normalizeShopId(shopId));
+  const imported = shop?.onboarding_import;
+  return {
+    productsDone: imported?.products_done === true,
+    productCount: imported?.product_count ?? 0,
+    variantCount: imported?.variant_count ?? 0,
+    openOrdersDone: imported?.open_orders_done === true,
+    openOrdersCount: imported?.open_orders_count ?? 0,
+    historyDone: imported?.history_done === true,
+    historyOrdersCount: imported?.history_orders_count ?? 0,
+  };
+}
+
+/**
+ * Products count as imported when this onboarding run finished them, or when
+ * a full product sync for the shop already completed.
+ */
+export async function resolveOnboardingImport(
+  shopId: string,
+): Promise<OnboardingImportState> {
+  const state = await getOnboardingImport(shopId);
+  if (state.productsDone) return state;
+
+  const { getLatestCompletedProductSync } = await import(
+    "@/server/shopify/product-sync-run"
+  );
+  const completed = await getLatestCompletedProductSync(shopId);
+  if (!completed) return state;
+
+  return {
+    ...state,
+    productsDone: true,
+    productCount: completed.productCount,
+    variantCount: completed.variantCount,
+  };
+}
+
+export async function markOnboardingProductsImported(
+  shopId: string,
+  productCount: number,
+  variantCount: number,
+): Promise<void> {
+  await adminDb()
+    .collection(Collections.Shops)
+    .doc(normalizeShopId(shopId))
+    .update({
+      "onboarding_import.products_done": true,
+      "onboarding_import.product_count": productCount,
+      "onboarding_import.variant_count": variantCount,
+      updated_at: FieldValue.serverTimestamp(),
+    });
+}
+
+export async function markOnboardingOrdersImported(
+  shopId: string,
+  stage: "open" | "history",
+  count: number,
+): Promise<void> {
+  const patch =
+    stage === "open"
+      ? {
+          "onboarding_import.open_orders_done": true,
+          "onboarding_import.open_orders_count": count,
+        }
+      : {
+          "onboarding_import.history_done": true,
+          "onboarding_import.history_orders_count": count,
+        };
+  await adminDb()
+    .collection(Collections.Shops)
+    .doc(normalizeShopId(shopId))
+    .update({
+      ...patch,
+      updated_at: FieldValue.serverTimestamp(),
+    });
+}
+
 export async function saveOnboardingStep(
   shopId: string,
   step: number,

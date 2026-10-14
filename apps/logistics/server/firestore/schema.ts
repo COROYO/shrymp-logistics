@@ -820,6 +820,21 @@ export const ShopSchema = z.object({
   owner_uid: z.string().optional(),
   /** Last completed onboarding wizard step (0-based). */
   onboarding_step: z.number().int().nonnegative().optional(),
+  /**
+   * Stages of the first-run Shopify import that already finished.
+   * A retry skips these so Shopify is not paged again.
+   */
+  onboarding_import: z
+    .object({
+      products_done: z.boolean().optional(),
+      product_count: z.number().int().nonnegative().optional(),
+      variant_count: z.number().int().nonnegative().optional(),
+      open_orders_done: z.boolean().optional(),
+      open_orders_count: z.number().int().nonnegative().optional(),
+      history_done: z.boolean().optional(),
+      history_orders_count: z.number().int().nonnegative().optional(),
+    })
+    .optional(),
   /** Set when the merchant finishes the first-run setup wizard. */
   onboarding_completed_at: FirestoreTimestamp.optional(),
   created_at: FirestoreTimestamp,

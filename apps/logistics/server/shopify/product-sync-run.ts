@@ -446,10 +446,9 @@ export async function getLatestProductSyncStatus(
   return jobs[0] ?? null;
 }
 
-/** Latest successful full sync timestamp for admin UI (ms since epoch). */
-export async function getLastCompletedProductSyncFinishedAtMs(
+async function findLatestCompletedProductSyncData(
   shopId: string,
-): Promise<number | null> {
+): Promise<FirebaseFirestore.DocumentData | null> {
   const normalizedShopId = normalizeShopId(shopId);
   const snap = await adminDb()
     .collection(Collections.ProductSyncRuns)
@@ -460,11 +459,30 @@ export async function getLastCompletedProductSyncFinishedAtMs(
 
   for (const doc of snap.docs) {
     const data = doc.data();
-    if (data.status !== "COMPLETED") continue;
-    const ms = timestampToMs(data.finished_at);
-    if (ms != null) return ms;
+    if (data.status === "COMPLETED") return data;
   }
   return null;
+}
+
+/** Latest successful full sync timestamp for admin UI (ms since epoch). */
+export async function getLastCompletedProductSyncFinishedAtMs(
+  shopId: string,
+): Promise<number | null> {
+  const data = await findLatestCompletedProductSyncData(shopId);
+  if (!data) return null;
+  return timestampToMs(data.finished_at) ?? null;
+}
+
+/** Counts from the latest completed full catalog sync, if one exists. */
+export async function getLatestCompletedProductSync(
+  shopId: string,
+): Promise<{ productCount: number; variantCount: number } | null> {
+  const data = await findLatestCompletedProductSyncData(shopId);
+  if (!data) return null;
+  return {
+    productCount: (data.product_count as number | undefined) ?? 0,
+    variantCount: (data.variant_count as number | undefined) ?? 0,
+  };
 }
 
 function serializeRun(

@@ -11,10 +11,21 @@ import type { SlipBrandingConfig } from "@/lib/slip/defaults";
 import type { LagerConfigFormValue } from "@/app/admin/settings/lager-config-form";
 import {
   completeOnboardingAction,
+  markOnboardingProductsImportedAction,
   runOnboardingOrdersImportAction,
   saveOnboardingStepAction,
   startOnboardingProductSyncAction,
 } from "../actions";
+
+type OnboardingImportSnapshot = {
+  productsDone: boolean;
+  productCount: number;
+  variantCount: number;
+  openOrdersDone: boolean;
+  openOrdersCount: number;
+  historyDone: boolean;
+  historyOrdersCount: number;
+};
 
 const STEPS = [
   { id: "welcome", label: "Willkommen" },
@@ -26,12 +37,51 @@ const STEPS = [
   { id: "done", label: "Fertig" },
 ] as const;
 
-type ImportPhase =
-  | "idle"
-  | "products"
-  | "orders"
-  | "done"
-  | "error";
+type ImportPhase = "idle" | "products" | "open_orders" | "history" | "done";
+
+const IMPORT_STEP_COUNT = 3;
+
+/** Share of the first import step each product-sync phase fills. */
+const PRODUCT_PHASE_FRACTION: Record<string, number> = {
+  starting: 0.12,
+  locations: 0.35,
+  catalog: 0.62,
+  inventory: 0.82,
+  applying_inventory: 0.94,
+  done: 1,
+};
+
+const SYNC_PHASE_LABEL: Record<string, string> = {
+  starting: "Start",
+  locations: "Standorte",
+  catalog: "Katalog",
+  inventory: "Bestände laden",
+  applying_inventory: "Bestände schreiben",
+  done: "Fertig",
+};
+
+function importProgress(
+  phase: ImportPhase,
+  syncPhase: string,
+): { pct: number; step: number; label: string } {
+  if (phase === "done") return { pct: 100, step: 3, label: "Fertig" };
+  if (phase === "history") {
+    return { pct: 83, step: 3, label: "Kunden & Historie" };
+  }
+  if (phase === "open_orders") {
+    return { pct: 50, step: 2, label: "Offene Aufträge" };
+  }
+  if (phase === "products") {
+    const fraction = PRODUCT_PHASE_FRACTION[syncPhase] ?? 0.08;
+    const sub = SYNC_PHASE_LABEL[syncPhase];
+    return {
+      pct: Math.round((fraction / IMPORT_STEP_COUNT) * 100),
+      step: 1,
+      label: sub ? `Standorte & Produkte · ${sub}` : "Standorte & Produkte",
+    };
+  }
+  return { pct: 0, step: 0, label: "" };
+}
 
 const inputClass =
   "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
@@ -41,6 +91,7 @@ const labelClass =
 
 export function SetupWizard({
   initialStep,
+  initialImport,
   justInstalled,
   shopDomain,
   lagerConfig,
@@ -48,6 +99,7 @@ export function SetupWizard({
   userEmail,
 }: {
   initialStep: number;
+  initialImport: OnboardingImportSnapshot;
   justInstalled: boolean;
   shopDomain: string;
   lagerConfig: LagerConfigFormValue;
@@ -57,15 +109,24 @@ export function SetupWizard({
   const router = useRouter();
   const [step, setStep] = useState(initialStep);
   const [pending, startTransition] = useTransition();
-  const [importPhase, setImportPhase] = useState<ImportPhase>("idle");
+  const [productsDone, setProductsDone] = useState(initialImport.productsDone);
+  const [openOrdersDone, setOpenOrdersDone] = useState(
+    initialImport.openOrdersDone,
+  );
+  const [historyDone, setHistoryDone] = useState(initialImport.historyDone);
+  const [importPhase, setImportPhase] = useState<ImportPhase>(
+    initialImport.historyDone ? "done" : "idle",
+  );
   const [importError, setImportError] = useState<string | null>(null);
   const [importStats, setImportStats] = useState({
-    products: 0,
-    variants: 0,
-    openOrders: 0,
-    historyOrders: 0,
+    products: initialImport.productCount,
+    variants: initialImport.variantCount,
+    openOrders: initialImport.openOrdersCount,
+    historyOrders: initialImport.historyOrdersCount,
   });
-  const [syncPhase, setSyncPhase] = useState("");
+  const [syncPhase, setSyncPhase] = useState(
+    initialImport.productsDone ? "done" : "",
+  );
 
   const progressPct = Math.round(((step + 1) / STEPS.length) * 100);
 
@@ -82,61 +143,90 @@ export function SetupWizard({
 
   async function runImport() {
     setImportError(null);
-    setImportPhase("products");
 
-    const started = await startOnboardingProductSyncAction();
-    const runId = started.ok ? started.runId : "";
-    if (!started.ok && started.error !== "sync_already_running") {
-      setImportError(started.error);
-      setImportPhase("error");
-      return;
+    if (!productsDone) {
+      setImportPhase("products");
+
+      const started = await startOnboardingProductSyncAction();
+      if (started.ok && started.skipped) {
+        setSyncPhase("done");
+        setImportStats((s) => ({
+          ...s,
+          products: started.products,
+          variants: started.variants,
+        }));
+        setProductsDone(true);
+      } else {
+        const runId = started.ok ? started.runId : "";
+        if (!started.ok && started.error !== "sync_already_running") {
+          setImportError(started.error);
+          setImportPhase("idle");
+          return;
+        }
+
+        let syncDone = false;
+        let productCount = 0;
+        let variantCount = 0;
+        for (let i = 0; i < 300 && !syncDone; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const res = await listAdminJobsAction();
+          if (!res.ok) continue;
+          const job = res.jobs.find((j) => j.id === runId) ?? res.jobs[0];
+          if (!job) continue;
+
+          setSyncPhase(job.phase);
+          productCount = job.productCount;
+          variantCount = job.variantCount;
+          setImportStats((s) => ({
+            ...s,
+            products: job.productCount,
+            variants: job.variantCount,
+          }));
+
+          if (job.status === "COMPLETED") {
+            syncDone = true;
+            break;
+          }
+          if (job.status === "FAILED" || job.status === "CANCELLED") {
+            setImportError(job.error ?? "Produkt-Sync fehlgeschlagen");
+            return;
+          }
+        }
+
+        if (!syncDone) {
+          setImportError(
+            "Produkt-Sync hat zu lange gedauert — bitte erneut versuchen.",
+          );
+          return;
+        }
+
+        await markOnboardingProductsImportedAction(productCount, variantCount);
+        setProductsDone(true);
+      }
     }
 
-    let syncDone = false;
-    for (let i = 0; i < 300 && !syncDone; i++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      const res = await listAdminJobsAction();
-      if (!res.ok) continue;
-      const job = res.jobs.find((j) => j.id === runId) ?? res.jobs[0];
-      if (!job) continue;
-
-      setSyncPhase(job.phase);
-      setImportStats((s) => ({
-        ...s,
-        products: job.productCount,
-        variants: job.variantCount,
-      }));
-
-      if (job.status === "COMPLETED") {
-        syncDone = true;
-        break;
-      }
-      if (job.status === "FAILED" || job.status === "CANCELLED") {
-        setImportError(job.error ?? "Produkt-Sync fehlgeschlagen");
-        setImportPhase("error");
+    if (!openOrdersDone) {
+      setImportPhase("open_orders");
+      const open = await runOnboardingOrdersImportAction("open");
+      if (!open.ok) {
+        setImportError(open.error);
         return;
       }
+      setImportStats((s) => ({ ...s, openOrders: open.count }));
+      setOpenOrdersDone(true);
     }
 
-    if (!syncDone) {
-      setImportError("Produkt-Sync hat zu lange gedauert — bitte erneut versuchen.");
-      setImportPhase("error");
-      return;
+    if (!historyDone) {
+      setImportPhase("history");
+      const history = await runOnboardingOrdersImportAction("history");
+      if (!history.ok) {
+        setImportError(history.error);
+        return;
+      }
+      setImportStats((s) => ({ ...s, historyOrders: history.count }));
+      setHistoryDone(true);
     }
 
-    setImportPhase("orders");
-    const orders = await runOnboardingOrdersImportAction();
-    if (!orders.ok) {
-      setImportError(orders.error);
-      setImportPhase("error");
-      return;
-    }
-
-    setImportStats((s) => ({
-      ...s,
-      openOrders: orders.openOrders,
-      historyOrders: orders.historyOrders,
-    }));
     setImportPhase("done");
   }
 
@@ -208,6 +298,12 @@ export function SetupWizard({
             error={importError}
             stats={importStats}
             pending={pending}
+            resume={(productsDone || openOrdersDone) && !historyDone}
+            doneStages={{
+              products: productsDone,
+              openOrders: openOrdersDone,
+              history: historyDone,
+            }}
             onStart={() => startTransition(() => void runImport())}
             onNext={() => goToStep(2)}
             onBack={() => goToStep(0)}
@@ -330,6 +426,8 @@ function ImportStep({
   error,
   stats,
   pending,
+  resume = false,
+  doneStages = { products: false, openOrders: false, history: false },
   onStart,
   onNext,
   onBack,
@@ -344,25 +442,40 @@ function ImportStep({
     historyOrders: number;
   };
   pending: boolean;
+  resume?: boolean;
+  doneStages?: {
+    products: boolean;
+    openOrders: boolean;
+    history: boolean;
+  };
   onStart: () => void;
   onNext: () => void;
   onBack: () => void;
 }) {
+  const progress = importProgress(phase, syncPhase);
+  const running =
+    !error &&
+    (phase === "products" || phase === "open_orders" || phase === "history");
   const subSteps = [
     {
       label: "Standorte & Produkte",
-      done: phase === "orders" || phase === "done",
-      active: phase === "products",
+      done:
+        doneStages.products ||
+        phase === "open_orders" ||
+        phase === "history" ||
+        phase === "done",
+      active: phase === "products" && !error,
     },
     {
       label: "Offene Aufträge",
-      done: phase === "done",
-      active: phase === "orders",
+      done:
+        doneStages.openOrders || phase === "history" || phase === "done",
+      active: phase === "open_orders" && !error,
     },
     {
       label: "Kunden & Historie",
-      done: phase === "done",
-      active: phase === "orders",
+      done: doneStages.history || phase === "done",
+      active: phase === "history" && !error,
     },
   ];
 
@@ -375,8 +488,36 @@ function ImportStep({
         </h2>
         <p className="mt-2 text-sm text-brand-navy/70">
           Wir holen deine Produkte, Lagerstandorte, offenen Aufträge und
-          Kundendaten aus Shopify — damit du sofort etwas in der App siehst.
+          Kundendaten aus Shopify. Den Import kannst du überspringen und
+          später im Admin nachholen.
         </p>
+
+        {phase !== "idle" ? (
+          <div className="mt-6">
+            <div className="flex items-center justify-between text-xs text-brand-navy/60">
+              <span>
+                Schritt {progress.step} von {IMPORT_STEP_COUNT}
+                {progress.label ? ` · ${progress.label}` : ""}
+              </span>
+              <span className="font-semibold text-brand-navy">
+                {progress.pct}%
+              </span>
+            </div>
+            <div
+              className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-200"
+              role="progressbar"
+              aria-valuenow={progress.pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Import-Fortschritt"
+            >
+              <div
+                className="h-full rounded-full bg-brand-burgundy transition-all duration-500 ease-out"
+                style={{ width: `${progress.pct}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
 
         <ul className="mt-6 space-y-3">
           {subSteps.map((s) => (
@@ -394,26 +535,33 @@ function ImportStep({
                 {s.done ? "✓" : s.active ? "…" : "○"}
               </span>
               <span className="font-medium">{s.label}</span>
-              {s.active && syncPhase ? (
-                <span className="ml-auto font-mono text-xs opacity-70">
-                  {syncPhase}
+              {s.active && phase === "products" && syncPhase && syncPhase !== "done" ? (
+                <span className="ml-auto text-xs text-brand-navy/60">
+                  {SYNC_PHASE_LABEL[syncPhase] ?? syncPhase}
                 </span>
               ) : null}
             </li>
           ))}
         </ul>
 
-        {phase !== "idle" && phase !== "error" ? (
+        {phase !== "idle" ? (
           <dl className="mt-6 grid gap-3 sm:grid-cols-2">
             <Stat label="Produkte" value={stats.products} />
             <Stat label="Varianten" value={stats.variants} />
+            {phase === "history" || phase === "done" ? (
+              <Stat label="Offene Aufträge" value={stats.openOrders} />
+            ) : null}
             {phase === "done" ? (
-              <>
-                <Stat label="Offene Aufträge" value={stats.openOrders} />
-                <Stat label="Historie importiert" value={stats.historyOrders} />
-              </>
+              <Stat label="Historie importiert" value={stats.historyOrders} />
             ) : null}
           </dl>
+        ) : null}
+
+        {phase === "idle" && resume && !error ? (
+          <p className="mt-4 text-sm text-brand-navy/70">
+            Schon importierte Daten bleiben. Es werden nur die fehlenden
+            Schritte geladen.
+          </p>
         ) : null}
 
         {error ? (
@@ -422,18 +570,24 @@ function ImportStep({
           </div>
         ) : null}
 
-        {phase === "idle" ? (
+        {phase === "idle" || error ? (
           <button
             type="button"
             onClick={onStart}
-            disabled={pending}
+            disabled={pending || running}
             className="btn-primary mt-6"
           >
-            {pending ? "Starte Import…" : "Import starten"}
+            {pending
+              ? "Starte Import…"
+              : error
+                ? "Erneut versuchen"
+                : resume
+                  ? "Import fortsetzen"
+                  : "Import starten"}
           </button>
         ) : null}
 
-        {phase === "products" || phase === "orders" ? (
+        {running ? (
           <p className="mt-6 flex items-center gap-2 text-sm text-brand-navy/70">
             <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-brand-burgundy border-t-transparent" />
             Import läuft — bitte Fenster offen lassen.
@@ -447,18 +601,25 @@ function ImportStep({
         ) : null}
       </div>
 
-      <div className="mt-6 flex justify-between">
+      <div className="mt-6 flex items-center justify-between gap-3">
         <button type="button" onClick={onBack} className="btn-ghost">
           Zurück
         </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={phase !== "done"}
-          className="btn-primary disabled:opacity-40"
-        >
-          Weiter
-        </button>
+        <div className="flex items-center gap-3">
+          {phase !== "done" ? (
+            <button type="button" onClick={onNext} className="btn-secondary">
+              Import überspringen
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={phase !== "done"}
+            className="btn-primary disabled:opacity-40"
+          >
+            Weiter
+          </button>
+        </div>
       </div>
     </div>
   );
