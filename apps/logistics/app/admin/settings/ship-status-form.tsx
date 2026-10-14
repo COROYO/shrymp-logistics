@@ -118,18 +118,20 @@ function StatusGroup<T extends string>({
         {options.map((status) => (
           <label
             key={status}
-            className="flex items-center gap-2 text-sm text-brand-navy"
+            className="flex items-start gap-2 text-sm text-brand-navy"
           >
             <input
               type="checkbox"
               value={status}
               checked={selected.has(status)}
               onChange={() => onToggle(status)}
-              className="h-4 w-4 accent-brand-burgundy"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-burgundy"
             />
-            <span>{labels[status]}</span>
-            <span className="font-mono text-[10px] text-brand-navy/40">
-              {status}
+            <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span>{labels[status]}</span>
+              <span className="font-mono text-[10px] text-brand-navy/40">
+                {status}
+              </span>
             </span>
           </label>
         ))}

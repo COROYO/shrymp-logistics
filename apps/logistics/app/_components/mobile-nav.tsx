@@ -31,7 +31,7 @@ export function MobileNav({
 
   return (
     <>
-      <div className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-brand-navy px-4 py-3 text-white shadow md:hidden print:hidden">
+      <div className="sticky top-0 z-30 flex w-full shrink-0 items-center justify-between gap-3 bg-brand-navy px-4 py-3 text-white shadow md:hidden print:hidden">
         <Link
           href={homeHref}
           className="flex items-center gap-3"

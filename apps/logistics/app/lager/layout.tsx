@@ -63,7 +63,7 @@ export default async function LagerLayout({
   };
 
   return runWithTenantAsync(shopId, async () => (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full flex-col md:flex-row">
       <MobileNav
         sections={SECTIONS}
         footer={footer}
