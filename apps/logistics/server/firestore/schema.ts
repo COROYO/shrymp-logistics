@@ -1149,6 +1149,8 @@ export const Collections = {
   Forecasts: "forecasts",
   AutomationRules: "automation_rules",
   AutomationRuns: "automation_runs",
+  /** Short-lived bulk packing-slip jobs. Ids live here, not in the URL. */
+  PrintJobs: "print_jobs",
 } as const;
 
 export const ConfigDocs = {

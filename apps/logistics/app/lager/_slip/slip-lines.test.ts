@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSlipSections } from "./slip-lines";
-import type { SlipAllocLine } from "@/server/picking/slip-data";
+import type { SlipAllocLine } from "./types";
 import type { OrderLineItem } from "@/server/firestore/schema";
 
 function li(

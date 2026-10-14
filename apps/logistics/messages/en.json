@@ -1236,5 +1236,17 @@
     "eyebrow": "Workflows",
     "title": "Automations",
     "intro": "Rules run locally on a trigger (import, paid, SHIP/STOP, …). Existing orders are not backfilled — use Dry-Run / Apply now to test."
+  },
+  "printSlips": {
+    "eyebrow": "Packing slips",
+    "generating": "Generating packing slips {current}/{total}",
+    "preparing": "Preparing packing slips…",
+    "empty": "No orders to print.",
+    "jobNotFound": "This print job was not found or has expired. Please select the orders again.",
+    "forbidden": "You don't have permission to print.",
+    "noneGenerated": "No packing slip could be generated.",
+    "failed": "Failed for order {id}",
+    "wave": "Batch {current}/{total} ({count} slips)",
+    "nextWave": "Print next batch"
   }
 }

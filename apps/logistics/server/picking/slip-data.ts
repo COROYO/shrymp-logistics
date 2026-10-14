@@ -27,11 +27,17 @@ import {
 } from "./batch-assignability";
 import { log } from "@/lib/logger";
 import { loadBinsForVariants } from "@/server/warehouse/bins";
+import type {
+  SlipAllocLine,
+  SlipAssignmentBlockReason,
+  SlipViewData,
+} from "@/app/lager/_slip/types";
 
-export type SlipAssignmentBlockReason =
-  | "near_expiry"
-  | "expired"
-  | "incomplete";
+export type {
+  SlipAllocLine,
+  SlipAssignmentBlockReason,
+  SlipViewData,
+} from "@/app/lager/_slip/types";
 
 export class SlipAssignmentBlockedError extends Error {
   readonly orderId: string;
@@ -50,13 +56,6 @@ export class SlipAssignmentBlockedError extends Error {
     this.minDaysBeforeExpiry = minDaysBeforeExpiry;
   }
 }
-
-export type SlipAllocLine = {
-  lineItemId: string;
-  chargeNumber: string;
-  expiryDateIso: string | null;
-  qty: number;
-};
 
 export type SlipData = {
   order: Order;
@@ -271,6 +270,25 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     batchesEnabled,
     binByVariant,
     qrDataUrl,
+  };
+}
+
+/** Flatten Maps and timestamps so a client chunk can render the slip. */
+export function toSlipViewData(data: SlipData): SlipViewData {
+  return {
+    orderId: data.order.id,
+    orderName: data.order.name,
+    createdAtIso: tsToDate(data.order.created_at_shopify)?.toISOString() ?? null,
+    customerShopifyId: data.order.customer?.shopify_id ?? null,
+    shippingAddress: data.order.shipping_address ?? null,
+    lineItems: data.order.line_items,
+    allocsByLi: Object.fromEntries(data.allocsByLi),
+    variantTitleByLi: Object.fromEntries(data.variantTitleByLi),
+    binByVariant: Object.fromEntries(data.binByVariant),
+    lieferschein: data.lieferschein,
+    branding: data.branding,
+    batchesEnabled: data.batchesEnabled,
+    qrDataUrl: data.qrDataUrl,
   };
 }
 

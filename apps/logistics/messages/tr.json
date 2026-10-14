@@ -1236,5 +1236,17 @@
     "eyebrow": "İş akışları",
     "title": "Otomasyonlar",
     "intro": "Kurallar bir tetikte yerel çalışır (içe aktarma, ödeme, SHIP/STOP, …). Mevcut siparişler geriye dönük işlenmez — test için Dry-Run / Şimdi uygula kullanın."
+  },
+  "printSlips": {
+    "eyebrow": "İrsaliyeler",
+    "generating": "İrsaliyeler oluşturuluyor {current}/{total}",
+    "preparing": "İrsaliyeler hazırlanıyor…",
+    "empty": "Yazdırılacak sipariş yok.",
+    "jobNotFound": "Bu yazdırma işi bulunamadı veya süresi doldu. Siparişleri yeniden seçin.",
+    "forbidden": "Yazdırma izni yok.",
+    "noneGenerated": "Hiç irsaliye oluşturulamadı.",
+    "failed": "{id} siparişinde hata",
+    "wave": "Parti {current}/{total} ({count} irsaliye)",
+    "nextWave": "Sonraki partiyi yazdır"
   }
 }

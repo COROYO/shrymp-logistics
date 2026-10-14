@@ -1236,5 +1236,17 @@
     "eyebrow": "Workflows",
     "title": "Automatismen",
     "intro": ""
+  },
+  "printSlips": {
+    "eyebrow": "Lieferscheine",
+    "generating": "Generiere Lieferscheine {current}/{total}",
+    "preparing": "Lieferscheine werden vorbereitet…",
+    "empty": "Keine Bestellungen zum Drucken.",
+    "jobNotFound": "Dieser Druckauftrag wurde nicht gefunden oder ist abgelaufen. Bitte die Bestellungen erneut auswählen.",
+    "forbidden": "Keine Berechtigung zum Drucken.",
+    "noneGenerated": "Es konnte kein Lieferschein erzeugt werden.",
+    "failed": "Fehler bei Bestellung {id}",
+    "wave": "Stapel {current}/{total} ({count} Lieferscheine)",
+    "nextWave": "Nächsten Stapel drucken"
   }
 }

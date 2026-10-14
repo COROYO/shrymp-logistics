@@ -147,5 +147,6 @@ describe("Firestore Zod schemas", () => {
     expect(Collections.Orders).toBe("orders");
     expect(Collections.Batches).toBe("batches");
     expect(Collections.Allocations).toBe("allocations");
+    expect(Collections.PrintJobs).toBe("print_jobs");
   });
 });

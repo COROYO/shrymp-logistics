@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import type { OrderInternalStatus } from "@/server/firestore/schema";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { openBulkPrintSlips } from "@/app/lager/print-slips/open-print-slips";
 import {
   LagerStatusChip,
   ShopifyStatusChip,
@@ -111,8 +112,7 @@ export function OrdersTable({
 
   function handlePrintSlips() {
     if (selectedIds.length === 0) return;
-    const url = `/lager/print-slips?ids=${selectedIds.join(",")}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    openBulkPrintSlips(selectedIds);
   }
 
   if (orders.length === 0) {

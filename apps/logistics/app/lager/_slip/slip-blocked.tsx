@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { SlipAssignmentBlockReason } from "@/server/picking/slip-data";
+import type { SlipAssignmentBlockReason } from "./types";
 
 export function SlipBlockedMessage({
   orderId,

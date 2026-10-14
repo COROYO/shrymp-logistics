@@ -30,6 +30,7 @@ const CLIENT_NAMESPACES = [
   "customers",
   "settings",
   "forecasting",
+  "printSlips",
 ] as const;
 
 export function pickClientMessages(

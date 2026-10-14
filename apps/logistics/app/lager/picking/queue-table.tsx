@@ -10,6 +10,7 @@ import {
 } from "@/app/_components/order-status";
 import { bulkConfirmPackingAction } from "../packing/actions";
 import { createPickRunAction } from "../run/actions";
+import { openBulkPrintSlips } from "../print-slips/open-print-slips";
 
 export type QueueRow = {
   id: string;
@@ -73,8 +74,7 @@ export function QueueTable({
 
   function handlePrintSlips() {
     if (selectedIds.length === 0) return;
-    const url = `/lager/print-slips?ids=${selectedIds.join(",")}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    openBulkPrintSlips(selectedIds);
   }
 
   function handleStartRun() {

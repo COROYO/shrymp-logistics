@@ -16,7 +16,7 @@
  */
 
 import type { OrderLineItem } from "@/server/firestore/schema";
-import type { SlipAllocLine } from "@/server/picking/slip-data";
+import type { SlipAllocLine } from "./types";
 
 export type MergedSlipLine = {
   key: string;

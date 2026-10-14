@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { openBulkPrintSlips } from "../print-slips/open-print-slips";
 import {
   LagerStatusChip,
   ShopifyStatusChip,
@@ -69,8 +70,7 @@ export function PackedTable({
 
   function handlePrintSlips() {
     if (selectedIds.length === 0) return;
-    const url = `/lager/print-slips?ids=${selectedIds.join(",")}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    openBulkPrintSlips(selectedIds);
   }
 
   return (

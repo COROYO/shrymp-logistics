@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { finishRunAction } from "../../actions";
+import { openBulkPrintSlips } from "@/app/lager/print-slips/open-print-slips";
 import {
   LagerStatusChip,
   ShopifyStatusChip,
@@ -60,8 +61,7 @@ export function RunPackClient({
   const isDone = status === "DONE";
 
   function printAllSlips() {
-    const ids = rows.map((r) => r.orderId).join(",");
-    window.open(`/lager/print-slips?ids=${ids}`, "_blank", "noopener,noreferrer");
+    openBulkPrintSlips(rows.map((r) => r.orderId));
   }
 
   async function finish() {

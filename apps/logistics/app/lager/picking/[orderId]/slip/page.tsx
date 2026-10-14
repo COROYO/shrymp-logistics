@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import {
   loadSlipData,
   SlipAssignmentBlockedError,
+  toSlipViewData,
 } from "@/server/picking/slip-data";
 import { SlipBody } from "@/app/lager/_slip/slip-body";
 import { SlipBlockedMessage } from "@/app/lager/_slip/slip-blocked";
@@ -43,7 +44,7 @@ export default async function PackingSlipPage({
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
-      <SlipBody data={data} />
+      <SlipBody data={toSlipViewData(data)} />
     </>
   );
 }

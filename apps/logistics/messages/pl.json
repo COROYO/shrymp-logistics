@@ -1236,5 +1236,17 @@
     "eyebrow": "Procesy",
     "title": "Automatyzacje",
     "intro": "Reguły działają lokalnie na trigger (import, płatność, SHIP/STOP, …). Istniejące zamówienia nie są uzupełniane wstecz — użyj Dry-Run / Zastosuj teraz do testu."
+  },
+  "printSlips": {
+    "eyebrow": "Specyfikacje",
+    "generating": "Tworzenie specyfikacji {current}/{total}",
+    "preparing": "Specyfikacje są przygotowywane…",
+    "empty": "Brak zamówień do druku.",
+    "jobNotFound": "To zlecenie druku nie zostało znalezione lub wygasło. Wybierz zamówienia ponownie.",
+    "forbidden": "Brak uprawnień do druku.",
+    "noneGenerated": "Nie udało się utworzyć żadnej specyfikacji.",
+    "failed": "Błąd przy zamówieniu {id}",
+    "wave": "Partia {current}/{total} ({count} specyfikacji)",
+    "nextWave": "Drukuj następną partię"
   }
 }

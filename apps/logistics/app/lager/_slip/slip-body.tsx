@@ -1,30 +1,49 @@
+"use client";
+
 import { Fragment, type ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
-import { tsToDate, type SlipData } from "@/server/picking/slip-data";
+import { NextIntlClientProvider, useTranslations } from "next-intl";
+import type { SlipBrandingConfig } from "@/lib/slip/defaults";
+import type { SlipViewData } from "./types";
 import { buildSlipSections } from "./slip-lines";
+import de from "@/messages/de.json";
 
-const DATE_LOCALE: Record<string, string> = {
-  de: "de-DE",
-  en: "en-GB",
-  ru: "ru-RU",
-  pl: "pl-PL",
-  tr: "tr-TR",
-};
+const DATE_LOCALE = "de-DE";
 
-export async function SlipBody({
+/**
+ * Packing slips stay German regardless of the warehouse UI locale.
+ * A nested provider supplies only that catalog so the rest of the page
+ * keeps the user's language.
+ */
+const SLIP_MESSAGES = { packingSlip: de.packingSlip };
+
+export function SlipBody({
   data,
   pageBreakAfter = false,
 }: {
-  data: SlipData;
+  data: SlipViewData;
   pageBreakAfter?: boolean;
 }) {
-  const { order, allocsByLi, variantTitleByLi, branding, batchesEnabled, binByVariant } =
-    data;
+  return (
+    <NextIntlClientProvider locale="de" messages={SLIP_MESSAGES}>
+      <SlipDocument data={data} pageBreakAfter={pageBreakAfter} />
+    </NextIntlClientProvider>
+  );
+}
+
+function SlipDocument({
+  data,
+  pageBreakAfter = false,
+}: {
+  data: SlipViewData;
+  pageBreakAfter?: boolean;
+}) {
+  const { branding, batchesEnabled } = data;
+  const shipping = data.shippingAddress;
   const sections = buildSlipSections(
-    order.line_items,
-    allocsByLi,
-    variantTitleByLi,
-    binByVariant,
+    data.lineItems,
+    recordToMap(data.allocsByLi),
+    recordToMap(data.variantTitleByLi),
+    recordToMap(data.binByVariant),
   );
   const showSku = branding.col_sku;
   const showBin = branding.col_bin;
@@ -36,13 +55,11 @@ export async function SlipBody({
     Number(showQty) +
     Number(showCharge);
 
-  const locale = "de" as const;
-  const t = await getTranslations({ locale, namespace: "packingSlip" });
-  const dateLocale = DATE_LOCALE[locale] ?? "de-DE";
+  const t = useTranslations("packingSlip");
 
-  const orderDate = tsToDate(order.created_at_shopify);
+  const orderDate = data.createdAtIso ? new Date(data.createdAtIso) : null;
   const orderDateStr = orderDate
-    ? orderDate.toLocaleDateString(dateLocale, {
+    ? orderDate.toLocaleDateString(DATE_LOCALE, {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -54,7 +71,7 @@ export async function SlipBody({
 
   return (
     <article
-      lang={locale}
+      lang="de"
       data-slip-article
       className="mx-auto mt-10 max-w-[210mm] bg-white p-10 text-[12pt] text-brand-ink print:mt-0 print:p-0"
       style={pageBreakAfter ? { pageBreakAfter: "always" } : undefined}
@@ -113,10 +130,10 @@ export async function SlipBody({
 
       <SlipMeta
         branding={branding}
-        customerNo={order.customer?.shopify_id ?? t("noCharge")}
+        customerNo={data.customerShopifyId ?? t("noCharge")}
         lsNo={data.lieferschein.number}
         lsDate={formatGermanDate(data.lieferschein.dateIso)}
-        orderNo={order.name}
+        orderNo={data.orderName}
         orderDate={orderDateStr}
       />
 
@@ -129,27 +146,26 @@ export async function SlipBody({
         </div>
         <address className="not-italic text-[10pt] leading-snug">
           <strong>
-            {order.shipping_address?.first_name}{" "}
-            {order.shipping_address?.last_name}
+            {shipping?.first_name} {shipping?.last_name}
           </strong>
-          {order.shipping_address?.company ? (
+          {shipping?.company ? (
             <>
               <br />
-              {order.shipping_address.company}
+              {shipping.company}
             </>
           ) : null}
           <br />
-          {order.shipping_address?.address1}
-          {order.shipping_address?.address2 ? (
+          {shipping?.address1}
+          {shipping?.address2 ? (
             <>
               <br />
-              {order.shipping_address.address2}
+              {shipping.address2}
             </>
           ) : null}
           <br />
-          {order.shipping_address?.zip} {order.shipping_address?.city}
+          {shipping?.zip} {shipping?.city}
           <br />
-          {order.shipping_address?.country}
+          {shipping?.country}
         </address>
       </section>
 
@@ -323,7 +339,7 @@ export async function SlipBody({
       <footer className="mt-16 flex justify-between gap-4 border-t border-zinc-300 pt-2 text-[8pt] text-brand-navy/60">
         <span>
           {t.rich("footerOrder", {
-            order: order.name,
+            order: data.orderName,
             mono: (chunks) => <span className="font-mono">{chunks}</span>,
           })}
           {" · Lieferschein "}
@@ -346,7 +362,7 @@ function SlipMeta({
   orderNo,
   orderDate,
 }: {
-  branding: SlipData["branding"];
+  branding: SlipBrandingConfig;
   customerNo: string;
   lsNo: string;
   lsDate: string;
@@ -425,6 +441,10 @@ function MetaRow({
       </span>
     </div>
   );
+}
+
+function recordToMap<T>(record: Record<string, T>): Map<string, T> {
+  return new Map(Object.entries(record));
 }
 
 function formatGermanDate(iso: string): string {
