@@ -14,6 +14,7 @@ import { runWithTenantAsync } from "@/server/tenant/context";
 import { signLabel } from "@/server/dhl/storage";
 import { ConfirmPackingForm } from "./confirm-packing-form";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { OrderStatusRow } from "@/app/_components/order-status";
 import { getTranslations } from "next-intl/server";
 import { DhlLabelButtons } from "./dhl-label-buttons";
 import { DhlServicesBadges } from "./dhl-services-badges";
@@ -203,17 +204,13 @@ export default async function PackingPage({
               {order.name}
             </span>
           </h1>
-          <span
-            className={
-              isPacked
-                ? "chip chip-sky"
-                : isPacking
-                  ? "chip chip-violet"
-                  : "chip chip-soft"
-            }
-          >
-            {order.internal_status}
-          </span>
+        </div>
+        <div className="mt-3">
+          <OrderStatusRow
+            payment={order.shopify_financial_status}
+            fulfillment={order.shopify_fulfillment_status}
+            lager={order.internal_status}
+          />
         </div>
       </div>
 

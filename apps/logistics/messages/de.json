@@ -228,7 +228,9 @@
         "items": "Items",
         "city": "Stadt",
         "tags": "Tags",
-        "status": "Status",
+        "payment": "Zahlung",
+        "fulfillment": "Fulfillment",
+        "status": "Lagerstatus",
         "positions": "Pos."
       },
       "ctaContinue": "Weiter packen →",
@@ -275,6 +277,9 @@
       "items": "Items",
       "city": "Stadt",
       "tags": "Tags",
+      "payment": "Zahlung",
+      "fulfillment": "Fulfillment",
+      "lager": "Lagerstatus",
       "positions": "Pos."
     }
   },
@@ -376,6 +381,33 @@
       "errorPrefix": "Fehler:"
     },
     "wrongStatus": "Order ist in Status <b>{status}</b>, nicht picking-bar."
+  },
+  "orderStatus": {
+    "payment": "Zahlung",
+    "fulfillment": "Fulfillment",
+    "lager": "Lagerstatus",
+    "paymentValues": {
+      "PENDING": "Ausstehend",
+      "AUTHORIZED": "Autorisiert",
+      "PARTIALLY_PAID": "Teilweise bezahlt",
+      "PAID": "Bezahlt",
+      "PARTIALLY_REFUNDED": "Teilweise erstattet",
+      "REFUNDED": "Erstattet",
+      "VOIDED": "Ungültig",
+      "EXPIRED": "Abgelaufen"
+    },
+    "fulfillmentValues": {
+      "UNFULFILLED": "Nicht ausgeführt",
+      "PARTIALLY_FULFILLED": "Teilweise ausgeführt",
+      "FULFILLED": "Ausgeführt",
+      "RESTOCKED": "Wieder eingelagert",
+      "PENDING_FULFILLMENT": "Ausführung ausstehend",
+      "OPEN": "Offen",
+      "IN_PROGRESS": "In Bearbeitung",
+      "ON_HOLD": "Zurückgestellt",
+      "SCHEDULED": "Geplant",
+      "REQUEST_DECLINED": "Anfrage abgelehnt"
+    }
   },
   "bins": {
     "eyebrow": "Lagerverwaltung",

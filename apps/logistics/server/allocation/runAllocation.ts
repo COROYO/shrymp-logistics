@@ -1,3 +1,4 @@
+import { shipStatusBlockReason } from "@/lib/orders/shopify-status";
 import {
   type AllocationInput,
   type AllocationResult,
@@ -38,15 +39,22 @@ export function allocate(input: AllocationInput): AllocationResult {
     .filter((o) => hasPriorityTag(o.tags, priorityTags))
     .sort(byPriorityThenCreatedAtThenId);
   const preAssigned = input.preAssignedOrderIds;
+  const statusGate =
+    input.shipPaymentStatuses && input.shipFulfillmentStatuses
+      ? {
+          payment: input.shipPaymentStatuses,
+          fulfillment: input.shipFulfillmentStatuses,
+        }
+      : null;
   for (const order of express)
-    tryAllocate(order, avail, decisions, "EXPRESS", preAssigned);
+    tryAllocate(order, avail, decisions, "EXPRESS", preAssigned, statusGate);
 
   // Phase B: Standard orders — score DESC within chronological lane.
   const standard = input.orders
     .filter((o) => !hasPriorityTag(o.tags, priorityTags))
     .sort(byPriorityThenCreatedAtThenId);
   for (const order of standard)
-    tryAllocate(order, avail, decisions, "STANDARD", preAssigned);
+    tryAllocate(order, avail, decisions, "STANDARD", preAssigned, statusGate);
 
   const ordered: Decision[] = input.orders.map(
     (o) =>
@@ -86,7 +94,28 @@ function tryAllocate(
   decisions: Map<string, Decision>,
   mode: "EXPRESS" | "STANDARD",
   preAssigned?: ReadonlySet<string>,
+  statusGate?: { payment: readonly string[]; fulfillment: readonly string[] } | null,
 ): void {
+  // Status gate before stock and before the pre-assigned shortcut: an order
+  // whose Shopify payment/fulfillment is not allowed must not stay SHIP or
+  // hold reserved quantity.
+  if (statusGate) {
+    const blocked = shipStatusBlockReason(
+      order.financialStatus,
+      order.fulfillmentStatus,
+      statusGate.payment,
+      statusGate.fulfillment,
+    );
+    if (blocked) {
+      decisions.set(order.id, {
+        orderId: order.id,
+        status: "STOP",
+        reason: blocked,
+      });
+      return;
+    }
+  }
+
   if (preAssigned?.has(order.id)) {
     decisions.set(order.id, { orderId: order.id, status: "SHIP", mode });
     return;

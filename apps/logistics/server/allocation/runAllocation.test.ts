@@ -17,11 +17,14 @@ function order(
   createdSeq: number,
   lineItems: { variantId: string; qty: number }[],
   tags: string[] = [],
+  statuses?: { financial?: string | null; fulfillment?: string | null },
 ): OrderInput {
   return {
     id,
     createdAtMs: 1_700_000_000_000 + createdSeq * 1000,
     tags,
+    financialStatus: statuses?.financial,
+    fulfillmentStatus: statuses?.fulfillment,
     lineItems: lineItems.map((li, i) => ({
       id: `${id}-li-${i}`,
       variantId: li.variantId,
@@ -202,6 +205,90 @@ describe("allocate — edge cases", () => {
     const byId = new Map(decisions.map((d) => [d.orderId, d]));
     expect(byId.get("printed")?.status).toBe("SHIP");
     expect(byId.get("new")?.status).toBe("STOP");
+  });
+
+  it("stops orders outside the Shopify status allowlist without taking stock", () => {
+    const gate = {
+      shipPaymentStatuses: ["PAID"],
+      shipFulfillmentStatuses: ["UNFULFILLED"],
+    };
+    const input: AllocationInput = {
+      variants: [variant("v1", 1)],
+      orders: [
+        order(
+          "unpaid",
+          1,
+          [{ variantId: "v1", qty: 1 }],
+          [],
+          { financial: "pending", fulfillment: null },
+        ),
+        order(
+          "paid",
+          2,
+          [{ variantId: "v1", qty: 1 }],
+          [],
+          { financial: "paid", fulfillment: null },
+        ),
+      ],
+      ...gate,
+    };
+    const byId = new Map(allocate(input).decisions.map((d) => [d.orderId, d]));
+    const unpaid = byId.get("unpaid");
+    expect(unpaid?.status).toBe("STOP");
+    if (unpaid?.status === "STOP") expect(unpaid.reason).toBe("PAYMENT_STATUS");
+    expect(byId.get("paid")?.status).toBe("SHIP");
+  });
+
+  it("stops a pre-assigned order when fulfillment is not allowed", () => {
+    const input: AllocationInput = {
+      variants: [variant("v1", 1)],
+      orders: [
+        order(
+          "printed",
+          1,
+          [{ variantId: "v1", qty: 1 }],
+          [],
+          { financial: "paid", fulfillment: "fulfilled" },
+        ),
+        order(
+          "open",
+          2,
+          [{ variantId: "v1", qty: 1 }],
+          [],
+          { financial: "PAID", fulfillment: "UNFULFILLED" },
+        ),
+      ],
+      preAssignedOrderIds: new Set(["printed"]),
+      shipPaymentStatuses: ["PAID"],
+      shipFulfillmentStatuses: ["UNFULFILLED"],
+    };
+    const byId = new Map(allocate(input).decisions.map((d) => [d.orderId, d]));
+    const printed = byId.get("printed");
+    expect(printed?.status).toBe("STOP");
+    if (printed?.status === "STOP") {
+      expect(printed.reason).toBe("FULFILLMENT_STATUS");
+    }
+    expect(byId.get("open")?.status).toBe("SHIP");
+  });
+
+  it("still stops for insufficient stock when the Shopify status matches", () => {
+    const input: AllocationInput = {
+      variants: [variant("v1", 0)],
+      orders: [
+        order(
+          "paid",
+          1,
+          [{ variantId: "v1", qty: 1 }],
+          [],
+          { financial: "paid", fulfillment: null },
+        ),
+      ],
+      shipPaymentStatuses: ["PAID"],
+      shipFulfillmentStatuses: ["UNFULFILLED"],
+    };
+    const d = allocate(input).decisions[0];
+    expect(d?.status).toBe("STOP");
+    if (d?.status === "STOP") expect(d.reason).toBe("INSUFFICIENT_STOCK");
   });
 
   it("does not consume any stock from a failed (all-or-nothing) order", () => {

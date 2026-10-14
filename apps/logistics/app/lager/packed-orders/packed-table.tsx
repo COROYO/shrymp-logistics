@@ -3,6 +3,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import {
+  LagerStatusChip,
+  ShopifyStatusChip,
+} from "@/app/_components/order-status";
 
 export type PackedRow = {
   id: string;
@@ -12,6 +16,9 @@ export type PackedRow = {
   positionCount: number;
   city: string | null;
   tags: string[];
+  financialStatus: string | null;
+  fulfillmentStatus: string | null;
+  lagerStatus: string;
   isExpress: boolean;
   externallyFulfilled: boolean;
   customerNote: string | null;
@@ -121,6 +128,9 @@ export function PackedTable({
                 <th>{t("table.items")}</th>
                 <th>{t("table.city")}</th>
                 <th>{t("table.tags")}</th>
+                <th>{t("table.payment")}</th>
+                <th>{t("table.fulfillment")}</th>
+                <th>{t("table.lager")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -181,6 +191,21 @@ export function PackedTable({
                           </span>
                         ))}
                       </div>
+                    </td>
+                    <td>
+                      <ShopifyStatusChip
+                        kind="payment"
+                        status={o.financialStatus}
+                      />
+                    </td>
+                    <td>
+                      <ShopifyStatusChip
+                        kind="fulfillment"
+                        status={o.fulfillmentStatus}
+                      />
+                    </td>
+                    <td>
+                      <LagerStatusChip status={o.lagerStatus} />
                     </td>
                     <td className="whitespace-nowrap text-right">
                       <Link

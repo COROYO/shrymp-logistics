@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import {
+  LagerStatusChip,
+  ShopifyStatusChip,
+} from "@/app/_components/order-status";
 import { bulkConfirmPackingAction } from "../packing/actions";
 import { createPickRunAction } from "../run/actions";
 
@@ -17,6 +21,8 @@ export type QueueRow = {
   tags: string[];
   priorityScore: number;
   internal_status: "SHIP" | "PICKING";
+  financialStatus: string | null;
+  fulfillmentStatus: string | null;
   isExpress: boolean;
   customerNote: string | null;
 };
@@ -212,6 +218,8 @@ export function QueueTable({
                 <th>{t("table.items")}</th>
                 <th>{t("table.city")}</th>
                 <th>{t("table.tags")}</th>
+                <th>{t("table.payment")}</th>
+                <th>{t("table.fulfillment")}</th>
                 <th>{t("table.status")}</th>
                 <th></th>
               </tr>
@@ -285,15 +293,19 @@ export function QueueTable({
                       </div>
                     </td>
                     <td>
-                      <span
-                        className={
-                          o.internal_status === "PICKING"
-                            ? "chip chip-violet"
-                            : "chip chip-emerald"
-                        }
-                      >
-                        {o.internal_status}
-                      </span>
+                      <ShopifyStatusChip
+                        kind="payment"
+                        status={o.financialStatus}
+                      />
+                    </td>
+                    <td>
+                      <ShopifyStatusChip
+                        kind="fulfillment"
+                        status={o.fulfillmentStatus}
+                      />
+                    </td>
+                    <td>
+                      <LagerStatusChip status={o.internal_status} />
                     </td>
                     <td className="whitespace-nowrap text-right">
                       <Link

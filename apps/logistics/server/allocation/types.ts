@@ -37,6 +37,10 @@ export type OrderInput = {
    * DESC, then createdAt ASC.
    */
   priorityScore?: number;
+  /** Raw Shopify financial status (`paid` / `PAID`). Omitted = no status gate. */
+  financialStatus?: string | null;
+  /** Raw Shopify fulfillment status. REST null means unfulfilled. */
+  fulfillmentStatus?: string | null;
 };
 
 export type Decision =
@@ -56,7 +60,9 @@ export type StopReason =
   | "UNKNOWN_VARIANT"
   | "EMPTY_ORDER"
   | "BATCH_EXPIRED"
-  | "BATCH_NEAR_EXPIRY";
+  | "BATCH_NEAR_EXPIRY"
+  | "PAYMENT_STATUS"
+  | "FULFILLMENT_STATUS";
 
 export type AllocationInput = {
   variants: VariantAvail[];
@@ -68,6 +74,13 @@ export type AllocationInput = {
    * Defaults to `[EXPRESS_TAG]` when omitted — keeps unit tests simple.
    */
   priorityTags?: readonly string[];
+  /**
+   * Shopify statuses that may be marked SHIP. Both lists must be set for the
+   * gate to run. A list that contains every known status does not filter.
+   * Inventory rules still apply on top.
+   */
+  shipPaymentStatuses?: readonly string[];
+  shipFulfillmentStatuses?: readonly string[];
 };
 
 export type AllocationStats = {

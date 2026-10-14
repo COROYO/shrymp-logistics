@@ -179,6 +179,8 @@ export async function runAllocationInFirestore(
       createdAtMs: toMs(o.created_at_shopify),
       tags: effectiveOrderTags(o),
       priorityScore: o.priority_score ?? 0,
+      financialStatus: o.shopify_financial_status,
+      fulfillmentStatus: o.shopify_fulfillment_status,
       lineItems: o.line_items.map((li) => ({
         id: li.id,
         variantId: li.variant_id,
@@ -192,6 +194,8 @@ export async function runAllocationInFirestore(
       orders,
       preAssignedOrderIds,
       priorityTags: lagerCfg.priority_tags,
+      shipPaymentStatuses: lagerCfg.ship_payment_statuses,
+      shipFulfillmentStatuses: lagerCfg.ship_fulfillment_statuses,
     };
     const result = allocate(input);
 

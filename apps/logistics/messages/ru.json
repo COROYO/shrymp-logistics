@@ -228,7 +228,9 @@
         "items": "Позиции",
         "city": "Город",
         "tags": "Теги",
-        "status": "Статус",
+        "payment": "Оплата",
+        "fulfillment": "Выполнение",
+        "status": "Склад",
         "positions": "поз."
       },
       "ctaContinue": "Продолжить упаковку →",
@@ -275,6 +277,9 @@
       "items": "Позиции",
       "city": "Город",
       "tags": "Теги",
+      "payment": "Оплата",
+      "fulfillment": "Выполнение",
+      "lager": "Склад",
       "positions": "поз."
     }
   },
@@ -376,6 +381,33 @@
       "errorPrefix": "Ошибка:"
     },
     "wrongStatus": "Заказ в статусе <b>{status}</b>, сборка невозможна."
+  },
+  "orderStatus": {
+    "payment": "Оплата",
+    "fulfillment": "Выполнение",
+    "lager": "Склад",
+    "paymentValues": {
+      "PENDING": "Ожидает",
+      "AUTHORIZED": "Авторизован",
+      "PARTIALLY_PAID": "Частично оплачен",
+      "PAID": "Оплачен",
+      "PARTIALLY_REFUNDED": "Частично возвращён",
+      "REFUNDED": "Возвращён",
+      "VOIDED": "Аннулирован",
+      "EXPIRED": "Истёк"
+    },
+    "fulfillmentValues": {
+      "UNFULFILLED": "Не выполнен",
+      "PARTIALLY_FULFILLED": "Частично выполнен",
+      "FULFILLED": "Выполнен",
+      "RESTOCKED": "Возвращён на склад",
+      "PENDING_FULFILLMENT": "Ожидает выполнения",
+      "OPEN": "Открыт",
+      "IN_PROGRESS": "В работе",
+      "ON_HOLD": "На удержании",
+      "SCHEDULED": "Запланирован",
+      "REQUEST_DECLINED": "Запрос отклонён"
+    }
   },
   "bins": {
     "eyebrow": "Склад",

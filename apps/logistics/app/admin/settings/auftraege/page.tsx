@@ -3,6 +3,7 @@ import { loadLagerConfig } from "@/server/lager/config";
 import { BackfillOrdersButton } from "../backfill-orders-button";
 import { RunAllocationButton } from "../run-allocation-button";
 import { PriorityTagsForm } from "../priority-tags-form";
+import { ShipStatusForm } from "../ship-status-form";
 import { DefItem } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,27 @@ export default async function AuftraegeSettingsPage() {
 
   return (
     <>
+      <section className="card p-6">
+        <p className="eyebrow">Versandbereit</p>
+        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          Wann eine Bestellung SHIP wird
+        </h2>
+        <p className="mt-1 max-w-2xl text-xs text-brand-navy/60">
+          SHIP nur, wenn Zahlung und Fulfillment zu den angehakten Shopify-Stati
+          passen — und der Bestand reicht. Fehlt Bestand, bleibt die Bestellung
+          STOP. Alle Stati angehakt heißt: es entscheidet wie bisher nur der
+          Bestand.
+        </p>
+        <div className="mt-6">
+          <ShipStatusForm
+            current={{
+              ship_payment_statuses: lagerCfg.ship_payment_statuses,
+              ship_fulfillment_statuses: lagerCfg.ship_fulfillment_statuses,
+            }}
+          />
+        </div>
+      </section>
+
       <section className="card p-6">
         <p className="eyebrow">Priorität</p>
         <h2 className="mt-1 text-sm font-semibold text-brand-navy">

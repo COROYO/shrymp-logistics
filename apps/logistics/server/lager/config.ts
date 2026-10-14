@@ -29,6 +29,8 @@ async function loadLagerConfigUncached(shopId?: string): Promise<LagerConfig> {
       catalog_sync_to_shopify:
         shop.catalog_sync_to_shopify ?? DEFAULT_CATALOG_SYNC_TO_SHOPIFY,
       priority_tags: shop.priority_tags ?? [...DEFAULT_PRIORITY_TAGS],
+      ship_payment_statuses: shop.ship_payment_statuses,
+      ship_fulfillment_statuses: shop.ship_fulfillment_statuses,
       updated_at: shop.lager_updated_at ?? new Date(),
       updated_by_uid: shop.lager_updated_by_uid ?? null,
     });

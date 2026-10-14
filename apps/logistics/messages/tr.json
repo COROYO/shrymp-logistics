@@ -228,7 +228,9 @@
         "items": "Kalemler",
         "city": "Şehir",
         "tags": "Etiketler",
-        "status": "Durum",
+        "payment": "Ödeme",
+        "fulfillment": "Fulfillment",
+        "status": "Depo",
         "positions": "kal."
       },
       "ctaContinue": "Paketlemeye devam →",
@@ -275,6 +277,9 @@
       "items": "Kalemler",
       "city": "Şehir",
       "tags": "Etiketler",
+      "payment": "Ödeme",
+      "fulfillment": "Fulfillment",
+      "lager": "Depo",
       "positions": "kal."
     }
   },
@@ -376,6 +381,33 @@
       "errorPrefix": "Hata:"
     },
     "wrongStatus": "Sipariş durumu <b>{status}</b>, toplanamaz."
+  },
+  "orderStatus": {
+    "payment": "Ödeme",
+    "fulfillment": "Fulfillment",
+    "lager": "Depo",
+    "paymentValues": {
+      "PENDING": "Beklemede",
+      "AUTHORIZED": "Yetkilendirildi",
+      "PARTIALLY_PAID": "Kısmen ödendi",
+      "PAID": "Ödendi",
+      "PARTIALLY_REFUNDED": "Kısmen iade",
+      "REFUNDED": "İade edildi",
+      "VOIDED": "İptal",
+      "EXPIRED": "Süresi doldu"
+    },
+    "fulfillmentValues": {
+      "UNFULFILLED": "Gönderilmedi",
+      "PARTIALLY_FULFILLED": "Kısmen gönderildi",
+      "FULFILLED": "Gönderildi",
+      "RESTOCKED": "Stoğa döndü",
+      "PENDING_FULFILLMENT": "Gönderim bekliyor",
+      "OPEN": "Açık",
+      "IN_PROGRESS": "Devam ediyor",
+      "ON_HOLD": "Bekletmede",
+      "SCHEDULED": "Planlandı",
+      "REQUEST_DECLINED": "Talep reddedildi"
+    }
   },
   "bins": {
     "eyebrow": "Depo",

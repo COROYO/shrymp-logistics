@@ -48,6 +48,8 @@ async function loadQueue(
       tags: effectiveOrderTags(data),
       priorityScore: data.priority_score ?? 0,
       internal_status: data.internal_status as "SHIP" | "PICKING",
+      financialStatus: data.shopify_financial_status ?? null,
+      fulfillmentStatus: data.shopify_fulfillment_status ?? null,
       isExpress,
       customerNote: data.customer_note ?? null,
     };

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  SHOPIFY_FULFILLMENT_STATUSES,
+  SHOPIFY_PAYMENT_STATUSES,
+} from "@/lib/orders/shopify-status";
 
 /**
  * Firestore document schemas (Zod).
@@ -697,6 +701,20 @@ export const LagerConfigSchema = z.object({
    * first in the pick queue. Empty = no priority lane. Default EXPRESS_DHL.
    */
   priority_tags: z.array(z.string().min(1).max(100)).max(50).default(["EXPRESS_DHL"]),
+  /**
+   * Shopify payment statuses that may become SHIP (inventory still applies).
+   * The full list means no extra gate — same as before this setting existed.
+   */
+  ship_payment_statuses: z
+    .array(z.enum(SHOPIFY_PAYMENT_STATUSES))
+    .default([...SHOPIFY_PAYMENT_STATUSES]),
+  /**
+   * Shopify fulfillment statuses that may become SHIP. REST `null` is
+   * treated as UNFULFILLED. Full list = no extra gate.
+   */
+  ship_fulfillment_statuses: z
+    .array(z.enum(SHOPIFY_FULFILLMENT_STATUSES))
+    .default([...SHOPIFY_FULFILLMENT_STATUSES]),
   updated_at: FirestoreTimestamp,
   updated_by_uid: z.string().nullable().default(null),
 });
@@ -799,6 +817,14 @@ export const ShopSchema = z.object({
    * See LagerConfigSchema.priority_tags.
    */
   priority_tags: z.array(z.string().min(1).max(100)).max(50).default(["EXPRESS_DHL"]),
+  /** See LagerConfigSchema.ship_payment_statuses. */
+  ship_payment_statuses: z
+    .array(z.enum(SHOPIFY_PAYMENT_STATUSES))
+    .default([...SHOPIFY_PAYMENT_STATUSES]),
+  /** See LagerConfigSchema.ship_fulfillment_statuses. */
+  ship_fulfillment_statuses: z
+    .array(z.enum(SHOPIFY_FULFILLMENT_STATUSES))
+    .default([...SHOPIFY_FULFILLMENT_STATUSES]),
   /**
    * When true (default), outbound Shopify mutations are skipped and logged
    * instead of executed — safe for merchant onboarding / demos.

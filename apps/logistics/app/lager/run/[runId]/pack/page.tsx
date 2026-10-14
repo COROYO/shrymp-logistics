@@ -38,6 +38,8 @@ export default async function RunPackPage({
       orderName: slot.order_name,
       express: slot.express,
       status: o?.internal_status ?? "—",
+      financialStatus: o?.shopify_financial_status ?? null,
+      fulfillmentStatus: o?.shopify_fulfillment_status ?? null,
       itemCount: o ? o.line_items.reduce((n, li) => n + li.qty, 0) : 0,
       city: o?.shipping_address?.city ?? null,
     };

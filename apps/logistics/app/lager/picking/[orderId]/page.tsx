@@ -16,6 +16,7 @@ import { loadPickScanItems } from "@/server/warehouse/pick-scan";
 import { StartPickingButton, CancelPickingButton } from "./client-buttons";
 import { PickScanVerifier } from "./pick-scan-verifier";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import { OrderStatusRow } from "@/app/_components/order-status";
 import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
@@ -266,14 +267,16 @@ export default async function PickingDetailPage({
               {order.name}
             </span>
           </h1>
-          <span
-            className={isPicking ? "chip chip-violet" : "chip chip-emerald"}
-          >
-            {order.internal_status}
-          </span>
           {isExpress ? (
             <span className="chip chip-burgundy">{t("express")}</span>
           ) : null}
+        </div>
+        <div className="mt-3">
+          <OrderStatusRow
+            payment={order.shopify_financial_status}
+            fulfillment={order.shopify_fulfillment_status}
+            lager={order.internal_status}
+          />
         </div>
       </div>
 

@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { finishRunAction } from "../../actions";
+import {
+  LagerStatusChip,
+  ShopifyStatusChip,
+} from "@/app/_components/order-status";
 
 export type RunPackRow = {
   slot: number;
@@ -12,6 +16,8 @@ export type RunPackRow = {
   orderName: string;
   express: boolean;
   status: string;
+  financialStatus: string | null;
+  fulfillmentStatus: string | null;
   itemCount: number;
   city: string | null;
 };
@@ -134,13 +140,12 @@ export function RunPackClient({
                   {r.express ? (
                     <span className="chip chip-burgundy">⚡</span>
                   ) : null}
-                  <span
-                    className={
-                      packed ? "chip chip-sky" : "chip chip-violet"
-                    }
-                  >
-                    {r.status}
-                  </span>
+                  <ShopifyStatusChip kind="payment" status={r.financialStatus} />
+                  <ShopifyStatusChip
+                    kind="fulfillment"
+                    status={r.fulfillmentStatus}
+                  />
+                  <LagerStatusChip status={r.status} />
                 </div>
                 <div className="text-xs text-brand-navy/60">
                   {t("packItemCount", { count: r.itemCount })}

@@ -228,7 +228,9 @@
         "items": "Pozycje",
         "city": "Miasto",
         "tags": "Tagi",
-        "status": "Status",
+        "payment": "Płatność",
+        "fulfillment": "Realizacja",
+        "status": "Magazyn",
         "positions": "poz."
       },
       "ctaContinue": "Kontynuuj pakowanie →",
@@ -275,6 +277,9 @@
       "items": "Pozycje",
       "city": "Miasto",
       "tags": "Tagi",
+      "payment": "Płatność",
+      "fulfillment": "Realizacja",
+      "lager": "Magazyn",
       "positions": "poz."
     }
   },
@@ -376,6 +381,33 @@
       "errorPrefix": "Błąd:"
     },
     "wrongStatus": "Zamówienie ma status <b>{status}</b>, nie można kompletować."
+  },
+  "orderStatus": {
+    "payment": "Płatność",
+    "fulfillment": "Realizacja",
+    "lager": "Magazyn",
+    "paymentValues": {
+      "PENDING": "Oczekuje",
+      "AUTHORIZED": "Autoryzowana",
+      "PARTIALLY_PAID": "Częściowo opłacona",
+      "PAID": "Opłacona",
+      "PARTIALLY_REFUNDED": "Częściowo zwrócona",
+      "REFUNDED": "Zwrócona",
+      "VOIDED": "Anulowana",
+      "EXPIRED": "Wygasła"
+    },
+    "fulfillmentValues": {
+      "UNFULFILLED": "Niezrealizowane",
+      "PARTIALLY_FULFILLED": "Częściowo zrealizowane",
+      "FULFILLED": "Zrealizowane",
+      "RESTOCKED": "Przywrócone",
+      "PENDING_FULFILLMENT": "Oczekuje realizacji",
+      "OPEN": "Otwarte",
+      "IN_PROGRESS": "W toku",
+      "ON_HOLD": "Wstrzymane",
+      "SCHEDULED": "Zaplanowane",
+      "REQUEST_DECLINED": "Odrzucone"
+    }
   },
   "bins": {
     "eyebrow": "Magazyn",

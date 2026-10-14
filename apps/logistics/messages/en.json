@@ -228,7 +228,9 @@
         "items": "Items",
         "city": "City",
         "tags": "Tags",
-        "status": "Status",
+        "payment": "Payment",
+        "fulfillment": "Fulfillment",
+        "status": "Warehouse",
         "positions": "pos."
       },
       "ctaContinue": "Continue packing →",
@@ -275,6 +277,9 @@
       "items": "Items",
       "city": "City",
       "tags": "Tags",
+      "payment": "Payment",
+      "fulfillment": "Fulfillment",
+      "lager": "Warehouse",
       "positions": "pos."
     }
   },
@@ -376,6 +381,33 @@
       "errorPrefix": "Error:"
     },
     "wrongStatus": "Order is in status <b>{status}</b>, not pickable."
+  },
+  "orderStatus": {
+    "payment": "Payment",
+    "fulfillment": "Fulfillment",
+    "lager": "Warehouse",
+    "paymentValues": {
+      "PENDING": "Pending",
+      "AUTHORIZED": "Authorized",
+      "PARTIALLY_PAID": "Partially paid",
+      "PAID": "Paid",
+      "PARTIALLY_REFUNDED": "Partially refunded",
+      "REFUNDED": "Refunded",
+      "VOIDED": "Voided",
+      "EXPIRED": "Expired"
+    },
+    "fulfillmentValues": {
+      "UNFULFILLED": "Unfulfilled",
+      "PARTIALLY_FULFILLED": "Partially fulfilled",
+      "FULFILLED": "Fulfilled",
+      "RESTOCKED": "Restocked",
+      "PENDING_FULFILLMENT": "Pending fulfillment",
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "ON_HOLD": "On hold",
+      "SCHEDULED": "Scheduled",
+      "REQUEST_DECLINED": "Request declined"
+    }
   },
   "bins": {
     "eyebrow": "Warehouse",

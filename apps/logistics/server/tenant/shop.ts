@@ -164,6 +164,26 @@ export async function updateShopLagerSettings(
   await shopRef(shopId).set(body, { merge: true });
 }
 
+export async function updateShopShipStatuses(
+  shopId: string,
+  patch: {
+    ship_payment_statuses: string[];
+    ship_fulfillment_statuses: string[];
+    updated_by_uid: string | null;
+  },
+): Promise<void> {
+  await shopRef(shopId).set(
+    {
+      ship_payment_statuses: patch.ship_payment_statuses,
+      ship_fulfillment_statuses: patch.ship_fulfillment_statuses,
+      lager_updated_by_uid: patch.updated_by_uid,
+      lager_updated_at: FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 export async function updateShopPriorityTags(
   shopId: string,
   patch: {
