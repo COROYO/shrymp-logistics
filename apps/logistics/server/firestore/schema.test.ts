@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { SLIP_LAYOUT_FLAG_KEYS } from "@/lib/slip/defaults";
 import {
   BatchSchema,
   Collections,
   OrderSchema,
   ProductSchema,
+  ShopSchema,
+  SlipBrandingSchema,
   UserSchema,
   VariantSchema,
 } from "./schema";
@@ -95,6 +98,45 @@ describe("Firestore Zod schemas", () => {
       created_at: new Date(),
     });
     expect(u.disabled).toBe(false);
+  });
+
+  it("legacy slip branding stays valid and keeps every block visible", () => {
+    const legacy = {
+      brand_name: "ACME",
+      eyebrow: "Premium",
+      company_line: "ACME GmbH",
+      contact_email: "a@b.de",
+      accent_color: "#F3ACC8",
+      header_color: "#0f1b33",
+      document_title: "Lieferschein",
+      signature: "Danke",
+      footer_legal: "ACME",
+    };
+    const branding = SlipBrandingSchema.parse(legacy);
+    for (const key of SLIP_LAYOUT_FLAG_KEYS) {
+      expect(branding[key]).toBe(true);
+    }
+    expect(SlipBrandingSchema.parse({ ...legacy, col_bin: false }).col_bin).toBe(
+      false,
+    );
+    expect(
+      SlipBrandingSchema.parse({
+        ...legacy,
+        company_line: "ACME GmbH\nMusterstraße 1\n51373 Leverkusen",
+      }).company_line,
+    ).toContain("Musterstraße 1");
+
+    const shop = ShopSchema.parse({
+      id: SHOP,
+      shop_domain: SHOP,
+      created_at: new Date(),
+      updated_at: new Date(),
+      slip_branding: legacy,
+    });
+    expect(shop.slip_branding?.show_address).toBe(true);
+    expect(shop.slip_branding?.col_charge).toBe(true);
+    expect(shop.slip_branding?.title_size_pt).toBe(11);
+    expect(shop.slip_branding?.sku_size_pt).toBe(9);
   });
 
   it("Collections constant names match strings used elsewhere", () => {

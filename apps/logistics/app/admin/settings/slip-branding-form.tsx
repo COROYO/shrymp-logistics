@@ -1,8 +1,13 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveSlipBrandingAction } from "./slip-branding-actions";
-import type { SlipBrandingConfig } from "@/lib/slip/defaults";
+import {
+  SLIP_FONT_SIZE_MAX_PT,
+  SLIP_FONT_SIZE_MIN_PT,
+  type SlipBrandingConfig,
+  type SlipLayoutFlag,
+} from "@/lib/slip/defaults";
 import {
   dispatchAdminJobError,
   dispatchAdminJobSuccess,
@@ -13,6 +18,36 @@ const labelClass =
 
 const inputClass =
   "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+
+const HEADER_TOGGLES = [
+  { name: "show_eyebrow", label: "Subheadline" },
+  { name: "show_address", label: "Anschrift" },
+  { name: "show_email", label: "E-Mail" },
+  { name: "show_document_title", label: "Dokumenttitel" },
+  { name: "show_header_ls_no", label: "Lieferscheinnummer rechts" },
+] as const satisfies readonly { name: SlipLayoutFlag; label: string }[];
+
+const META_TOGGLES = [
+  { name: "show_customer_no", label: "Kundennummer" },
+  { name: "show_ls_no", label: "Lieferscheinnummer" },
+  { name: "show_ls_date", label: "Lieferscheindatum" },
+  { name: "show_order_no", label: "Bestellnummer" },
+  { name: "show_order_date", label: "Bestelldatum" },
+  { name: "show_page", label: "Seite" },
+] as const satisfies readonly { name: SlipLayoutFlag; label: string }[];
+
+const COLUMN_TOGGLES = [
+  { name: "col_sku", label: "Art.-Nr." },
+  { name: "col_bin", label: "Lagerplatz" },
+  { name: "col_qty", label: "Menge" },
+  { name: "col_charge", label: "Charge" },
+] as const satisfies readonly { name: SlipLayoutFlag; label: string }[];
+
+/** Compile-time check: every layout flag has a checkbox, or save would store it as off. */
+type CoveredFlag = (typeof HEADER_TOGGLES | typeof META_TOGGLES | typeof COLUMN_TOGGLES)[number]["name"];
+type MissingLayoutFlag = Exclude<SlipLayoutFlag, CoveredFlag>;
+const _allFlagsCovered: MissingLayoutFlag extends never ? true : never = true;
+void _allFlagsCovered;
 
 export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
   const router = useRouter();
@@ -41,7 +76,7 @@ export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Markenname</label>
@@ -64,13 +99,19 @@ export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
           />
         </div>
         <div className="sm:col-span-2">
-          <label className={labelClass}>Firma & Adresse</label>
-          <input
+          <label className={labelClass}>Anschrift im Briefkopf</label>
+          <textarea
             name="company_line"
-            maxLength={200}
+            rows={5}
+            maxLength={600}
             defaultValue={current.company_line}
             className={inputClass}
+            placeholder={"Muster GmbH\nMusterstraße 12\n51373 Leverkusen\nDeutschland"}
           />
+          <p className="mt-1.5 text-xs text-brand-navy/60">
+            Eine Zeile pro Bestandteil. So erscheint die vollständige Anschrift
+            unter dem Markennamen.
+          </p>
         </div>
         <div>
           <label className={labelClass}>Kontakt-E-Mail</label>
@@ -137,6 +178,66 @@ export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
         </div>
       </div>
 
+      <ToggleGroup
+        title="Briefkopf"
+        hint="Welche Angaben oben links und rechts gedruckt werden."
+        toggles={HEADER_TOGGLES}
+        current={current}
+      />
+      <ToggleGroup
+        title="Angaben unter dem Briefkopf"
+        hint="Kunden-, Beleg- und Bestelldaten in der Zeile über der Lieferadresse."
+        toggles={META_TOGGLES}
+        current={current}
+      />
+      <ToggleGroup
+        title="Tabellenspalten"
+        hint="Produkt bleibt immer sichtbar. Art.-Nr. steht unter dem Produktnamen. Charge erscheint nur, wenn Chargen aktiv sind."
+        toggles={COLUMN_TOGGLES}
+        current={current}
+      />
+      <fieldset className="space-y-3">
+        <legend className={labelClass}>Schriftgröße in der Tabelle</legend>
+        <p className="text-xs text-brand-navy/60">
+          Punktgröße für den Produktnamen und die Art.-Nr. darunter.{" "}
+          {SLIP_FONT_SIZE_MIN_PT}–{SLIP_FONT_SIZE_MAX_PT} pt.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass} htmlFor="title_size_pt">
+              Produkttitel (pt)
+            </label>
+            <input
+              id="title_size_pt"
+              name="title_size_pt"
+              type="number"
+              required
+              min={SLIP_FONT_SIZE_MIN_PT}
+              max={SLIP_FONT_SIZE_MAX_PT}
+              step={1}
+              defaultValue={current.title_size_pt}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="sku_size_pt">
+              Art.-Nr. (pt)
+            </label>
+            <input
+              id="sku_size_pt"
+              name="sku_size_pt"
+              type="number"
+              required
+              min={SLIP_FONT_SIZE_MIN_PT}
+              max={SLIP_FONT_SIZE_MAX_PT}
+              step={1}
+              defaultValue={current.sku_size_pt}
+              className={inputClass}
+            />
+          </div>
+        </div>
+      </fieldset>
+
       <div className="flex items-center gap-3">
         <button
           type="submit"
@@ -147,5 +248,41 @@ export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
         </button>
       </div>
     </form>
+  );
+}
+
+function ToggleGroup({
+  title,
+  hint,
+  toggles,
+  current,
+}: {
+  title: string;
+  hint: string;
+  toggles: readonly { name: SlipLayoutFlag; label: string }[];
+  current: SlipBrandingConfig;
+}) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className={labelClass}>{title}</legend>
+      <p className="text-xs text-brand-navy/60">{hint}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {toggles.map((toggle) => (
+          <label
+            key={toggle.name}
+            className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-brand-navy"
+          >
+            <input
+              type="checkbox"
+              name={toggle.name}
+              value="1"
+              defaultChecked={current[toggle.name]}
+              className="h-4 w-4 rounded border-zinc-300"
+            />
+            {toggle.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

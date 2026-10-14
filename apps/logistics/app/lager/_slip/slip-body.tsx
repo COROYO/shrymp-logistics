@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { tsToDate, type SlipData } from "@/server/picking/slip-data";
 import { buildSlipSections } from "./slip-lines";
@@ -26,7 +26,15 @@ export async function SlipBody({
     variantTitleByLi,
     binByVariant,
   );
-  const columnCount = batchesEnabled ? 4 : 3;
+  const showSku = branding.col_sku;
+  const showBin = branding.col_bin;
+  const showQty = branding.col_qty;
+  const showCharge = batchesEnabled && branding.col_charge;
+  const columnCount =
+    1 +
+    Number(showBin) +
+    Number(showQty) +
+    Number(showCharge);
 
   const locale = "de" as const;
   const t = await getTranslations({ locale, namespace: "packingSlip" });
@@ -56,74 +64,70 @@ export async function SlipBody({
         style={{ borderColor: accent }}
       >
         <div>
-          <div
-            className="text-[10pt] font-semibold uppercase tracking-[0.18em]"
-            style={{ color: accent }}
-          >
-            {branding.eyebrow}
-          </div>
+          {branding.show_eyebrow && branding.eyebrow ? (
+            <div
+              className="text-[10pt] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: accent }}
+            >
+              {branding.eyebrow}
+            </div>
+          ) : null}
           <div
             className="mt-1 text-xl font-bold tracking-tight"
             style={{ color: header }}
           >
             {branding.brand_name}
           </div>
-          <div className="mt-1 text-[10pt] leading-snug text-brand-navy/70">
-            {branding.company_line}
-            <br />
-            {branding.contact_email}
-          </div>
+          {branding.show_address && branding.company_line ? (
+            <div className="mt-1 whitespace-pre-line text-[10pt] leading-snug text-brand-navy/70">
+              {branding.company_line}
+            </div>
+          ) : null}
+          {branding.show_email && branding.contact_email ? (
+            <div className="mt-0.5 text-[10pt] leading-snug text-brand-navy/70">
+              {branding.contact_email}
+            </div>
+          ) : null}
         </div>
-        <div className="text-right text-[10pt] text-brand-navy/70">
-          <div
-            className="text-[10pt] font-semibold uppercase tracking-[0.14em]"
-            style={{ color: accent }}
-          >
-            {branding.document_title}
+        {branding.show_document_title || branding.show_header_ls_no ? (
+          <div className="text-right text-[10pt] text-brand-navy/70">
+            {branding.show_document_title ? (
+              <div
+                className="text-[10pt] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: accent }}
+              >
+                {branding.document_title}
+              </div>
+            ) : null}
+            {branding.show_header_ls_no ? (
+              <div
+                className="mt-1 font-mono text-base font-bold"
+                style={{ color: header }}
+              >
+                {data.lieferschein.number}
+              </div>
+            ) : null}
           </div>
-          <div
-            className="mt-1 font-mono text-base font-bold"
-            style={{ color: header }}
-          >
-            {data.lieferschein.number}
-          </div>
-        </div>
+        ) : null}
       </header>
 
-      <section
-        className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1 text-[10pt] text-brand-navy/80"
-        aria-label="Lieferschein-Metadaten"
-      >
-        <MetaRow
-          label="Kd.-Nr."
-          value={order.customer?.shopify_id ?? t("noCharge")}
-          mono
-        />
-        <MetaRow label="Ls.-Nr." value={data.lieferschein.number} mono />
-        <MetaRow
-          label="Ls.-Datum"
-          value={formatGermanDate(data.lieferschein.dateIso)}
-        />
-        <MetaRow label="Be.-Nr." value={order.name} mono />
-        <MetaRow label="Be.-Datum" value={orderDateStr} />
-        <div className="flex items-baseline gap-2">
-          <span className="min-w-[80px] text-[10pt] font-semibold text-brand-navy/60">
-            Seite
-          </span>
-          <span className="text-[11pt] text-brand-navy">
-            1 von <span data-slip-total>1</span>
-          </span>
-        </div>
-      </section>
+      <SlipMeta
+        branding={branding}
+        customerNo={order.customer?.shopify_id ?? t("noCharge")}
+        lsNo={data.lieferschein.number}
+        lsDate={formatGermanDate(data.lieferschein.dateIso)}
+        orderNo={order.name}
+        orderDate={orderDateStr}
+      />
 
-      <section className="mt-10">
+      <section className="mt-6">
         <div
-          className="mb-1 text-[10pt] font-semibold uppercase tracking-[0.14em]"
+          className="mb-0.5 text-[8pt] font-semibold uppercase tracking-[0.12em]"
           style={{ color: accent }}
         >
           {t("shippingAddress")}
         </div>
-        <address className="not-italic text-[14pt] leading-relaxed">
+        <address className="not-italic text-[10pt] leading-snug">
           <strong>
             {order.shipping_address?.first_name}{" "}
             {order.shipping_address?.last_name}
@@ -155,13 +159,17 @@ export async function SlipBody({
             <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
               {t("product")}
             </th>
-            <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
-              {t("bin")}
-            </th>
-            <th className="px-3 py-2 pr-4 text-right text-[10pt] font-semibold uppercase tracking-[0.1em]">
-              {t("qty")}
-            </th>
-            {batchesEnabled ? (
+            {showBin ? (
+              <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
+                {t("bin")}
+              </th>
+            ) : null}
+            {showQty ? (
+              <th className="px-3 py-2 pr-4 text-right text-[10pt] font-semibold uppercase tracking-[0.1em]">
+                {t("qty")}
+              </th>
+            ) : null}
+            {showCharge ? (
               <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
                 {t("charge")}
               </th>
@@ -195,8 +203,11 @@ export async function SlipBody({
                         × {section.bundle.quantity}
                       </span>
                     ) : null}
-                    {section.bundle.sku ? (
-                      <span className="ml-2 font-mono text-[9pt] text-brand-navy/55">
+                    {showSku && section.bundle.sku ? (
+                      <span
+                        className="ml-2 font-mono text-brand-navy/55"
+                        style={{ fontSize: `${branding.sku_size_pt}pt` }}
+                      >
                         {t("sku")} {section.bundle.sku}
                       </span>
                     ) : null}
@@ -216,7 +227,10 @@ export async function SlipBody({
                   }
                 >
                   <td className={`px-3 py-2 pr-4 ${section.bundle ? "pl-6" : ""}`}>
-                    <div className="font-semibold" style={{ color: header }}>
+                    <div
+                      className="font-semibold"
+                      style={{ color: header, fontSize: `${branding.title_size_pt}pt` }}
+                    >
                       {line.title}
                       {line.variantTitle ? (
                         <span className="font-normal text-brand-navy">
@@ -225,31 +239,38 @@ export async function SlipBody({
                         </span>
                       ) : null}
                     </div>
-                    {line.sku ? (
-                      <div className="mt-0.5 font-mono text-[9pt] text-brand-navy/55">
+                    {showSku && line.sku ? (
+                      <div
+                        className="mt-0.5 font-mono text-brand-navy/55"
+                        style={{ fontSize: `${branding.sku_size_pt}pt` }}
+                      >
                         {t("sku")} {line.sku}
                       </div>
                     ) : null}
                   </td>
-                  <td className="px-3 py-2 pr-4 font-mono text-[11pt] font-bold text-brand-navy">
-                    {line.binCode ?? (
-                      <span className="font-normal italic text-brand-navy/40">
-                        {t("noBin")}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 pr-4 text-right text-brand-navy">
-                    {line.allocs.length > 1 ? (
-                      <div className="space-y-0.5">
-                        {line.allocs.map((a) => (
-                          <div key={a.chargeNumber}>{a.qty}</div>
-                        ))}
-                      </div>
-                    ) : (
-                      line.qty
-                    )}
-                  </td>
-                  {batchesEnabled ? (
+                  {showBin ? (
+                    <td className="px-3 py-2 pr-4 font-mono text-[11pt] font-bold text-brand-navy">
+                      {line.binCode ?? (
+                        <span className="font-normal italic text-brand-navy/40">
+                          {t("noBin")}
+                        </span>
+                      )}
+                    </td>
+                  ) : null}
+                  {showQty ? (
+                    <td className="px-3 py-2 pr-4 text-right text-brand-navy">
+                      {showCharge && line.allocs.length > 1 ? (
+                        <div className="space-y-0.5">
+                          {line.allocs.map((a) => (
+                            <div key={a.chargeNumber}>{a.qty}</div>
+                          ))}
+                        </div>
+                      ) : (
+                        line.qty
+                      )}
+                    </td>
+                  ) : null}
+                  {showCharge ? (
                     <td className="px-3 py-2 pr-4 font-mono">
                       {line.allocs.length === 0 ? (
                         <span className="italic text-brand-navy/40">
@@ -303,13 +324,79 @@ export async function SlipBody({
   );
 }
 
+function SlipMeta({
+  branding,
+  customerNo,
+  lsNo,
+  lsDate,
+  orderNo,
+  orderDate,
+}: {
+  branding: SlipData["branding"];
+  customerNo: string;
+  lsNo: string;
+  lsDate: string;
+  orderNo: string;
+  orderDate: string;
+}) {
+  const rows: {
+    key: string;
+    label: string;
+    value: ReactNode;
+    mono?: boolean;
+  }[] = [];
+  if (branding.show_customer_no) {
+    rows.push({ key: "customer", label: "Kd.-Nr.", value: customerNo, mono: true });
+  }
+  if (branding.show_ls_no) {
+    rows.push({ key: "ls", label: "Ls.-Nr.", value: lsNo, mono: true });
+  }
+  if (branding.show_ls_date) {
+    rows.push({ key: "ls-date", label: "Ls.-Datum", value: lsDate });
+  }
+  if (branding.show_order_no) {
+    rows.push({ key: "order", label: "Be.-Nr.", value: orderNo, mono: true });
+  }
+  if (branding.show_order_date) {
+    rows.push({ key: "order-date", label: "Be.-Datum", value: orderDate });
+  }
+  if (branding.show_page) {
+    rows.push({
+      key: "page",
+      label: "Seite",
+      value: (
+        <>
+          1 von <span data-slip-total>1</span>
+        </>
+      ),
+    });
+  }
+  if (rows.length === 0) return null;
+
+  return (
+    <section
+      className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1 text-[10pt] text-brand-navy/80"
+      aria-label="Lieferschein-Metadaten"
+    >
+      {rows.map((row) => (
+        <MetaRow
+          key={row.key}
+          label={row.label}
+          value={row.value}
+          mono={row.mono}
+        />
+      ))}
+    </section>
+  );
+}
+
 function MetaRow({
   label,
   value,
   mono,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   mono?: boolean;
 }) {
   return (

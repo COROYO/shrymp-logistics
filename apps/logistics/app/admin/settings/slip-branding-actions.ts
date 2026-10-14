@@ -1,8 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
 import { requireActiveShopId } from "@/lib/auth/tenant";
+import { SLIP_LAYOUT_FLAG_KEYS } from "@/lib/slip/defaults";
 import { SlipBrandingSchema } from "@/server/firestore/schema";
 import { updateShopSlipBranding } from "@/server/tenant/shop";
 import { log } from "@/lib/logger";
@@ -26,6 +26,9 @@ export async function saveSlipBrandingAction(
     return { ok: false, error: "forbidden" };
   }
 
+  const layoutFlags = Object.fromEntries(
+    SLIP_LAYOUT_FLAG_KEYS.map((key) => [key, formData.get(key) === "1"]),
+  );
   const parsed = InputSchema.safeParse({
     brand_name: formData.get("brand_name"),
     eyebrow: formData.get("eyebrow"),
@@ -36,6 +39,9 @@ export async function saveSlipBrandingAction(
     document_title: formData.get("document_title"),
     signature: formData.get("signature"),
     footer_legal: formData.get("footer_legal"),
+    title_size_pt: Number(formData.get("title_size_pt")),
+    sku_size_pt: Number(formData.get("sku_size_pt")),
+    ...layoutFlags,
   });
   if (!parsed.success) {
     return { ok: false, error: "validation", details: parsed.error.flatten() };
@@ -46,6 +52,7 @@ export async function saveSlipBrandingAction(
 
   log.info("slip_branding_saved", { uid: user.uid, shopId });
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings/lieferschein");
   revalidatePath("/lager/picking", "layout");
   return { ok: true };
 }

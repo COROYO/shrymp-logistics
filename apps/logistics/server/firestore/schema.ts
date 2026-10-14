@@ -775,16 +775,39 @@ const hexColor = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, "Must be #RRGGBB hex color");
 
+/** Missing flags stay on so existing slips keep their current layout. */
+const slipFlag = z.boolean().default(true);
+
 export const SlipBrandingSchema = z.object({
   brand_name: z.string().min(1).max(80),
   eyebrow: z.string().max(120),
-  company_line: z.string().max(200),
+  /** Multiline sender address printed in the letterhead. */
+  company_line: z.string().max(600),
   contact_email: z.string().email().max(120),
   accent_color: hexColor,
   header_color: hexColor,
   document_title: z.string().min(1).max(40),
   signature: z.string().max(500),
   footer_legal: z.string().max(400),
+  show_eyebrow: slipFlag,
+  show_address: slipFlag,
+  show_email: slipFlag,
+  show_document_title: slipFlag,
+  show_header_ls_no: slipFlag,
+  show_customer_no: slipFlag,
+  show_ls_no: slipFlag,
+  show_ls_date: slipFlag,
+  show_order_no: slipFlag,
+  show_order_date: slipFlag,
+  show_page: slipFlag,
+  col_sku: slipFlag,
+  col_bin: slipFlag,
+  col_qty: slipFlag,
+  col_charge: slipFlag,
+  /** Line-item title size in points. Missing values keep the current 11pt. */
+  title_size_pt: z.number().int().min(6).max(18).default(11),
+  /** Art.-Nr. size in points. Missing values keep the current 9pt. */
+  sku_size_pt: z.number().int().min(6).max(18).default(9),
   updated_at: FirestoreTimestamp.optional(),
   updated_by_uid: z.string().nullable().optional(),
 });

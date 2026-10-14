@@ -17,9 +17,8 @@ export default async function LieferscheinSettingsPage() {
         Branding & Layout
       </h2>
       <p className="mt-1 text-xs text-brand-navy/60">
-        Markenname, Farben und Footer für den gedruckten Lieferschein — pro Shop
-        individuell. Tabellen-Labels (Produkt, Menge, Charge) bleiben auf
-        Deutsch.
+        Briefkopf, Anschrift, Farben und sichtbare Angaben für den gedruckten
+        Lieferschein — pro Shop. Tabellen-Labels bleiben auf Deutsch.
       </p>
       <div className="mt-6">
         <SlipBrandingForm current={slipBranding} />
