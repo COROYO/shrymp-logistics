@@ -137,6 +137,9 @@ describe("Firestore Zod schemas", () => {
     expect(shop.slip_branding?.col_charge).toBe(true);
     expect(shop.slip_branding?.title_size_pt).toBe(11);
     expect(shop.slip_branding?.sku_size_pt).toBe(9);
+    expect(
+      SlipBrandingSchema.parse({ ...legacy, contact_email: "" }).contact_email,
+    ).toBe("");
   });
 
   it("Collections constant names match strings used elsewhere", () => {

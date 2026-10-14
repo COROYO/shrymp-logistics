@@ -31,9 +31,9 @@ export async function saveSlipBrandingAction(
   );
   const parsed = InputSchema.safeParse({
     brand_name: formData.get("brand_name"),
-    eyebrow: formData.get("eyebrow"),
+    eyebrow: String(formData.get("eyebrow") ?? "").trim(),
     company_line: formData.get("company_line"),
-    contact_email: formData.get("contact_email"),
+    contact_email: String(formData.get("contact_email") ?? "").trim(),
     accent_color: formData.get("accent_color"),
     header_color: formData.get("header_color"),
     document_title: formData.get("document_title"),

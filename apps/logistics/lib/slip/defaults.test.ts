@@ -27,6 +27,10 @@ describe("resolveSlipBranding", () => {
     expect(branding.title_size_pt).toBe(8);
     expect(branding.sku_size_pt).toBe(7);
     expect(resolveSlipBranding({ title_size_pt: 40 }).title_size_pt).toBe(11);
+    expect(resolveSlipBranding({ contact_email: "" }).contact_email).toBe("");
+    expect(resolveSlipBranding({ contact_email: "  " }).contact_email).toBe("");
+    expect(resolveSlipBranding({ eyebrow: "" }).eyebrow).toBe("");
+    expect(resolveSlipBranding({ eyebrow: "  " }).eyebrow).toBe("");
   });
 
   it("fills every layout flag when the shop has no branding yet", () => {

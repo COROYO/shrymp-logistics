@@ -783,7 +783,8 @@ export const SlipBrandingSchema = z.object({
   eyebrow: z.string().max(120),
   /** Multiline sender address printed in the letterhead. */
   company_line: z.string().max(600),
-  contact_email: z.string().email().max(120),
+  /** Empty hides the contact line on the slip. */
+  contact_email: z.union([z.literal(""), z.string().email().max(120)]),
   accent_color: hexColor,
   header_color: hexColor,
   document_title: z.string().min(1).max(40),

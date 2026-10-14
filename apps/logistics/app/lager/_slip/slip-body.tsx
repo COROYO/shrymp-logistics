@@ -295,12 +295,14 @@ export async function SlipBody({
       </table>
 
       <section className="mt-12 text-[10pt] leading-relaxed text-brand-navy/80">
-        <p className="mt-3">
-          {t.rich("noteContact", {
-            email: branding.contact_email,
-            strong: (chunks) => <strong>{chunks}</strong>,
-          })}
-        </p>
+        {branding.contact_email ? (
+          <p className="mt-3">
+            {t.rich("noteContact", {
+              email: branding.contact_email,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
+          </p>
+        ) : null}
         <p className="mt-6 font-medium whitespace-pre-line">
           {branding.signature}
         </p>

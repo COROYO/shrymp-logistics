@@ -100,11 +100,16 @@ export function resolveSlipBranding(
   if (!partial) return { ...DEFAULT_SLIP_BRANDING };
   return {
     brand_name: partial.brand_name?.trim() || DEFAULT_SLIP_BRANDING.brand_name,
-    eyebrow: partial.eyebrow?.trim() || DEFAULT_SLIP_BRANDING.eyebrow,
+    eyebrow:
+      partial.eyebrow == null
+        ? DEFAULT_SLIP_BRANDING.eyebrow
+        : partial.eyebrow.trim(),
     company_line:
       partial.company_line?.trim() || DEFAULT_SLIP_BRANDING.company_line,
     contact_email:
-      partial.contact_email?.trim() || DEFAULT_SLIP_BRANDING.contact_email,
+      partial.contact_email == null
+        ? DEFAULT_SLIP_BRANDING.contact_email
+        : partial.contact_email.trim(),
     accent_color:
       partial.accent_color?.trim() || DEFAULT_SLIP_BRANDING.accent_color,
     header_color:

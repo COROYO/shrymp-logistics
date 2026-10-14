@@ -118,11 +118,13 @@ export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
           <input
             name="contact_email"
             type="email"
-            required
             maxLength={120}
             defaultValue={current.contact_email}
             className={inputClass}
           />
+          <p className="mt-1.5 text-xs text-brand-navy/60">
+            Leer lassen, dann steht auf dem Lieferschein kein Kontakt-Hinweis.
+          </p>
         </div>
         <div>
           <label className={labelClass}>Dokumenttitel</label>
