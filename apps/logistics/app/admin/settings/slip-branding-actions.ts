@@ -2,12 +2,10 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/session";
 import { requireActiveShopId } from "@/lib/auth/tenant";
-import { SLIP_LAYOUT_FLAG_KEYS } from "@/lib/slip/defaults";
-import { loadSlipBranding } from "@/server/slip/branding";
 import {
-  deleteSlipQrImages,
-  storeSlipQrImage,
-} from "@/server/slip/qr-image";
+  normalizeSlipQrUrl,
+  SLIP_LAYOUT_FLAG_KEYS,
+} from "@/lib/slip/defaults";
 import { SlipBrandingSchema } from "@/server/firestore/schema";
 import { updateShopSlipBranding } from "@/server/tenant/shop";
 import { log } from "@/lib/logger";
@@ -52,22 +50,19 @@ export async function saveSlipBrandingAction(
     return { ok: false, error: "validation", details: parsed.error.flatten() };
   }
 
-  const shopId = await requireActiveShopId(user);
-  const current = await loadSlipBranding(shopId);
-  let qrImage = current.qr_image;
-  const uploaded = formData.get("qr_image");
-  if (uploaded instanceof File && uploaded.size > 0) {
-    const stored = await storeSlipQrImage(shopId, uploaded);
-    if (!stored.ok) return stored;
-    qrImage = stored.format;
-  } else if (formData.get("remove_qr") === "1") {
-    await deleteSlipQrImages(shopId);
-    qrImage = null;
+  const qrInput = String(formData.get("qr_url") ?? "");
+  const qrUrl = normalizeSlipQrUrl(qrInput);
+  if (qrInput.trim() && !qrUrl) {
+    return {
+      ok: false,
+      error: "Die QR-URL muss mit http:// oder https:// beginnen.",
+    };
   }
 
+  const shopId = await requireActiveShopId(user);
   await updateShopSlipBranding(
     shopId,
-    { ...parsed.data, qr_image: qrImage },
+    { ...parsed.data, qr_url: qrUrl },
     user.uid,
   );
 

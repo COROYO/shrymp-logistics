@@ -809,8 +809,8 @@ export const SlipBrandingSchema = z.object({
   title_size_pt: z.number().int().min(6).max(18).default(11),
   /** Art.-Nr. size in points. Missing values keep the current 9pt. */
   sku_size_pt: z.number().int().min(6).max(18).default(9),
-  /** Uploaded QR image format. Null means the slip has no QR code. */
-  qr_image: z.enum(["png", "jpeg", "webp"]).nullable().default(null),
+  /** http(s) image URL printed as the QR code. Empty hides it. */
+  qr_url: z.string().max(2000).default(""),
   updated_at: FirestoreTimestamp.optional(),
   updated_by_uid: z.string().nullable().optional(),
 });

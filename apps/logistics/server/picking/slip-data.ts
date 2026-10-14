@@ -19,7 +19,6 @@ import { orderAssignmentCoversLineItemsAnyState } from "./assignment-coverage";
 import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
 import { loadLagerConfig } from "@/server/lager/config";
 import { loadSlipBranding, type SlipBrandingConfig } from "@/server/slip/branding";
-import { loadSlipQrDataUrl } from "@/server/slip/qr-image";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import {
@@ -74,7 +73,7 @@ export type SlipData = {
   batchesEnabled: boolean;
   /** variantId → Lagerplatz code (for pickers on the printed slip). */
   binByVariant: Map<string, string | null>;
-  /** Inlined QR image, present when the shop uploaded one. */
+  /** QR image URL, present when the shop set one. */
   qrDataUrl: string | null;
 };
 
@@ -101,10 +100,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   await assertShopAccessibleForPage(shopId, `/lager/picking/${orderId}/slip`);
   const lagerCfg = await loadLagerConfig(shopId ?? undefined);
   const branding = await loadSlipBranding(shopId);
-  const qrDataUrl =
-    shopId && branding.qr_image
-      ? await loadSlipQrDataUrl(shopId, branding.qr_image)
-      : null;
+  const qrDataUrl = branding.qr_url || null;
 
   // A finished (PACKED) order is a REPRINT: its Chargen are already pinned and
   // consumed. We must not re-assign or re-validate expiry — just render the

@@ -19,8 +19,6 @@ export const SLIP_LAYOUT_FLAG_KEYS = [
 
 export type SlipLayoutFlag = (typeof SLIP_LAYOUT_FLAG_KEYS)[number];
 
-import type { SlipQrFormat } from "@/lib/slip/qr-image";
-
 /** Print sizes for the line-item title and the Art.-Nr. under it. */
 export const SLIP_FONT_SIZE_MIN_PT = 6;
 export const SLIP_FONT_SIZE_MAX_PT = 18;
@@ -58,7 +56,7 @@ export const DEFAULT_SLIP_BRANDING = {
   footer_legal: "SHRYMP · lager.shrymp.de",
   title_size_pt: DEFAULT_TITLE_SIZE_PT,
   sku_size_pt: DEFAULT_SKU_SIZE_PT,
-  qr_image: null,
+  qr_url: "",
   ...DEFAULT_LAYOUT_FLAGS,
 } as const;
 
@@ -77,12 +75,22 @@ export type SlipBrandingConfig = {
   title_size_pt: number;
   /** Art.-Nr. size on the printed slip, in points. */
   sku_size_pt: number;
-  /** Format of the uploaded QR image, or null when none is set. */
-  qr_image: SlipQrFormat | null;
+  /** http(s) image URL printed as the QR code. Empty hides it. */
+  qr_url: string;
 } & Record<SlipLayoutFlag, boolean>;
 
-function qrFormat(value: unknown): SlipQrFormat | null {
-  return value === "png" || value === "jpeg" || value === "webp" ? value : null;
+/** Keep only http(s) URLs. Anything else prints as no QR. */
+export function normalizeSlipQrUrl(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 2000) return "";
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    return trimmed;
+  } catch {
+    return "";
+  }
 }
 
 function layoutFlags(
@@ -130,7 +138,7 @@ export function resolveSlipBranding(
       partial.footer_legal?.trim() || DEFAULT_SLIP_BRANDING.footer_legal,
     title_size_pt: sizePt(partial.title_size_pt, DEFAULT_TITLE_SIZE_PT),
     sku_size_pt: sizePt(partial.sku_size_pt, DEFAULT_SKU_SIZE_PT),
-    qr_image: qrFormat(partial.qr_image),
+    qr_url: normalizeSlipQrUrl(partial.qr_url),
     ...layoutFlags(partial),
   };
 }

@@ -1,6 +1,5 @@
 import { requireTenantPageContext } from "@/lib/auth/tenant-page";
 import { loadSlipBranding } from "@/server/slip/branding";
-import { loadSlipQrDataUrl } from "@/server/slip/qr-image";
 import { SlipBrandingForm } from "../slip-branding-form";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +9,6 @@ export default async function LieferscheinSettingsPage() {
     "/admin/settings/lieferschein",
   );
   const slipBranding = await loadSlipBranding(shopId);
-  const qrPreview = await loadSlipQrDataUrl(shopId, slipBranding.qr_image);
 
   return (
     <section className="card p-6">
@@ -23,7 +21,7 @@ export default async function LieferscheinSettingsPage() {
         Lieferschein — pro Shop. Tabellen-Labels bleiben auf Deutsch.
       </p>
       <div className="mt-6">
-        <SlipBrandingForm current={slipBranding} qrPreview={qrPreview} />
+        <SlipBrandingForm current={slipBranding} />
       </div>
     </section>
   );

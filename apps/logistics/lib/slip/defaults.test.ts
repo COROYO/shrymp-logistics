@@ -31,8 +31,13 @@ describe("resolveSlipBranding", () => {
     expect(resolveSlipBranding({ contact_email: "  " }).contact_email).toBe("");
     expect(resolveSlipBranding({ eyebrow: "" }).eyebrow).toBe("");
     expect(resolveSlipBranding({ eyebrow: "  " }).eyebrow).toBe("");
-    expect(resolveSlipBranding(null).qr_image).toBe(null);
-    expect(resolveSlipBranding({ qr_image: "png" }).qr_image).toBe("png");
+    expect(resolveSlipBranding(null).qr_url).toBe("");
+    expect(
+      resolveSlipBranding({ qr_url: "https://cdn.example/qr.png" }).qr_url,
+    ).toBe("https://cdn.example/qr.png");
+    expect(resolveSlipBranding({ qr_url: "javascript:alert(1)" }).qr_url).toBe(
+      "",
+    );
   });
 
   it("fills every layout flag when the shop has no branding yet", () => {

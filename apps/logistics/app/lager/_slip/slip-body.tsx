@@ -309,7 +309,7 @@ export async function SlipBody({
           </p>
         </div>
         {data.qrDataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- inlined for print
+          // eslint-disable-next-line @next/next/no-img-element -- merchant-supplied URL, printed as-is
           <img
             src={data.qrDataUrl}
             alt="QR-Code"
