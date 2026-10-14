@@ -96,6 +96,7 @@ export function SetupWizard({
   shopDomain,
   lagerConfig,
   slipBranding,
+  qrPreview = null,
   userEmail,
 }: {
   initialStep: number;
@@ -104,6 +105,7 @@ export function SetupWizard({
   shopDomain: string;
   lagerConfig: LagerConfigFormValue;
   slipBranding: SlipBrandingConfig;
+  qrPreview?: string | null;
   userEmail: string;
 }) {
   const router = useRouter();
@@ -328,7 +330,7 @@ export function SetupWizard({
             onBack={() => goToStep(2)}
             onNext={() => goToStep(4)}
           >
-            <SlipBrandingForm current={slipBranding} />
+            <SlipBrandingForm current={slipBranding} qrPreview={qrPreview} />
           </ConfigStep>
         ) : null}
 

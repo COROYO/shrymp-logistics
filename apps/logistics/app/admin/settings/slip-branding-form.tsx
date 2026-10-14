@@ -1,5 +1,5 @@
 "use client";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveSlipBrandingAction } from "./slip-branding-actions";
 import {
@@ -49,9 +49,22 @@ type MissingLayoutFlag = Exclude<SlipLayoutFlag, CoveredFlag>;
 const _allFlagsCovered: MissingLayoutFlag extends never ? true : never = true;
 void _allFlagsCovered;
 
-export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
+export function SlipBrandingForm({
+  current,
+  qrPreview = null,
+}: {
+  current: SlipBrandingConfig;
+  qrPreview?: string | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [pickedPreview, setPickedPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pickedPreview) URL.revokeObjectURL(pickedPreview);
+    };
+  }, [pickedPreview]);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -179,6 +192,46 @@ export function SlipBrandingForm({ current }: { current: SlipBrandingConfig }) {
           />
         </div>
       </div>
+
+      <fieldset className="space-y-3">
+        <legend className={labelClass}>QR-Code</legend>
+        <p className="text-xs text-brand-navy/60">
+          Steht unten rechts neben dem Abschlusstext. PNG, JPEG oder WebP, höchstens
+          500 KB.
+        </p>
+        {pickedPreview || qrPreview ? (
+          // eslint-disable-next-line @next/next/no-img-element -- data URL, not a remote asset
+          <img
+            src={pickedPreview ?? qrPreview ?? ""}
+            alt="QR-Code Vorschau"
+            className="h-28 w-28 rounded-md border border-zinc-200 bg-white object-contain"
+          />
+        ) : null}
+        <input
+          name="qr_image"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="block w-full text-sm text-brand-navy file:mr-3 file:rounded-md file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-navy"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            setPickedPreview((prev) => {
+              if (prev) URL.revokeObjectURL(prev);
+              return file ? URL.createObjectURL(file) : null;
+            });
+          }}
+        />
+        {qrPreview ? (
+          <label className="flex items-center gap-2 text-sm text-brand-navy">
+            <input
+              type="checkbox"
+              name="remove_qr"
+              value="1"
+              className="h-4 w-4 rounded border-zinc-300"
+            />
+            QR-Code entfernen
+          </label>
+        ) : null}
+      </fieldset>
 
       <ToggleGroup
         title="Briefkopf"

@@ -31,6 +31,8 @@ describe("resolveSlipBranding", () => {
     expect(resolveSlipBranding({ contact_email: "  " }).contact_email).toBe("");
     expect(resolveSlipBranding({ eyebrow: "" }).eyebrow).toBe("");
     expect(resolveSlipBranding({ eyebrow: "  " }).eyebrow).toBe("");
+    expect(resolveSlipBranding(null).qr_image).toBe(null);
+    expect(resolveSlipBranding({ qr_image: "png" }).qr_image).toBe("png");
   });
 
   it("fills every layout flag when the shop has no branding yet", () => {

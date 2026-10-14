@@ -19,6 +19,8 @@ export const SLIP_LAYOUT_FLAG_KEYS = [
 
 export type SlipLayoutFlag = (typeof SLIP_LAYOUT_FLAG_KEYS)[number];
 
+import type { SlipQrFormat } from "@/lib/slip/qr-image";
+
 /** Print sizes for the line-item title and the Art.-Nr. under it. */
 export const SLIP_FONT_SIZE_MIN_PT = 6;
 export const SLIP_FONT_SIZE_MAX_PT = 18;
@@ -56,6 +58,7 @@ export const DEFAULT_SLIP_BRANDING = {
   footer_legal: "SHRYMP · lager.shrymp.de",
   title_size_pt: DEFAULT_TITLE_SIZE_PT,
   sku_size_pt: DEFAULT_SKU_SIZE_PT,
+  qr_image: null,
   ...DEFAULT_LAYOUT_FLAGS,
 } as const;
 
@@ -74,7 +77,13 @@ export type SlipBrandingConfig = {
   title_size_pt: number;
   /** Art.-Nr. size on the printed slip, in points. */
   sku_size_pt: number;
+  /** Format of the uploaded QR image, or null when none is set. */
+  qr_image: SlipQrFormat | null;
 } & Record<SlipLayoutFlag, boolean>;
+
+function qrFormat(value: unknown): SlipQrFormat | null {
+  return value === "png" || value === "jpeg" || value === "webp" ? value : null;
+}
 
 function layoutFlags(
   partial?: Partial<SlipBrandingConfig> | null,
@@ -121,6 +130,7 @@ export function resolveSlipBranding(
       partial.footer_legal?.trim() || DEFAULT_SLIP_BRANDING.footer_legal,
     title_size_pt: sizePt(partial.title_size_pt, DEFAULT_TITLE_SIZE_PT),
     sku_size_pt: sizePt(partial.sku_size_pt, DEFAULT_SKU_SIZE_PT),
+    qr_image: qrFormat(partial.qr_image),
     ...layoutFlags(partial),
   };
 }

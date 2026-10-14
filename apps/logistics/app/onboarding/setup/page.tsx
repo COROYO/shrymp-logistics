@@ -11,6 +11,7 @@ import {
 import { requireActiveShopId } from "@/lib/auth/tenant";
 import { loadLagerConfig } from "@/server/lager/config";
 import { loadSlipBranding } from "@/server/slip/branding";
+import { loadSlipQrDataUrl } from "@/server/slip/qr-image";
 import { getShop } from "@/server/tenant/shop";
 import { SetupWizard } from "./setup-wizard";
 
@@ -42,6 +43,7 @@ export default async function OnboardingSetupPage({
       getOnboardingStep(shopId),
       resolveOnboardingImport(shopId),
     ]);
+  const qrPreview = await loadSlipQrDataUrl(shopId, slipBranding.qr_image);
 
   return (
     <SetupWizard
@@ -54,6 +56,7 @@ export default async function OnboardingSetupPage({
         batch_min_days_before_expiry: lagerCfg.batch_min_days_before_expiry,
       }}
       slipBranding={slipBranding}
+      qrPreview={qrPreview}
       userEmail={user.email ?? ""}
     />
   );

@@ -294,18 +294,30 @@ export async function SlipBody({
         </tbody>
       </table>
 
-      <section className="mt-12 text-[10pt] leading-relaxed text-brand-navy/80">
-        {branding.contact_email ? (
-          <p className="mt-3">
-            {t.rich("noteContact", {
-              email: branding.contact_email,
-              strong: (chunks) => <strong>{chunks}</strong>,
-            })}
+      <section className="mt-12 flex items-start justify-between gap-8 text-[10pt] leading-relaxed text-brand-navy/80">
+        <div className="min-w-0 flex-1">
+          {branding.contact_email ? (
+            <p className="mt-3">
+              {t.rich("noteContact", {
+                email: branding.contact_email,
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
+            </p>
+          ) : null}
+          <p className="mt-6 font-medium whitespace-pre-line">
+            {branding.signature}
           </p>
+        </div>
+        {data.qrDataUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- inlined for print
+          <img
+            src={data.qrDataUrl}
+            alt="QR-Code"
+            width={128}
+            height={128}
+            className="h-[32mm] w-[32mm] shrink-0 object-contain"
+          />
         ) : null}
-        <p className="mt-6 font-medium whitespace-pre-line">
-          {branding.signature}
-        </p>
       </section>
 
       <footer className="mt-16 flex justify-between gap-4 border-t border-zinc-300 pt-2 text-[8pt] text-brand-navy/60">
