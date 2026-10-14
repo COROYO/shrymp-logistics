@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import {
-  getAppCreds,
   isValidShopDomain,
   persistToken,
   verifyInstallHmac,
 } from "@/server/shopify/auth";
+import {
+  appCredCandidates,
+  deletePendingShopifyApp,
+} from "@/server/shopify/app-credentials";
 import { exchangeCodeForExpiringToken } from "@/server/shopify/token";
 import {
   OAUTH_STATE_TTL_MS,
@@ -78,11 +81,22 @@ async function handle(req: Request): Promise<Response> {
   }
   if (!hmac) return plain("invalid_callback_params: hmac fehlt", 400);
 
-  const { apiKey, apiSecret } = getAppCreds();
-  if (!verifyInstallHmac(params, apiSecret)) {
-    log.warn("shopify_callback_hmac_failed", { shop, hasCode: !!code });
-    return plain("invalid_request", 401);
+  const candidates = await appCredCandidates(shop);
+  const creds = candidates.find((c) => verifyInstallHmac(params, c.apiSecret));
+  if (!creds) {
+    log.warn("shopify_callback_hmac_failed", {
+      shop,
+      hasCode: !!code,
+      candidateCount: candidates.length,
+    });
+    return plain(
+      candidates.length === 0
+        ? "invalid_request: App-Zugangsdaten fehlen. Client ID und Secret im Onboarding eintragen."
+        : "invalid_request",
+      401,
+    );
   }
+  const { apiKey, apiSecret } = creds;
   if (!isFreshTimestamp(params)) {
     log.warn("shopify_callback_stale_timestamp", { shop, hasCode: !!code });
     return plain("invalid_request", 401);
@@ -118,7 +132,7 @@ async function handle(req: Request): Promise<Response> {
   // ----- Case (B): OAuth callback with code — exchange + persist ---------
   let tokenResult;
   try {
-    tokenResult = await exchangeCodeForExpiringToken(shop, code);
+    tokenResult = await exchangeCodeForExpiringToken(shop, code, creds);
   } catch (e) {
     throw new Error(
       `token_exchange_failed (code abgelaufen / schon eingelöst / API_KEY+SECRET passen nicht): ${
@@ -127,7 +141,8 @@ async function handle(req: Request): Promise<Response> {
     );
   }
 
-  const shopId = await persistToken(shop, tokenResult);
+  const shopId = await persistToken(shop, tokenResult, creds);
+  await deletePendingShopifyApp(shopId);
 
   let linkUid: string | undefined;
   if (stateParam && stateParam !== "install") {

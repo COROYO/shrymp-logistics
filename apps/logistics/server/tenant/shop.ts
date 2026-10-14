@@ -42,9 +42,10 @@ export const listActiveShops = cache(listActiveShopsUncached);
 export async function upsertShopOAuth(
   shopDomain: string,
   tokens: ShopOAuthTokenBundle,
+  appCreds?: { apiKey: string; apiSecret: string },
 ): Promise<string> {
   const shopId = normalizeShopId(shopDomain);
-  await saveShopOAuthTokens(shopId, tokens, { isInstall: true });
+  await saveShopOAuthTokens(shopId, tokens, { isInstall: true, appCreds });
   return shopId;
 }
 
@@ -59,7 +60,10 @@ export type ShopOAuthTokenBundle = {
 export async function saveShopOAuthTokens(
   shopId: string,
   tokens: ShopOAuthTokenBundle,
-  opts: { isInstall?: boolean } = {},
+  opts: {
+    isInstall?: boolean;
+    appCreds?: { apiKey: string; apiSecret: string };
+  } = {},
 ): Promise<void> {
   const ref = shopRef(shopId);
   const existing = await ref.get();
@@ -85,6 +89,10 @@ export async function saveShopOAuthTokens(
     patch.refresh_token_expires_at = Timestamp.fromMillis(
       tokens.refreshTokenExpiresAtMs,
     );
+  }
+  if (opts.appCreds) {
+    patch.shopify_client_id = opts.appCreds.apiKey;
+    patch.shopify_client_secret = opts.appCreds.apiSecret;
   }
   if (opts.isInstall) {
     patch.installed_at = FieldValue.serverTimestamp();

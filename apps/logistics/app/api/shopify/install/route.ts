@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
-import { getAppCreds, isValidShopDomain } from "@/server/shopify/auth";
+import { isValidShopDomain } from "@/server/shopify/auth";
+import { resolveInstallAppCreds } from "@/server/shopify/app-credentials";
 import {
   OAUTH_STATE_TTL_MS,
   signOAuthState,
@@ -12,7 +13,9 @@ import { log } from "@/lib/logger";
 /**
  * GET /api/shopify/install?shop=my-store.myshopify.com
  *
- * Authenticated one-click Shopify OAuth kickoff. Merchants never enter API keys.
+ * Authenticated OAuth kickoff. App client id and secret come from the
+ * credentials the merchant entered on onboarding step 1 (or, for a
+ * reconnect, from the shop doc / env fallback).
  */
 export async function GET(req: Request) {
   const user = await getSessionUser();
@@ -40,7 +43,16 @@ export async function GET(req: Request) {
     );
   }
 
-  const { apiKey, apiSecret } = getAppCreds();
+  const creds = await resolveInstallAppCreds(shop, user.uid);
+  if (!creds) {
+    const back = new URL("/onboarding", url.origin);
+    back.searchParams.set(
+      "error",
+      "Shopify-App-Zugangsdaten fehlen. Bitte Client ID und Client Secret eintragen.",
+    );
+    return NextResponse.redirect(back);
+  }
+  const { apiKey, apiSecret } = creds;
   const state = signOAuthState(
     {
       uid: user.uid,

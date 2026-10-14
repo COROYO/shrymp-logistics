@@ -7,7 +7,7 @@ import {
   type ShopOAuthTokenBundle,
 } from "@/server/tenant/shop";
 import { ensureValidShopCredentials } from "./token";
-import { runtimeEnv } from "@/lib/runtime-env";
+import { readEnvAppCreds } from "./app-credentials";
 
 /**
  * Minimal Shopify install/auth helpers for a Custom Distribution App.
@@ -30,14 +30,13 @@ export function isValidShopDomain(shop: string | null | undefined): boolean {
 }
 
 export function getAppCreds(): { apiKey: string; apiSecret: string } {
-  const apiKey = runtimeEnv("SHOPIFY_API_KEY");
-  const apiSecret = runtimeEnv("SHOPIFY_API_SECRET");
-  if (!apiKey || !apiSecret) {
+  const creds = readEnvAppCreds();
+  if (!creds) {
     throw new Error(
       "SHOPIFY_API_KEY and SHOPIFY_API_SECRET must be set in env",
     );
   }
-  return { apiKey, apiSecret };
+  return creds;
 }
 
 export function verifyInstallHmac(
@@ -77,8 +76,9 @@ export async function loadStoredToken(
 export async function persistToken(
   shopDomain: string,
   tokens: ShopOAuthTokenBundle,
+  appCreds?: { apiKey: string; apiSecret: string },
 ): Promise<string> {
-  const shopId = await upsertShopOAuth(shopDomain, tokens);
+  const shopId = await upsertShopOAuth(shopDomain, tokens, appCreds);
   const { invalidateShopTokenCache } = await import("./token");
   invalidateShopTokenCache(shopId);
   log.info("shopify_token_persisted", { shopId: shopId, scope: tokens.scope });

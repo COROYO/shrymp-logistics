@@ -1,7 +1,8 @@
 import "server-only";
 import { Timestamp } from "firebase-admin/firestore";
 import { log } from "@/lib/logger";
-import { getAppCreds } from "./auth";
+import { loadAppCredsForTokenRefresh } from "./app-credentials";
+import type { ShopifyAppCreds } from "./app-credentials";
 import {
   getShop,
   saveShopOAuthTokens,
@@ -130,11 +131,11 @@ async function postOAuthToken(
 export async function exchangeCodeForExpiringToken(
   shop: string,
   code: string,
+  creds: ShopifyAppCreds,
 ): Promise<ShopOAuthTokenBundle> {
-  const { apiKey, apiSecret } = getAppCreds();
   return postOAuthToken(shop, {
-    client_id: apiKey,
-    client_secret: apiSecret,
+    client_id: creds.apiKey,
+    client_secret: creds.apiSecret,
     code,
     expiring: "1",
   });
@@ -144,7 +145,7 @@ async function refreshExpiringToken(
   shopDomain: string,
   refreshToken: string,
 ): Promise<ShopOAuthTokenBundle> {
-  const { apiKey, apiSecret } = getAppCreds();
+  const { apiKey, apiSecret } = await loadAppCredsForTokenRefresh(shopDomain);
   return postOAuthToken(shopDomain, {
     client_id: apiKey,
     client_secret: apiSecret,
@@ -157,7 +158,7 @@ async function migrateNonExpiringToken(
   shopDomain: string,
   accessToken: string,
 ): Promise<ShopOAuthTokenBundle> {
-  const { apiKey, apiSecret } = getAppCreds();
+  const { apiKey, apiSecret } = await loadAppCredsForTokenRefresh(shopDomain);
   return postOAuthToken(shopDomain, {
     client_id: apiKey,
     client_secret: apiSecret,

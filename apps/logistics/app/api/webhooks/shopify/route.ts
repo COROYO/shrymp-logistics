@@ -3,15 +3,15 @@ import { adminDb } from "@/server/firestore/admin";
 import { Collections } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { verifyShopifyHmac } from "@/server/shopify/hmac";
+import { loadShopAppCreds, readEnvAppCreds } from "@/server/shopify/app-credentials";
 import { isSupportedTopic } from "@/server/shopify/topics";
 import { dispatchShopifyWebhook } from "@/server/shopify/webhook-handler";
-import { runtimeEnv } from "@/lib/runtime-env";
 
 /**
  * Shopify webhook receiver.
  *
  * Contract:
- *   - Verify HMAC against `SHOPIFY_API_SECRET` against the raw body.
+ *   - Verify HMAC against the shop's custom-app secret (fallback: env).
  *   - Dedupe on `X-Shopify-Webhook-Id` via a Firestore `create()` — second
  *     delivery of the same event is a no-op.
  *   - Dispatch by `X-Shopify-Topic` to the right handler.
@@ -24,7 +24,8 @@ import { runtimeEnv } from "@/lib/runtime-env";
  * malformed / not from Shopify).
  */
 export async function POST(req: Request) {
-  // Read everything BEFORE touching Firestore / env. Cheap, can't throw.
+  // Read the body first. The per-shop app secret is loaded next so HMAC
+  // can be checked against the custom app from onboarding.
   let rawBody: string;
   try {
     rawBody = await req.text();
@@ -37,14 +38,29 @@ export async function POST(req: Request) {
   const webhookId = req.headers.get("x-shopify-webhook-id");
   const shop = req.headers.get("x-shopify-shop-domain");
 
-  const secret = runtimeEnv("SHOPIFY_API_SECRET");
-  if (!secret) {
+  const secrets: string[] = [];
+  if (shop) {
+    try {
+      const stored = await loadShopAppCreds(shop);
+      if (stored) secrets.push(stored.apiSecret);
+    } catch (e) {
+      log.error("shopify_webhook_creds_lookup_failed", {
+        shop,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  const envCreds = readEnvAppCreds();
+  if (envCreds && !secrets.includes(envCreds.apiSecret)) {
+    secrets.push(envCreds.apiSecret);
+  }
+  if (secrets.length === 0) {
     log.error("shopify_api_secret_missing", { topic, webhookId, shop });
     // Still respond 200 to stop retries — Shopify can't fix this for us.
     return new Response("misconfigured", { status: 200 });
   }
 
-  if (!verifyShopifyHmac(rawBody, signature, secret)) {
+  if (!secrets.some((secret) => verifyShopifyHmac(rawBody, signature, secret))) {
     log.warn("shopify_webhook_hmac_failed", { topic, shop, webhookId });
     return new Response("invalid signature", { status: 401 });
   }

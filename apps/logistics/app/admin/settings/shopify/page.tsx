@@ -91,8 +91,8 @@ export default async function ShopifySettingsPage() {
           Dein Shopify-Shop
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
-          Verbinde deinen Shop über die normale Shopify-Freigabe — du musst
-          nichts manuell eintragen.
+          Verbinde deinen Shop mit der Client ID und dem Client Secret deiner
+          eigenen Shopify-App.
         </p>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
@@ -111,8 +111,8 @@ export default async function ShopifySettingsPage() {
             <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-semibold">Noch nicht verbunden.</p>
               <p className="mt-1 text-xs">
-                Shop-Domain eingeben und auf Verbinden klicken — Shopify fragt
-                nur die App-Freigabe ab.
+                Client ID, Client Secret und Shop-Domain eintragen — Shopify
+                fragt danach die App-Freigabe ab.
               </p>
             </div>
             <ShopifyConnectForm

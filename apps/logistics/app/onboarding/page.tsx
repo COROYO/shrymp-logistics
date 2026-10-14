@@ -33,8 +33,8 @@ export default async function OnboardingPage({
             <p className="eyebrow">Schritt 1</p>
             <h1 className="h-display mt-1 text-2xl">Shopify verbinden</h1>
             <p className="mt-1 text-sm text-brand-navy/60">
-              Gib deine Shop-Domain ein und klicke auf Verbinden — Shopify
-              fragt nur die App-Freigabe ab, keine technischen Daten.
+              Trag Client ID und Client Secret deiner Shopify-App ein und
+              verbinde dann den Shop. Shopify fragt danach nur die Freigabe ab.
             </p>
           </div>
         </div>

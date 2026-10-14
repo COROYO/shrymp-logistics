@@ -810,6 +810,12 @@ export const ShopSchema = z.object({
   dhl_config: DhlConfigSchema.optional(),
   /** Per-shop packing slip (Lieferschein) branding. */
   slip_branding: SlipBrandingSchema.optional(),
+  /**
+   * Custom-app credentials entered at onboarding. Used for OAuth, token
+   * refresh and webhook HMAC until a shared public app exists.
+   */
+  shopify_client_id: z.string().min(1).optional(),
+  shopify_client_secret: z.string().min(1).optional(),
   /** Firebase Auth uid of the merchant who connected this shop. */
   owner_uid: z.string().optional(),
   /** Last completed onboarding wizard step (0-based). */
@@ -1052,6 +1058,8 @@ export type AutomationAction = z.infer<typeof AutomationActionSchema>;
 
 export const Collections = {
   Shops: "shops",
+  /** Short-lived custom-app credentials, keyed by shop domain, before OAuth completes. */
+  ShopifyPendingApps: "shopify_pending_apps",
   Products: "products",
   Variants: "variants",
   Locations: "locations",
