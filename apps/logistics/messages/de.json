@@ -627,7 +627,8 @@
       "expand": "Details",
       "order": "Order",
       "created": "Erstellt",
-      "status": "Status",
+      "lagerStatus": "Lagerstatus",
+      "fulfillment": "Fulfillment",
       "payment": "Zahlung",
       "items": "Items",
       "lineItems": "LineItems",
@@ -661,7 +662,12 @@
       }
     },
     "empty": "Keine Orders im gewählten Filter.",
-    "printSlip": "🧾 Lieferschein"
+    "printSlip": "🧾 Lieferschein",
+    "selected": "{count} ausgewählt",
+    "clear": "Auswahl aufheben",
+    "printSlips": "{count, plural, one {# Lieferschein herunterladen} other {# Lieferscheine herunterladen}}",
+    "selectAll": "Alle auswählen",
+    "selectRow": "Order auswählen"
   },
   "orderDetail": {
     "back": "← Orders",

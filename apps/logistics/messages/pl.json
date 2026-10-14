@@ -627,7 +627,8 @@
       "expand": "Szczegóły",
       "order": "Zamówienie",
       "created": "Utworzono",
-      "status": "Status",
+      "lagerStatus": "Status magazynu",
+      "fulfillment": "Realizacja",
       "payment": "Płatność",
       "items": "Pozycje",
       "lineItems": "pozycje",
@@ -661,7 +662,12 @@
       }
     },
     "empty": "Brak zamówień w tym filtrze.",
-    "printSlip": "🧾 Specyfikacja"
+    "printSlip": "🧾 Specyfikacja",
+    "selected": "Wybrano: {count}",
+    "clear": "Wyczyść wybór",
+    "printSlips": "Pobierz specyfikacje: {count}",
+    "selectAll": "Zaznacz wszystkie",
+    "selectRow": "Zaznacz zamówienie"
   },
   "orderDetail": {
     "back": "← Zamówienia",

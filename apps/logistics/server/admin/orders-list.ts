@@ -230,6 +230,7 @@ export async function loadOrderRows(
       name: o.name,
       status: o.internal_status,
       financialStatus: o.shopify_financial_status ?? null,
+      fulfillmentStatus: o.shopify_fulfillment_status ?? null,
       tags: o.tags,
       stopReason: o.stop_reason ?? null,
       createdIso: tsToIso(o.created_at_shopify),

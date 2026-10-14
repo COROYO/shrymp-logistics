@@ -6,6 +6,10 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import type { OrderInternalStatus } from "@/server/firestore/schema";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
+import {
+  LagerStatusChip,
+  ShopifyStatusChip,
+} from "@/app/_components/order-status";
 
 export type OrderLineItemBundleRef = {
   groupId: string;
@@ -45,21 +49,13 @@ export type OrderRow = {
   name: string;
   status: OrderInternalStatus;
   financialStatus: string | null;
+  fulfillmentStatus: string | null;
   tags: string[];
   stopReason: string | null;
   createdIso: string;
   itemCount: number;
   lineItems: OrderLineItemRow[];
   customerNote: string | null;
-};
-
-const STATUS_BADGE: Record<OrderInternalStatus, string> = {
-  NEW: "chip chip-soft",
-  SHIP: "chip chip-emerald",
-  PICKING: "chip chip-violet",
-  STOP: "chip chip-amber",
-  PACKED: "chip chip-sky",
-  CANCELLED: "chip chip-soft",
 };
 
 function financialStatusBadge(status: string | null): string {
@@ -82,7 +78,13 @@ export function OrdersTable({
 }) {
   const t = useTranslations("ordersAdmin");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const prioritySet = useMemo(() => new Set(priorityTags), [priorityTags]);
+
+  const allSelected =
+    orders.length > 0 && orders.every((o) => selected.has(o.id));
+  const someSelected = selected.size > 0 && !allSelected;
+  const selectedIds = useMemo(() => Array.from(selected), [selected]);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -93,6 +95,26 @@ export function OrdersTable({
     });
   };
 
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(orders.map((o) => o.id)));
+  }
+
+  function handlePrintSlips() {
+    if (selectedIds.length === 0) return;
+    const url = `/lager/print-slips?ids=${selectedIds.join(",")}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
   if (orders.length === 0) {
     return (
       <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
@@ -102,35 +124,75 @@ export function OrdersTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="table-brand">
-        <thead>
-          <tr>
-            <th className="w-10"></th>
-            <th>{t("table.order")}</th>
-            <th>{t("table.created")}</th>
-            <th>{t("table.status")}</th>
-            <th>{t("table.payment")}</th>
-            <th>{t("table.items")}</th>
-            <th>{t("table.tags")}</th>
-            <th>{t("table.stopReason")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((o) => {
-            const isOpen = expanded.has(o.id);
-            return (
-              <Row
-                key={o.id}
-                order={o}
-                isOpen={isOpen}
-                onToggle={() => toggle(o.id)}
-                prioritySet={prioritySet}
-              />
-            );
-          })}
-        </tbody>
-      </table>
+    <div>
+      {selected.size > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-brand-cream px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold text-brand-navy">
+              {t("selected", { count: selected.size })}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60 hover:text-brand-burgundy"
+            >
+              {t("clear")}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handlePrintSlips}
+            className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-burgundy-dark"
+          >
+            {t("printSlips", { count: selected.size })}
+          </button>
+        </div>
+      ) : null}
+      <div className="overflow-x-auto">
+        <table className="table-brand">
+          <thead>
+            <tr>
+              <th className="w-10">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onChange={toggleAll}
+                  aria-label={t("selectAll")}
+                  className="h-4 w-4 cursor-pointer accent-brand-burgundy"
+                />
+              </th>
+              <th className="w-10"></th>
+              <th>{t("table.order")}</th>
+              <th>{t("table.created")}</th>
+              <th>{t("table.lagerStatus")}</th>
+              <th>{t("table.fulfillment")}</th>
+              <th>{t("table.payment")}</th>
+              <th>{t("table.items")}</th>
+              <th>{t("table.tags")}</th>
+              <th>{t("table.stopReason")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((o) => {
+              const isOpen = expanded.has(o.id);
+              return (
+                <Row
+                  key={o.id}
+                  order={o}
+                  isOpen={isOpen}
+                  isSelected={selected.has(o.id)}
+                  onToggle={() => toggle(o.id)}
+                  onSelect={() => toggleRow(o.id)}
+                  prioritySet={prioritySet}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -138,18 +200,35 @@ export function OrdersTable({
 function Row({
   order,
   isOpen,
+  isSelected,
   onToggle,
+  onSelect,
   prioritySet,
 }: {
   order: OrderRow;
   isOpen: boolean;
+  isSelected: boolean;
   onToggle: () => void;
+  onSelect: () => void;
   prioritySet: Set<string>;
 }) {
   const t = useTranslations("ordersAdmin");
   return (
     <>
-      <tr className={isOpen ? "bg-brand-navy-50" : undefined}>
+      <tr
+        className={
+          isOpen ? "bg-brand-navy-50" : isSelected ? "bg-brand-navy/5" : undefined
+        }
+      >
+        <td>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onSelect}
+            aria-label={t("selectRow")}
+            className="h-4 w-4 cursor-pointer accent-brand-burgundy"
+          />
+        </td>
         <td>
           <button
             type="button"
@@ -190,7 +269,7 @@ function Row({
             : "—"}
         </td>
         <td>
-          <span className={STATUS_BADGE[order.status]}>{order.status}</span>
+          <LagerStatusChip status={order.status} />
           {order.status === "PACKED" ? (
             <a
               href={`/lager/picking/${order.id}/slip`}
@@ -201,6 +280,12 @@ function Row({
               {t("printSlip")}
             </a>
           ) : null}
+        </td>
+        <td>
+          <ShopifyStatusChip
+            kind="fulfillment"
+            status={order.fulfillmentStatus}
+          />
         </td>
         <td>
           <span className={financialStatusBadge(order.financialStatus)}>
@@ -233,7 +318,7 @@ function Row({
       </tr>
       {isOpen ? (
         <tr className="bg-brand-navy-50">
-          <td colSpan={8} className="px-4 pb-4 pt-0">
+          <td colSpan={10} className="px-4 pb-4 pt-0">
             <LineItems items={order.lineItems} />
           </td>
         </tr>

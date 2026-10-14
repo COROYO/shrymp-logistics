@@ -627,7 +627,8 @@
       "expand": "Ayrıntılar",
       "order": "Sipariş",
       "created": "Oluşturuldu",
-      "status": "Durum",
+      "lagerStatus": "Depo durumu",
+      "fulfillment": "Fulfillment",
       "payment": "Ödeme",
       "items": "Kalemler",
       "lineItems": "satır kalemleri",
@@ -661,7 +662,12 @@
       }
     },
     "empty": "Bu filtrede sipariş yok.",
-    "printSlip": "🧾 İrsaliye"
+    "printSlip": "🧾 İrsaliye",
+    "selected": "{count} seçili",
+    "clear": "Seçimi kaldır",
+    "printSlips": "{count} irsaliye indir",
+    "selectAll": "Tümünü seç",
+    "selectRow": "Siparişi seç"
   },
   "orderDetail": {
     "back": "← Siparişler",

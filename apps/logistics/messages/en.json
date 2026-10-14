@@ -627,7 +627,8 @@
       "expand": "Details",
       "order": "Order",
       "created": "Created",
-      "status": "Status",
+      "lagerStatus": "Warehouse status",
+      "fulfillment": "Fulfillment",
       "payment": "Payment",
       "items": "Items",
       "lineItems": "line items",
@@ -661,7 +662,12 @@
       }
     },
     "empty": "No orders in this filter.",
-    "printSlip": "🧾 Packing slip"
+    "printSlip": "🧾 Packing slip",
+    "selected": "{count} selected",
+    "clear": "Clear selection",
+    "printSlips": "Download {count} packing slips",
+    "selectAll": "Select all",
+    "selectRow": "Select order"
   },
   "orderDetail": {
     "back": "← Orders",

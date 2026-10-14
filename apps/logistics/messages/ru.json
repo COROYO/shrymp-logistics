@@ -627,7 +627,8 @@
       "expand": "Детали",
       "order": "Заказ",
       "created": "Создан",
-      "status": "Статус",
+      "lagerStatus": "Статус склада",
+      "fulfillment": "Выполнение",
       "payment": "Оплата",
       "items": "Позиции",
       "lineItems": "позиций",
@@ -661,7 +662,12 @@
       }
     },
     "empty": "Нет заказов в этом фильтре.",
-    "printSlip": "🧾 Накладная"
+    "printSlip": "🧾 Накладная",
+    "selected": "Выбрано: {count}",
+    "clear": "Снять выбор",
+    "printSlips": "Скачать накладные: {count}",
+    "selectAll": "Выбрать все",
+    "selectRow": "Выбрать заказ"
   },
   "orderDetail": {
     "back": "← Заказы",
