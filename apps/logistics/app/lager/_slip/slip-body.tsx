@@ -49,8 +49,12 @@ function SlipDocument({
   const showBin = branding.col_bin;
   const showQty = branding.col_qty;
   const showCharge = batchesEnabled && branding.col_charge;
+  const showVariant = sections.some((section) =>
+    section.lines.some((line) => line.variantTitle),
+  );
   const columnCount =
     1 +
+    Number(showVariant) +
     Number(showBin) +
     Number(showQty) +
     Number(showCharge);
@@ -175,6 +179,11 @@ function SlipDocument({
             <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
               {t("product")}
             </th>
+            {showVariant ? (
+              <th className="w-[26%] px-3 py-2 pl-10 text-[10pt] font-semibold uppercase tracking-[0.1em]">
+                {t("variant")}
+              </th>
+            ) : null}
             {showBin ? (
               <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
                 {t("bin")}
@@ -248,12 +257,6 @@ function SlipDocument({
                       style={{ color: header, fontSize: `${branding.title_size_pt}pt` }}
                     >
                       {line.title}
-                      {line.variantTitle ? (
-                        <span className="font-normal text-brand-navy">
-                          {" "}
-                          {line.variantTitle}
-                        </span>
-                      ) : null}
                     </div>
                     {showSku && line.sku ? (
                       <div
@@ -264,6 +267,15 @@ function SlipDocument({
                       </div>
                     ) : null}
                   </td>
+                  {showVariant ? (
+                    <td className="w-[26%] px-3 py-2 pl-10 align-top text-brand-navy">
+                      {line.variantTitle ? (
+                        <div style={{ fontSize: `${branding.title_size_pt}pt` }}>
+                          {line.variantTitle}
+                        </div>
+                      ) : null}
+                    </td>
+                  ) : null}
                   {showBin ? (
                     <td className="px-3 py-2 pr-4 font-mono text-[11pt] font-bold text-brand-navy">
                       {line.binCode ?? (
