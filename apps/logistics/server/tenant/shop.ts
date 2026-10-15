@@ -202,6 +202,39 @@ export async function updateShopPriorityTags(
   );
 }
 
+export async function updateShopWriteback(
+  shopId: string,
+  patch: {
+    catalog_sync_to_shopify: boolean;
+    shopify_writeback_tags: boolean;
+    shopify_writeback_fulfillment: boolean;
+    shopify_fulfillment_notify_customer: boolean;
+    shopify_writeback_inventory: boolean;
+    shopify_tag_ship: string;
+    shopify_tag_stop: string;
+    shopify_tag_packed: string;
+    updated_by_uid: string | null;
+  },
+): Promise<void> {
+  await shopRef(shopId).set(
+    {
+      catalog_sync_to_shopify: patch.catalog_sync_to_shopify,
+      shopify_writeback_tags: patch.shopify_writeback_tags,
+      shopify_writeback_fulfillment: patch.shopify_writeback_fulfillment,
+      shopify_fulfillment_notify_customer:
+        patch.shopify_fulfillment_notify_customer,
+      shopify_writeback_inventory: patch.shopify_writeback_inventory,
+      shopify_tag_ship: patch.shopify_tag_ship,
+      shopify_tag_stop: patch.shopify_tag_stop,
+      shopify_tag_packed: patch.shopify_tag_packed,
+      lager_updated_by_uid: patch.updated_by_uid,
+      lager_updated_at: FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 export async function updateShopInventorySource(
   shopId: string,
   patch: {

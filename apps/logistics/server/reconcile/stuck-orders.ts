@@ -8,6 +8,12 @@ import { ordersForShop } from "@/server/tenant/queries";
 import { listActiveShops } from "@/server/tenant/shop";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { runAllocationInFirestore } from "@/server/allocation/run";
+import { loadLagerConfig } from "@/server/lager/config";
+import {
+  statusTagOps,
+  type WritebackOrderStatus,
+  type WritebackTags,
+} from "@/lib/lager/writeback";
 
 /**
  * Reconciliation sweep — the final safety net.
@@ -19,19 +25,20 @@ import { runAllocationInFirestore } from "@/server/allocation/run";
  *      (synchronous, not via Cloud Tasks — we don't trust the queue here,
  *      it's exactly what failed if we're seeing stuck orders).
  *   2. Orders in SHIP/STOP/PACKED where the Firestore `tags` mirror is
- *      missing the expected Lager-tag → re-enqueue a tag-push outbox row.
+ *      missing the configured status tag → re-enqueue a tag-push outbox row.
+ *      Skipped entirely when tag write-back is off.
  *
  * Cheap to run: ~3 small Firestore queries + 0-N writes.
  */
 
 const NEW_TIMEOUT_SEC = 60;
 
-const EXPECTED_TAG: Record<string, { add: string; remove: string[] }> = {
-  SHIP: { add: "LAGER_SHIP", remove: ["LAGER_STOP", "LAGER_PACKED"] },
-  PICKING: { add: "LAGER_SHIP", remove: ["LAGER_STOP", "LAGER_PACKED"] },
-  STOP: { add: "LAGER_STOP", remove: ["LAGER_SHIP", "LAGER_PACKED"] },
-  PACKED: { add: "LAGER_PACKED", remove: ["LAGER_SHIP", "LAGER_STOP"] },
-};
+const TAG_STATUSES: WritebackOrderStatus[] = [
+  "SHIP",
+  "PICKING",
+  "STOP",
+  "PACKED",
+];
 
 export type ReconcileReport = {
   stuckNew: number;
@@ -81,59 +88,67 @@ export async function reconcileStuckOrders(): Promise<ReconcileReport> {
       }
     }
 
-    for (const status of Object.keys(EXPECTED_TAG)) {
-      const cfg = EXPECTED_TAG[status]!;
-      const snap = await ordersForShop(db, shopId)
-        .where("internal_status", "==", status)
-        .where("updated_at", "<=", cutoff)
-        .limit(100)
-        .get();
-      for (const d of snap.docs) {
-        const o = d.data() as Order;
-        const tags = o.tags ?? [];
-        const needsAdd = !tags.includes(cfg.add);
-        const needsRemove = cfg.remove.some((t) => tags.includes(t));
-        if (!needsAdd && !needsRemove) continue;
+    const lagerCfg = await loadLagerConfig(shopId);
+    const writebackTags: WritebackTags = {
+      ship: lagerCfg.shopify_tag_ship,
+      stop: lagerCfg.shopify_tag_stop,
+      packed: lagerCfg.shopify_tag_packed,
+    };
+    if (lagerCfg.shopify_writeback_tags) {
+      for (const status of TAG_STATUSES) {
+        const plan = statusTagOps(status, writebackTags);
+        if (plan.length === 0) continue;
+        const add = plan.find((op) => op.op === "TAGS_ADD")?.tags ?? [];
+        const remove = plan.find((op) => op.op === "TAGS_REMOVE")?.tags ?? [];
+        const snap = await ordersForShop(db, shopId)
+          .where("internal_status", "==", status)
+          .where("updated_at", "<=", cutoff)
+          .limit(100)
+          .get();
+        for (const d of snap.docs) {
+          const o = d.data() as Order;
+          const tags = o.tags ?? [];
+          const missing = add.filter((t) => !tags.includes(t));
+          const stale = remove.filter((t) => tags.includes(t));
+          if (missing.length === 0 && stale.length === 0) continue;
 
-        const now = Timestamp.now();
-        const batch = db.batch();
-        if (needsAdd) {
-          const ref = db.collection(Collections.ShopifyOutbox).doc();
-          batch.set(ref, {
-            id: ref.id,
-            shop_id: shopId,
-            op: "TAGS_ADD",
-            payload: { orderId: o.id, tags: [cfg.add] },
-            attempts: 0,
-            next_retry_at: now,
-            created_at: now,
+          const now = Timestamp.now();
+          const batch = db.batch();
+          if (missing.length > 0) {
+            const ref = db.collection(Collections.ShopifyOutbox).doc();
+            batch.set(ref, {
+              id: ref.id,
+              shop_id: shopId,
+              op: "TAGS_ADD",
+              payload: { orderId: o.id, tags: missing },
+              attempts: 0,
+              next_retry_at: now,
+              created_at: now,
+            });
+          }
+          if (stale.length > 0) {
+            const ref = db.collection(Collections.ShopifyOutbox).doc();
+            batch.set(ref, {
+              id: ref.id,
+              shop_id: shopId,
+              op: "TAGS_REMOVE",
+              payload: { orderId: o.id, tags: stale },
+              attempts: 0,
+              next_retry_at: now,
+              created_at: now,
+            });
+          }
+          await batch.commit();
+          tagDriftFixed++;
+          log.warn("reconcile_tag_drift", {
+            shopId,
+            orderId: o.id,
+            status,
+            firestoreTags: tags,
+            needsAdd: missing.length > 0 ? missing : undefined,
+            needsRemove: stale.length > 0 ? stale : undefined,
           });
         }
-        if (needsRemove) {
-          const ref = db.collection(Collections.ShopifyOutbox).doc();
-          batch.set(ref, {
-            id: ref.id,
-            shop_id: shopId,
-            op: "TAGS_REMOVE",
-            payload: {
-              orderId: o.id,
-              tags: cfg.remove.filter((t) => tags.includes(t)),
-            },
-            attempts: 0,
-            next_retry_at: now,
-            created_at: now,
-          });
-        }
-        await batch.commit();
-        tagDriftFixed++;
-        log.warn("reconcile_tag_drift", {
-          shopId,
-          orderId: o.id,
-          status,
-          firestoreTags: tags,
-          needsAdd: needsAdd ? cfg.add : undefined,
-          needsRemove: needsRemove ? cfg.remove : undefined,
-        });
       }
     }
   }

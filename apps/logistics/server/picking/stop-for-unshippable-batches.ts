@@ -21,8 +21,9 @@ import {
 import { orderAssignmentCoversLineItems } from "./assignment-coverage";
 
 /**
- * Flip SHIP/PICKING → STOP when no versandfähige Charge can be pinned, and push
- * LAGER_STOP to Shopify. Called after stale assignments are released.
+ * Flip SHIP/PICKING → STOP when no versandfähige Charge can be pinned.
+ * The following allocation run pushes the configured STOP tag when tag
+ * write-back is on. Called after stale assignments are released.
  */
 export async function maybeStopOrderForUnassignableBatches(
   orderId: string,
@@ -127,13 +128,15 @@ async function stopOrderForBatchBlock(
 
   if (tagResult.tagSyncNeeded) {
     const outboxId = await enqueueLagerTagSet(orderId, "STOP", tagResult.shopId);
-    try {
-      await processOutboxByIds([outboxId]);
-    } catch (e) {
-      log.warn("stop_order_lager_tag_drain_failed", {
-        orderId,
-        error: String(e),
-      });
+    if (outboxId) {
+      try {
+        await processOutboxByIds([outboxId]);
+      } catch (e) {
+        log.warn("stop_order_lager_tag_drain_failed", {
+          orderId,
+          error: String(e),
+        });
+      }
     }
   }
 

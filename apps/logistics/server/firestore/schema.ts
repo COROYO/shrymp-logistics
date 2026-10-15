@@ -1,5 +1,14 @@
 import { z } from "zod";
 import {
+  DEFAULT_SHOPIFY_FULFILLMENT_NOTIFY_CUSTOMER,
+  DEFAULT_SHOPIFY_TAG_PACKED,
+  DEFAULT_SHOPIFY_TAG_SHIP,
+  DEFAULT_SHOPIFY_TAG_STOP,
+  DEFAULT_SHOPIFY_WRITEBACK_FULFILLMENT,
+  DEFAULT_SHOPIFY_WRITEBACK_INVENTORY,
+  DEFAULT_SHOPIFY_WRITEBACK_TAGS,
+} from "@/lib/lager/defaults";
+import {
   SHOPIFY_FULFILLMENT_STATUSES,
   SHOPIFY_PAYMENT_STATUSES,
 } from "@/lib/orders/shopify-status";
@@ -696,6 +705,29 @@ export const LagerConfigSchema = z.object({
    * Can be overridden per save in the product editor.
    */
   catalog_sync_to_shopify: z.boolean().default(true),
+  /** Push SHIP/STOP/PACKED tags to the Shopify order. */
+  shopify_writeback_tags: z.boolean().default(DEFAULT_SHOPIFY_WRITEBACK_TAGS),
+  /** Create a Shopify fulfillment when the warehouse packs the order. */
+  shopify_writeback_fulfillment: z
+    .boolean()
+    .default(DEFAULT_SHOPIFY_WRITEBACK_FULFILLMENT),
+  /** Email the customer via Shopify when the fulfillment is created. */
+  shopify_fulfillment_notify_customer: z
+    .boolean()
+    .default(DEFAULT_SHOPIFY_FULFILLMENT_NOTIFY_CUSTOMER),
+  /**
+   * Push on-hand quantities to Shopify. Still requires inventory_source APP;
+   * SHOPIFY-owned stock is never pushed.
+   */
+  shopify_writeback_inventory: z
+    .boolean()
+    .default(DEFAULT_SHOPIFY_WRITEBACK_INVENTORY),
+  /** Tag on SHIP and PICKING. Empty = write no tag for that status. */
+  shopify_tag_ship: z.string().max(255).default(DEFAULT_SHOPIFY_TAG_SHIP),
+  /** Tag on STOP. Empty = write no tag for that status. */
+  shopify_tag_stop: z.string().max(255).default(DEFAULT_SHOPIFY_TAG_STOP),
+  /** Tag on PACKED. Empty = write no tag for that status. */
+  shopify_tag_packed: z.string().max(255).default(DEFAULT_SHOPIFY_TAG_PACKED),
   /**
    * Shopify order tags that receive allocation Phase-A priority and appear
    * first in the pick queue. Empty = no priority lane. Default EXPRESS_DHL.
@@ -838,6 +870,26 @@ export const ShopSchema = z.object({
   batch_min_days_before_expiry: z.number().int().nonnegative().default(10),
   inventory_source: InventorySourceSchema.default("APP"),
   catalog_sync_to_shopify: z.boolean().default(true),
+  /** See LagerConfigSchema.shopify_writeback_tags. */
+  shopify_writeback_tags: z.boolean().default(DEFAULT_SHOPIFY_WRITEBACK_TAGS),
+  /** See LagerConfigSchema.shopify_writeback_fulfillment. */
+  shopify_writeback_fulfillment: z
+    .boolean()
+    .default(DEFAULT_SHOPIFY_WRITEBACK_FULFILLMENT),
+  /** See LagerConfigSchema.shopify_fulfillment_notify_customer. */
+  shopify_fulfillment_notify_customer: z
+    .boolean()
+    .default(DEFAULT_SHOPIFY_FULFILLMENT_NOTIFY_CUSTOMER),
+  /** See LagerConfigSchema.shopify_writeback_inventory. */
+  shopify_writeback_inventory: z
+    .boolean()
+    .default(DEFAULT_SHOPIFY_WRITEBACK_INVENTORY),
+  /** See LagerConfigSchema.shopify_tag_ship. */
+  shopify_tag_ship: z.string().max(255).default(DEFAULT_SHOPIFY_TAG_SHIP),
+  /** See LagerConfigSchema.shopify_tag_stop. */
+  shopify_tag_stop: z.string().max(255).default(DEFAULT_SHOPIFY_TAG_STOP),
+  /** See LagerConfigSchema.shopify_tag_packed. */
+  shopify_tag_packed: z.string().max(255).default(DEFAULT_SHOPIFY_TAG_PACKED),
   /**
    * Shopify order tags with allocation / pick-queue priority.
    * See LagerConfigSchema.priority_tags.

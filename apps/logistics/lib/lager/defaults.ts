@@ -10,6 +10,18 @@ export const DEFAULT_INVENTORY_SOURCE = "APP" as const;
 /** Product edits in Admin are pushed to Shopify by default. */
 export const DEFAULT_CATALOG_SYNC_TO_SHOPIFY = true;
 
+/** Status tags, fulfillment and inventory pushes are on until a shop turns them off. */
+export const DEFAULT_SHOPIFY_WRITEBACK_TAGS = true;
+export const DEFAULT_SHOPIFY_WRITEBACK_FULFILLMENT = true;
+export const DEFAULT_SHOPIFY_WRITEBACK_INVENTORY = true;
+/** Shopify emails the customer when we create the fulfillment. */
+export const DEFAULT_SHOPIFY_FULFILLMENT_NOTIFY_CUSTOMER = true;
+
+/** Tags written back to the Shopify order for each warehouse status. Empty = none. */
+export const DEFAULT_SHOPIFY_TAG_SHIP = "LAGER_SHIP";
+export const DEFAULT_SHOPIFY_TAG_STOP = "LAGER_STOP";
+export const DEFAULT_SHOPIFY_TAG_PACKED = "LAGER_PACKED";
+
 /** New shops start in test mode — no writes to Shopify until disabled. */
 export const DEFAULT_TEST_MODE = true;
 

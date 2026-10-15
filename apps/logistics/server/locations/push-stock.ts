@@ -5,7 +5,7 @@ import {
   Collections,
   type VariantLocationStock,
 } from "@/server/firestore/schema";
-import { isAppInventorySource } from "@/server/lager/config";
+import { inventoryPushBlockReason } from "@/server/lager/config";
 import { getShop } from "@/server/tenant/shop";
 import { normalizeShopId } from "@/server/tenant/id";
 import { variantLocationStockForShop } from "@/server/tenant/queries";
@@ -85,11 +85,8 @@ export type BulkLocationPushResult = {
 export async function pushAllLocationStockToShopify(
   shopId: string,
 ): Promise<BulkLocationPushResult> {
-  if (!(await isAppInventorySource(shopId))) {
-    throw new Error(
-      "Bestandsführung liegt bei Shopify — Push ist deaktiviert.",
-    );
-  }
+  const blockReason = await inventoryPushBlockReason(shopId);
+  if (blockReason) throw new Error(blockReason);
 
   const db = adminDb();
   const normalizedShopId = normalizeShopId(shopId);

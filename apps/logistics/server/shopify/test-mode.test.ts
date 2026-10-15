@@ -3,6 +3,7 @@ import {
   buildTestModeMutationMock,
   extractMutationRootField,
   isGraphQLMutation,
+  isTestModePassthroughMutation,
   summarizeTestModeMutation,
 } from "./test-mode";
 
@@ -29,6 +30,20 @@ describe("test-mode", () => {
         tags: ["LAGER_SHIP"],
       }),
     ).toContain("LAGER_SHIP");
+  });
+
+  it("lets webhook subscriptions through test mode", () => {
+    const query = `mutation WebhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+      webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+        webhookSubscription { id }
+      }
+    }`;
+    expect(isTestModePassthroughMutation(query)).toBe(true);
+    expect(
+      isTestModePassthroughMutation(
+        "mutation TagsAdd($id: ID!) { tagsAdd(id: $id, tags: []) { node { id } } }",
+      ),
+    ).toBe(false);
   });
 
   it("builds safe mocks for outbox ops", () => {

@@ -17,6 +17,19 @@ const BLOCKING_MUTATION_FIELDS = new Set([
   "stagedUploadsCreate",
 ]);
 
+/**
+ * App plumbing, not merchant data. Mocking these leaves the shop with no
+ * order webhooks, so new orders never reach the warehouse.
+ */
+const PASSTHROUGH_MUTATION_FIELDS = new Set([
+  "webhookSubscriptionCreate",
+  "webhookSubscriptionDelete",
+]);
+
+export function isTestModePassthroughMutation(query: string): boolean {
+  return PASSTHROUGH_MUTATION_FIELDS.has(extractMutationRootField(query));
+}
+
 export class ShopifyTestModeSkippedError extends Error {
   constructor(message = "SHOPIFY_TEST_MODE: mutation blocked") {
     super(message);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { parseOrderIds } from "@/lib/print-slips-ids";
+import { publicOrigin } from "@/lib/public-origin";
 import { createPrintJob } from "@/server/picking/print-jobs";
 
 /**
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
     if (contentType.includes("application/json")) {
       return NextResponse.json({ error: "forbidden" }, { status: 401 });
     }
-    const login = new URL("/login", req.url);
+    const login = new URL("/login", publicOrigin(req));
     login.searchParams.set("next", "/lager/print-slips");
     return NextResponse.redirect(login);
   }
@@ -55,5 +56,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ jobId: job.id, url });
   }
 
-  return NextResponse.redirect(new URL(url, req.url), 303);
+  // req.url is https://0.0.0.0:8080 on Cloud Run (`next start -H 0.0.0.0`).
+  return NextResponse.redirect(new URL(url, publicOrigin(req)), 303);
 }

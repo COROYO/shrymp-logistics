@@ -4,6 +4,7 @@ import {
   handleTestModeGraphQLMutation,
   isGraphQLMutation,
   isShopifyTestMode,
+  isTestModePassthroughMutation,
 } from "./test-mode";
 import { loadStoredToken } from "./auth";
 import { getTenantShopIdFromContext } from "@/server/tenant/context";
@@ -131,7 +132,11 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
 ): Promise<TData> {
   const cfg = { ...(await getShopifyConfig(override?.shopId)), ...override };
 
-  if (isGraphQLMutation(query) && (await isShopifyTestMode(cfg.shopId))) {
+  if (
+    isGraphQLMutation(query) &&
+    !isTestModePassthroughMutation(query) &&
+    (await isShopifyTestMode(cfg.shopId))
+  ) {
     const mocked = await handleTestModeGraphQLMutation<TData>({
       query,
       variables,

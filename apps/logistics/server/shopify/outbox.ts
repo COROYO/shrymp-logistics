@@ -5,6 +5,8 @@ import { Collections, type ShopifyOutbox } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { normalizeShopId } from "@/server/tenant/id";
+import { tagsForStatus } from "@/lib/lager/writeback";
+import { loadLagerConfig } from "@/server/lager/config";
 import { isShopifyTestMode } from "./test-mode";
 import {
   fulfillmentCreateForOrder,
@@ -12,9 +14,6 @@ import {
   tagsAddOnOrder,
   tagsRemoveFromOrder,
 } from "./mutations";
-
-const LAGER_SHIP = "LAGER_SHIP";
-const LAGER_STOP = "LAGER_STOP";
 
 /**
  * Drain pending Shopify outbox entries.
@@ -54,7 +53,10 @@ export async function enqueueLagerTagSet(
   orderId: string,
   status: "SHIP" | "STOP",
   shopId: string,
-): Promise<string> {
+): Promise<string | null> {
+  const cfg = await loadLagerConfig(shopId);
+  if (!cfg.shopify_writeback_tags) return null;
+
   const db = adminDb();
   const ref = db
     .collection(Collections.ShopifyOutbox)
@@ -120,6 +122,20 @@ async function processRow(
     const shopId = await resolveOutboxShopId(row);
     if (!row.shop_id) {
       await docSnap.ref.update({ shop_id: shopId });
+    }
+    const allowed = await runWithTenantAsync(shopId, () =>
+      outboxOpAllowed(row.op),
+    );
+    if (!allowed) {
+      log.info("outbox_skipped_writeback_off", {
+        id: row.id,
+        op: row.op,
+        shopId,
+      });
+      await docSnap.ref.delete();
+      result.processed++;
+      result.done++;
+      return;
     }
     await runWithTenantAsync(shopId, async () => dispatch(row));
     await docSnap.ref.delete();
@@ -200,6 +216,24 @@ async function resolveOutboxShopId(row: ShopifyOutbox): Promise<string> {
   );
 }
 
+async function outboxOpAllowed(op: ShopifyOutbox["op"]): Promise<boolean> {
+  const cfg = await loadLagerConfig();
+  switch (op) {
+    case "TAGS_ADD":
+    case "TAGS_REMOVE":
+    case "LAGER_TAGS_SET":
+      return cfg.shopify_writeback_tags;
+    case "FULFILLMENT_CREATE":
+      return cfg.shopify_writeback_fulfillment;
+    case "INVENTORY_SET":
+      return (
+        cfg.inventory_source === "APP" && cfg.shopify_writeback_inventory
+      );
+    default:
+      return true;
+  }
+}
+
 async function dispatch(row: ShopifyOutbox): Promise<void> {
   switch (row.op) {
     case "TAGS_ADD": {
@@ -221,19 +255,27 @@ async function dispatch(row: ShopifyOutbox): Promise<void> {
       return;
     }
     case "LAGER_TAGS_SET": {
-      // LAGER tags are owned by our system: set the correct one and strip the
-      // opposite in a single op, verify both landed, then record the confirmed
-      // state on the order so the next allocation run won't re-push needlessly.
+      // Status tags are owned by our system: set the configured tag and strip
+      // the others, verify both landed, then record the confirmed state so
+      // the next allocation run won't re-push needlessly.
       const { orderId, status } = row.payload as {
         orderId: string;
         status: "SHIP" | "STOP";
       };
-      const want = status === "SHIP" ? LAGER_SHIP : LAGER_STOP;
-      const drop = status === "SHIP" ? LAGER_STOP : LAGER_SHIP;
-      await tagsAddOnOrder(orderId, [want]);
-      await tagsRemoveFromOrder(orderId, [drop]);
-      await verifyOrderTagState(orderId, [want], "must_include");
-      await verifyOrderTagState(orderId, [drop], "must_exclude");
+      const cfg = await loadLagerConfig();
+      const plan = tagsForStatus(status, {
+        ship: cfg.shopify_tag_ship,
+        stop: cfg.shopify_tag_stop,
+        packed: cfg.shopify_tag_packed,
+      });
+      if (plan.add.length > 0) {
+        await tagsAddOnOrder(orderId, plan.add);
+        await verifyOrderTagState(orderId, plan.add, "must_include");
+      }
+      if (plan.remove.length > 0) {
+        await tagsRemoveFromOrder(orderId, plan.remove);
+        await verifyOrderTagState(orderId, plan.remove, "must_exclude");
+      }
       await adminDb()
         .collection(Collections.Orders)
         .doc(orderId)

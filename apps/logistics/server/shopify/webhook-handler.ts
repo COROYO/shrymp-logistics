@@ -157,7 +157,7 @@ async function mirrorOrder(
   // If Shopify is reporting the order as fulfilled (someone clicked "Fulfill"
   // inside Shopify Admin, or another integration created the fulfillment),
   // mirror that state on our side: consume the FEFO-allocated stock, swap
-  // the LAGER_SHIP tag for LAGER_PACKED, push the new inventory level.
+  // the status tags, push the new inventory level when write-back is on.
   // We do NOT enqueue an allocation run in that branch — the external-fulfill
   // helper queues its own. `wasPacked` uses the FRESH in-txn status.
   const fulfillmentStatus = (doc.shopify_fulfillment_status ?? "").toLowerCase();

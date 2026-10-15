@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
-import { isAppInventorySource } from "@/server/lager/config";
+import { shouldPushInventoryToShopify } from "@/server/lager/config";
 import { buildInventoryPushEntriesForVariant } from "@/server/locations/push-stock";
 
 async function resolveVariantShopId(
@@ -35,8 +35,8 @@ export async function queueInventoryPush(
     return { queued: false };
   }
 
-  if (!(await isAppInventorySource(resolvedShopId))) {
-    log.info("inventory_push_skipped_shopify_source", { variantId, reason });
+  if (!(await shouldPushInventoryToShopify(resolvedShopId))) {
+    log.info("inventory_push_skipped_writeback_off", { variantId, reason });
     return { queued: false };
   }
 

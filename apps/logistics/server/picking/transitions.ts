@@ -8,8 +8,9 @@ import {
   type OrderInternalStatus,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
+import { statusTagOps, type WritebackTags } from "@/lib/lager/writeback";
 import { dispatchAutomationEvent } from "@/server/automation/dispatch";
-import { loadLagerConfig } from "@/server/lager/config";
+import { loadLagerConfig, shouldPushInventoryToShopify } from "@/server/lager/config";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 import { assignBatchesForOrder } from "./assign-batches";
 import { orderHasActiveConsumption } from "./consume-guard";
@@ -38,9 +39,6 @@ export class TransitionError extends Error {
     this.name = "TransitionError";
   }
 }
-
-const TAG_SHIP = "LAGER_SHIP";
-const TAG_PACKED = "LAGER_PACKED";
 
 // ----------------------- startPicking -----------------------
 
@@ -142,7 +140,8 @@ export type ConfirmPackingResult = {
  *
  * Outside the transaction (best-effort):
  *   - Write CONSUME inventory_movements (audit)
- *   - Enqueue Shopify outbox: fulfillmentCreate, inventorySet, tagsAdd LAGER_PACKED + tagsRemove LAGER_SHIP
+ *   - Enqueue Shopify outbox: fulfillmentCreate, inventorySet, status tags
+ *     (each skipped when that write-back is turned off)
  *   - Trigger an allocation re-run (PACKING_DONE)
  */
 export async function confirmPacking(
@@ -471,9 +470,14 @@ async function queueShopifyOutbox(
   let batch = db.batch();
   let ops = 0;
   const now = FieldValue.serverTimestamp();
+  const cfg = await loadLagerConfig(shopId);
+  const writebackTags: WritebackTags = {
+    ship: cfg.shopify_tag_ship,
+    stop: cfg.shopify_tag_stop,
+    packed: cfg.shopify_tag_packed,
+  };
 
-  // Fulfillment create
-  {
+  if (cfg.shopify_writeback_fulfillment) {
     const ref = db.collection(Collections.ShopifyOutbox).doc();
     batch.set(ref, {
       id: ref.id,
@@ -488,7 +492,7 @@ async function queueShopifyOutbox(
               url: tracking.url,
             }
           : undefined,
-        notifyCustomer: true,
+        notifyCustomer: cfg.shopify_fulfillment_notify_customer,
       },
       attempts: 0,
       next_retry_at: now,
@@ -497,36 +501,24 @@ async function queueShopifyOutbox(
     ops++;
   }
 
-  // Tag swap: SHIP → PACKED
-  {
-    const refA = db.collection(Collections.ShopifyOutbox).doc();
-    batch.set(refA, {
-      id: refA.id,
-      shop_id: shopId,
-      op: "TAGS_ADD",
-      payload: { orderId, tags: [TAG_PACKED] },
-      attempts: 0,
-      next_retry_at: now,
-      created_at: now,
-    });
-    ops++;
-    const refR = db.collection(Collections.ShopifyOutbox).doc();
-    batch.set(refR, {
-      id: refR.id,
-      shop_id: shopId,
-      op: "TAGS_REMOVE",
-      payload: { orderId, tags: [TAG_SHIP] },
-      attempts: 0,
-      next_retry_at: now,
-      created_at: now,
-    });
-    ops++;
+  if (cfg.shopify_writeback_tags) {
+    for (const tagOp of statusTagOps("PACKED", writebackTags)) {
+      const ref = db.collection(Collections.ShopifyOutbox).doc();
+      batch.set(ref, {
+        id: ref.id,
+        shop_id: shopId,
+        op: tagOp.op,
+        payload: { orderId, tags: tagOp.tags },
+        attempts: 0,
+        next_retry_at: now,
+        created_at: now,
+      });
+      ops++;
+    }
   }
 
   // Inventory push: one entry per (variant → new on_hand).
-  // We could batch these, but the per-variant write is also fine for low traffic.
-  const { isAppInventorySource } = await import("@/server/lager/config");
-  const pushInventory = await isAppInventorySource(shopId);
+  const pushInventory = await shouldPushInventoryToShopify(shopId);
   if (pushInventory) {
   for (const variantId of Object.keys(consumedQtyByVariant)) {
     const vSnap = await db
@@ -578,6 +570,3 @@ async function queueShopifyOutbox(
 
   if (ops > 0) await batch.commit();
 }
-
-// Re-export for tests
-export const _testing = { TAG_SHIP, TAG_PACKED };

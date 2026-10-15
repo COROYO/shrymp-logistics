@@ -7,8 +7,10 @@ import {
   type Order,
 } from "@/server/firestore/schema";
 import { log } from "@/lib/logger";
-import { assignBatchesForOrder } from "./assign-batches";
+import { statusTagOps, type WritebackTags } from "@/lib/lager/writeback";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
+import { loadLagerConfig, shouldPushInventoryToShopify } from "@/server/lager/config";
+import { assignBatchesForOrder } from "./assign-batches";
 import { orderHasActiveConsumption } from "./consume-guard";
 
 /**
@@ -19,9 +21,9 @@ import { orderHasActiveConsumption } from "./consume-guard";
  *   1. Refresh FEFO so the oldest-MHD batches get consumed.
  *   2. In one transaction: drain open allocations, decrement batches +
  *      variant counters, mark the order PACKED.
- *   3. Push the tag swap LAGER_SHIP → LAGER_PACKED and the new inventory
- *      level back to Shopify. We do NOT enqueue FULFILLMENT_CREATE — Shopify
- *      already did that, and a re-create would 422.
+ *   3. Push the configured status tags and the new inventory level back to
+ *      Shopify when those write-backs are on. We do NOT enqueue
+ *      FULFILLMENT_CREATE — Shopify already did that, and a re-create would 422.
  *
  * Idempotent: if `internal_status` is already PACKED or CANCELLED, returns
  * `{ ok: true, applied: false }`.
@@ -36,10 +38,6 @@ export type ExternalFulfillmentResult = {
   applied: boolean;
   reason?: string;
 };
-
-const TAG_SHIP = "LAGER_SHIP";
-const TAG_STOP = "LAGER_STOP";
-const TAG_PACKED = "LAGER_PACKED";
 
 export async function applyExternalFulfillment(
   orderId: string,
@@ -220,31 +218,34 @@ async function queueShopifyOutboxForExternal(
   let batch = db.batch();
   let ops = 0;
   const now = FieldValue.serverTimestamp();
+  const cfg = await loadLagerConfig(shopId);
+  const writebackTags: WritebackTags = {
+    ship: cfg.shopify_tag_ship,
+    stop: cfg.shopify_tag_stop,
+    packed: cfg.shopify_tag_packed,
+  };
 
-  // Tag swap: PACKED in, SHIP and STOP out. We strip STOP too because an
-  // externally-fulfilled order may have been in STOP state on our side.
-  for (const [op, tags] of [
-    ["TAGS_ADD", [TAG_PACKED]],
-    ["TAGS_REMOVE", [TAG_SHIP]],
-    ["TAGS_REMOVE", [TAG_STOP]],
-  ] as const) {
-    const ref = db.collection(Collections.ShopifyOutbox).doc();
-    batch.set(ref, {
-      id: ref.id,
-      shop_id: shopId,
-      op,
-      payload: { orderId, tags },
-      attempts: 0,
-      next_retry_at: now,
-      created_at: now,
-    });
-    ops++;
+  // PACKED in, SHIP and STOP out. STOP is stripped because an
+  // externally-fulfilled order may still have been STOP on our side.
+  if (cfg.shopify_writeback_tags) {
+    for (const tagOp of statusTagOps("PACKED", writebackTags)) {
+      const ref = db.collection(Collections.ShopifyOutbox).doc();
+      batch.set(ref, {
+        id: ref.id,
+        shop_id: shopId,
+        op: tagOp.op,
+        payload: { orderId, tags: tagOp.tags },
+        attempts: 0,
+        next_retry_at: now,
+        created_at: now,
+      });
+      ops++;
+    }
   }
 
   // Inventory push: one entry per (variant → new on_hand). Skips if we
   // didn't actually consume anything (the no-allocations path).
-  const { isAppInventorySource } = await import("@/server/lager/config");
-  const pushInventory = await isAppInventorySource();
+  const pushInventory = await shouldPushInventoryToShopify(shopId);
   const metaSnap = await db
     .collection(Collections.Config)
     .doc("shopify_meta")

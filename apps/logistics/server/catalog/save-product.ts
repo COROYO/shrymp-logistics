@@ -312,7 +312,8 @@ export async function saveProductEditor(input: {
         shopId: input.shopId,
         productGid: shopifyGid,
         primaryLocationGid,
-        pushInventoryQuantities: !appInventorySource,
+        pushInventoryQuantities:
+          !appInventorySource && cfg.shopify_writeback_inventory,
       });
       productId = pushResult.productId;
       shopifyGid = pushResult.productGid;

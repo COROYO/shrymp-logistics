@@ -215,6 +215,7 @@ export async function runAllocationInFirestore(
       oldSetReserved,
       recomputeMode,
       batchesEnabled,
+      lagerCfg.shopify_writeback_tags,
     );
 
     // Fire SHIP/STOP automation for status transitions (best-effort).
@@ -326,6 +327,7 @@ async function commitDecisions(
   oldSetReserved: Map<string, number>,
   recomputeMode: "delta" | "full",
   batchesEnabled: boolean,
+  writebackTags: boolean,
 ): Promise<string[]> {
   const db = adminDb();
   const decisionByOrderId = new Map(decisions.map((d) => [d.orderId, d]));
@@ -424,7 +426,7 @@ async function commitDecisions(
     // decision differs from the tag state we last *confirmed* on Shopify. This
     // repairs drift: a previous push that silently failed left `lager_tag_synced`
     // unchanged, so it gets retried here instead of being skipped.
-    if (nextStatus !== o.lager_tag_synced) {
+    if (writebackTags && nextStatus !== o.lager_tag_synced) {
       lagerTagSyncs.set(o.id, nextStatus);
     }
   }
