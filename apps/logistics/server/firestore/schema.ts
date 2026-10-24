@@ -833,6 +833,10 @@ export const SlipBrandingSchema = z.object({
   show_order_no: slipFlag,
   show_order_date: slipFlag,
   show_page: slipFlag,
+  /** Opt-in: print the Shopify order note (`customer_note`). */
+  show_order_note: z.boolean().default(false),
+  /** Opt-in: product thumbnail next to each line item. */
+  col_image: z.boolean().default(false),
   col_sku: slipFlag,
   col_bin: slipFlag,
   col_qty: slipFlag,

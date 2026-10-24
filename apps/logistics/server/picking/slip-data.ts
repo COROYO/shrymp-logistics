@@ -5,6 +5,7 @@ import {
   type Allocation,
   type Batch,
   type Order,
+  type Product,
   type Variant,
 } from "@/server/firestore/schema";
 import {
@@ -72,6 +73,8 @@ export type SlipData = {
   batchesEnabled: boolean;
   /** variantId → Lagerplatz code (for pickers on the printed slip). */
   binByVariant: Map<string, string | null>;
+  /** variantId → thumbnail URL. Only loaded when `branding.col_image` is on. */
+  imageByVariant: Map<string, string | null>;
   /** QR image URL, present when the shop set one. */
   qrDataUrl: string | null;
 };
@@ -228,13 +231,16 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     new Set(order.line_items.map((li) => li.variant_id).filter(Boolean)),
   );
   const variantTitleById = new Map<string, string | null>();
+  const variantById = new Map<string, Variant>();
   if (variantIds.length > 0) {
     const variantSnaps = await db.getAll(
       ...variantIds.map((id) => db.collection(Collections.Variants).doc(id)),
     );
     for (const v of variantSnaps) {
       if (!v.exists) continue;
-      const title = (v.data() as Variant).title?.trim() || null;
+      const variant = v.data() as Variant;
+      variantById.set(v.id, variant);
+      const title = variant.title?.trim() || null;
       variantTitleById.set(
         v.id,
         title && title !== DEFAULT_VARIANT_TITLE ? title : null,
@@ -251,6 +257,10 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   for (const vid of variantIds) {
     binByVariant.set(vid, bins.get(vid)?.code ?? null);
   }
+
+  const imageByVariant = branding.col_image
+    ? await loadSlipImages(variantById)
+    : new Map<string, string | null>();
 
   // Assign (or reuse) Lieferschein-Nr. AFTER reading the order so we have
   // the freshest doc. The helper is itself transactional — if the order
@@ -269,8 +279,52 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     branding,
     batchesEnabled,
     binByVariant,
+    imageByVariant,
     qrDataUrl,
   };
+}
+
+/** Slip thumbnails print at ~14mm; request a small rendition from Shopify's CDN. */
+const SLIP_IMAGE_WIDTH_PX = 160;
+
+/** variantId → thumbnail URL, falling back to the product's main image. */
+async function loadSlipImages(
+  variantById: Map<string, Variant>,
+): Promise<Map<string, string | null>> {
+  const db = adminDb();
+  const productIds = Array.from(
+    new Set(
+      [...variantById.values()]
+        .filter((v) => !v.image_url && v.product_id)
+        .map((v) => v.product_id),
+    ),
+  );
+  const productImageById = new Map<string, string | null>();
+  if (productIds.length > 0) {
+    const snaps = await db.getAll(
+      ...productIds.map((id) => db.collection(Collections.Products).doc(id)),
+    );
+    for (const s of snaps) {
+      if (s.exists) productImageById.set(s.id, (s.data() as Product).image_url ?? null);
+    }
+  }
+  const out = new Map<string, string | null>();
+  for (const [id, v] of variantById) {
+    const url = v.image_url ?? productImageById.get(v.product_id) ?? null;
+    out.set(id, url ? thumbnailUrl(url) : null);
+  }
+  return out;
+}
+
+function thumbnailUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "cdn.shopify.com") return url;
+    u.searchParams.set("width", String(SLIP_IMAGE_WIDTH_PX));
+    return u.toString();
+  } catch {
+    return url;
+  }
 }
 
 /** Flatten Maps and timestamps so a client chunk can render the slip. */
@@ -285,6 +339,10 @@ export function toSlipViewData(data: SlipData): SlipViewData {
     allocsByLi: Object.fromEntries(data.allocsByLi),
     variantTitleByLi: Object.fromEntries(data.variantTitleByLi),
     binByVariant: Object.fromEntries(data.binByVariant),
+    imageByVariant: Object.fromEntries(data.imageByVariant),
+    orderNote: data.branding.show_order_note
+      ? data.order.customer_note?.trim() || null
+      : null,
     lieferschein: data.lieferschein,
     branding: data.branding,
     batchesEnabled: data.batchesEnabled,

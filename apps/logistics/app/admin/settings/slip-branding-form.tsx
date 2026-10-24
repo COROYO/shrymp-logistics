@@ -44,8 +44,18 @@ const COLUMN_TOGGLES = [
   { name: "col_charge", label: "Charge" },
 ] as const satisfies readonly { name: SlipLayoutFlag; label: string }[];
 
+const EXTRA_TOGGLES = [
+  { name: "col_image", label: "Produktbilder" },
+  { name: "show_order_note", label: "Notiz zur Bestellung" },
+] as const satisfies readonly { name: SlipLayoutFlag; label: string }[];
+
 /** Compile-time check: every layout flag has a checkbox, or save would store it as off. */
-type CoveredFlag = (typeof HEADER_TOGGLES | typeof META_TOGGLES | typeof COLUMN_TOGGLES)[number]["name"];
+type CoveredFlag = (
+  | typeof HEADER_TOGGLES
+  | typeof META_TOGGLES
+  | typeof COLUMN_TOGGLES
+  | typeof EXTRA_TOGGLES
+)[number]["name"];
 type MissingLayoutFlag = Exclude<SlipLayoutFlag, CoveredFlag>;
 const _allFlagsCovered: MissingLayoutFlag extends never ? true : never = true;
 void _allFlagsCovered;
@@ -229,6 +239,12 @@ export function SlipBrandingForm({
         title="Tabellenspalten"
         hint="Produkt bleibt immer sichtbar. Art.-Nr. steht unter dem Produktnamen. Charge erscheint nur, wenn Chargen aktiv sind."
         toggles={COLUMN_TOGGLES}
+        current={current}
+      />
+      <ToggleGroup
+        title="Zusätzliche Inhalte"
+        hint="Produktbild steht klein links neben dem Produktnamen. Die Notiz aus der Shopify-Bestellung erscheint unter der Lieferadresse, nur wenn eine vorhanden ist."
+        toggles={EXTRA_TOGGLES}
         current={current}
       />
       <fieldset className="space-y-3">

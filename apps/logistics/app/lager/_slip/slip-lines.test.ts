@@ -175,4 +175,19 @@ describe("buildSlipSections", () => {
     const sections = buildSlipSections(items, noAllocs, noTitles, bins);
     expect(sections[0]!.lines[0]!.binCode).toBe("A-12");
   });
+
+  it("attaches the variant image and defaults to null without one", () => {
+    const items = [
+      li({ id: "1", title: "Keta", variant_id: "v-keta", qty: 1 }),
+      li({ id: "2", title: "Loose", variant_id: "v-loose", qty: 1 }),
+    ];
+    const images = new Map<string, string | null>([
+      ["v-keta", "https://cdn.shopify.com/keta.jpg"],
+    ]);
+    const sections = buildSlipSections(items, noAllocs, noTitles, noBins, images);
+    expect(sections[0]!.lines.map((l) => l.imageUrl)).toEqual([
+      "https://cdn.shopify.com/keta.jpg",
+      null,
+    ]);
+  });
 });

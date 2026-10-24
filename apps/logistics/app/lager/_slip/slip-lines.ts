@@ -24,6 +24,7 @@ export type MergedSlipLine = {
   variantTitle: string | null;
   sku: string | null;
   binCode: string | null;
+  imageUrl: string | null;
   qty: number;
   allocs: { chargeNumber: string; qty: number }[];
 };
@@ -50,6 +51,7 @@ export function buildSlipSections(
   allocsByLi: Map<string, SlipAllocLine[]>,
   variantTitleByLi: Map<string, string | null>,
   binByVariant: Map<string, string | null>,
+  imageByVariant: Map<string, string | null> = new Map(),
 ): SlipSection[] {
   type SectionAcc = {
     key: string;
@@ -90,6 +92,7 @@ export function buildSlipSections(
         variantTitle: variantTitleByLi.get(li.id) ?? null,
         sku: li.sku ?? null,
         binCode: binByVariant.get(li.variant_id) ?? null,
+        imageUrl: imageByVariant.get(li.variant_id) ?? null,
         qty: 0,
         allocs: [],
       };

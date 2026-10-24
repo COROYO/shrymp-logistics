@@ -11,6 +11,8 @@ export const SLIP_LAYOUT_FLAG_KEYS = [
   "show_order_no",
   "show_order_date",
   "show_page",
+  "show_order_note",
+  "col_image",
   "col_sku",
   "col_bin",
   "col_qty",
@@ -37,6 +39,9 @@ const DEFAULT_LAYOUT_FLAGS: Record<SlipLayoutFlag, boolean> = {
   show_order_no: true,
   show_order_date: true,
   show_page: true,
+  // Opt-in blocks added later stay off so existing slips keep their layout.
+  show_order_note: false,
+  col_image: false,
   col_sku: true,
   col_bin: true,
   col_qty: true,

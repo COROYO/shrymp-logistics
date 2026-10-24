@@ -32,6 +32,10 @@ export type SlipViewData = {
   allocsByLi: Record<string, SlipAllocLine[]>;
   variantTitleByLi: Record<string, string | null>;
   binByVariant: Record<string, string | null>;
+  /** variantId → thumbnail URL. Empty unless the shop enabled product images. */
+  imageByVariant: Record<string, string | null>;
+  /** Shopify order note. Null unless present and enabled in branding. */
+  orderNote: string | null;
   lieferschein: LieferscheinRef;
   branding: SlipBrandingConfig;
   batchesEnabled: boolean;

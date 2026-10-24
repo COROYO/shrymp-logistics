@@ -44,7 +44,9 @@ function SlipDocument({
     recordToMap(data.allocsByLi),
     recordToMap(data.variantTitleByLi),
     recordToMap(data.binByVariant),
+    recordToMap(data.imageByVariant),
   );
+  const showImage = branding.col_image;
   const showSku = branding.col_sku;
   const showBin = branding.col_bin;
   const showQty = branding.col_qty;
@@ -173,6 +175,23 @@ function SlipDocument({
         </address>
       </section>
 
+      {data.orderNote ? (
+        <section
+          className="mt-4 break-inside-avoid border-l-4 py-1 pl-3"
+          style={{ borderColor: accent }}
+        >
+          <div
+            className="mb-0.5 text-[8pt] font-semibold uppercase tracking-[0.12em]"
+            style={{ color: accent }}
+          >
+            {t("orderNote")}
+          </div>
+          <p className="whitespace-pre-line text-[10pt] leading-snug text-brand-navy">
+            {data.orderNote}
+          </p>
+        </section>
+      ) : null}
+
       <table className="mt-6 w-full border-collapse text-[11pt]">
         <thead>
           <tr className="text-left text-white" style={{ backgroundColor: header }}>
@@ -252,20 +271,36 @@ function SlipDocument({
                   }
                 >
                   <td className={`px-3 py-2 pr-4 ${section.bundle ? "pl-6" : ""}`}>
-                    <div
-                      className="font-semibold"
-                      style={{ color: header, fontSize: `${branding.title_size_pt}pt` }}
-                    >
-                      {line.title}
-                    </div>
-                    {showSku && line.sku ? (
-                      <div
-                        className="mt-0.5 font-mono text-brand-navy/55"
-                        style={{ fontSize: `${branding.sku_size_pt}pt` }}
-                      >
-                        {t("sku")} {line.sku}
+                    <div className={showImage ? "flex items-start gap-3" : undefined}>
+                      {showImage ? (
+                        line.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- Shopify CDN URL, printed as-is
+                          <img
+                            src={line.imageUrl}
+                            alt=""
+                            className="h-[14mm] w-[14mm] shrink-0 rounded border border-zinc-200 bg-white object-contain"
+                          />
+                        ) : (
+                          <div className="h-[14mm] w-[14mm] shrink-0 rounded border border-dashed border-zinc-300" />
+                        )
+                      ) : null}
+                      <div className="min-w-0">
+                        <div
+                          className="font-semibold"
+                          style={{ color: header, fontSize: `${branding.title_size_pt}pt` }}
+                        >
+                          {line.title}
+                        </div>
+                        {showSku && line.sku ? (
+                          <div
+                            className="mt-0.5 font-mono text-brand-navy/55"
+                            style={{ fontSize: `${branding.sku_size_pt}pt` }}
+                          >
+                            {t("sku")} {line.sku}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
+                    </div>
                   </td>
                   {showVariant ? (
                     <td className="w-[26%] px-3 py-2 pl-10 align-top text-brand-navy">

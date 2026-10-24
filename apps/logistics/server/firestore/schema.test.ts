@@ -113,8 +113,9 @@ describe("Firestore Zod schemas", () => {
       footer_legal: "ACME",
     };
     const branding = SlipBrandingSchema.parse(legacy);
+    const optIn = new Set(["show_order_note", "col_image"]);
     for (const key of SLIP_LAYOUT_FLAG_KEYS) {
-      expect(branding[key]).toBe(true);
+      expect(branding[key]).toBe(!optIn.has(key));
     }
     expect(SlipBrandingSchema.parse({ ...legacy, col_bin: false }).col_bin).toBe(
       false,
