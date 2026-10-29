@@ -7,6 +7,8 @@ import {
   isTestModePassthroughMutation,
 } from "./test-mode";
 import { loadStoredToken } from "./auth";
+import { refreshShopCredentialsNow } from "./token";
+import { isShopifyTokenRejection } from "./token-policy";
 import { getTenantShopIdFromContext } from "@/server/tenant/context";
 
 /**
@@ -130,7 +132,9 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
   variables?: TVars,
   override?: Partial<ShopifyClientConfig> & { shopId?: string },
 ): Promise<TData> {
-  const cfg = { ...(await getShopifyConfig(override?.shopId)), ...override };
+  let cfg = { ...(await getShopifyConfig(override?.shopId)), ...override };
+  let recoveredToken = false;
+  let tokenRecoveryFailed = false;
 
   if (
     isGraphQLMutation(query) &&
@@ -145,10 +149,9 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
     if (mocked !== null) return mocked;
   }
 
-  const url = `https://${cfg.shopDomain}/admin/api/${cfg.apiVersion}/graphql.json`;
-
   let lastErr: unknown;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const url = `https://${cfg.shopDomain}/admin/api/${cfg.apiVersion}/graphql.json`;
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -173,6 +176,32 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
       }
 
       const rawText = await res.text();
+      if (
+        !recoveredToken &&
+        !override?.accessToken &&
+        isShopifyTokenRejection(res.status, rawText)
+      ) {
+        recoveredToken = true;
+        log.warn("shopify_token_rejected_refresh", {
+          status: res.status,
+          shopId: cfg.shopId,
+        });
+        const fresh = await refreshShopCredentialsNow(cfg.shopId).catch(
+          (e: unknown) => {
+            tokenRecoveryFailed = true;
+            throw e;
+          },
+        );
+        if (fresh) {
+          cfg = {
+            ...cfg,
+            accessToken: fresh.access_token,
+            shopDomain: fresh.shop_domain,
+          };
+          continue;
+        }
+      }
+
       let json: GraphQLResult<TData>;
       try {
         json = JSON.parse(rawText) as GraphQLResult<TData>;
@@ -226,7 +255,14 @@ export async function shopifyGraphQL<TData = unknown, TVars = unknown>(
       return json.data;
     } catch (err) {
       lastErr = err;
+      if (tokenRecoveryFailed) throw err;
       if (err instanceof ShopifyGraphQLError) throw err;
+      if (
+        err instanceof Error &&
+        err.message.startsWith("SHOPIFY_REAUTH_REQUIRED")
+      ) {
+        throw err;
+      }
       if (attempt < MAX_ATTEMPTS) {
         await sleep(backoffMs(attempt));
         continue;

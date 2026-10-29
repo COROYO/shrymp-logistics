@@ -1,5 +1,8 @@
 runConfig:
   runCommand: pnpm --filter @shrymp/logistics start
+  # Cap simultaneous requests per instance so a webhook burst scales out
+  # instead of stacking on the 512Mi container (Shopify gives up at 6s).
+  concurrency: 20
 
 env:
   # ---------- Firebase (server) ----------

@@ -10,16 +10,38 @@ import {
   type ShopOAuthTokenBundle,
 } from "@/server/tenant/shop";
 import { normalizeShopId } from "@/server/tenant/id";
+import {
+  REFRESH_BEFORE_EXPIRY_MS,
+  isAccessTokenDueForRefresh,
+  parseExpiringTokenResponse,
+  readOAuthErrorCode,
+  type ExpiringTokenResponse,
+} from "./token-policy";
 
-const REFRESH_BEFORE_EXPIRY_MS = 5 * 60_000;
+export class ShopifyOAuthError extends Error {
+  readonly status: number;
+  readonly oauthError?: string;
 
-type ShopifyTokenResponse = {
-  access_token?: string;
-  scope?: string;
-  expires_in?: number;
-  refresh_token?: string;
-  refresh_token_expires_in?: number;
-};
+  constructor(status: number, body: string) {
+    const oauthError = readOAuthErrorCode(body);
+    super(
+      `Shopify OAuth token request failed (${status}${
+        oauthError ? ` ${oauthError}` : ""
+      }): ${body.slice(0, 300)}`,
+    );
+    this.name = "ShopifyOAuthError";
+    this.status = status;
+    this.oauthError = oauthError;
+  }
+}
+
+function isRejectedRefreshToken(err: unknown): boolean {
+  return (
+    err instanceof ShopifyOAuthError &&
+    err.status === 401 &&
+    err.oauthError === "invalid_request"
+  );
+}
 
 const tokenLocks = new Map<string, Promise<ShopCredentials | null>>();
 const credentialCache = new Map<
@@ -28,6 +50,14 @@ const credentialCache = new Map<
 >();
 
 function cacheCredentials(shopId: string, creds: ShopCredentials): void {
+  if (
+    isAccessTokenDueForRefresh(
+      creds.access_token_expires_at_ms,
+      !!creds.refresh_token,
+    )
+  ) {
+    return;
+  }
   const expiresMs = creds.access_token_expires_at_ms;
   const validUntilMs = expiresMs
     ? Math.min(expiresMs - REFRESH_BEFORE_EXPIRY_MS, Date.now() + 60_000)
@@ -48,14 +78,24 @@ function readCachedCredentials(shopId: string): ShopCredentials | null {
 }
 
 export function invalidateShopTokenCache(shopId?: string): void {
+  // Locks stay. Dropping them mid-refresh lets a second caller rotate the
+  // same refresh token before the first write lands.
   if (shopId) {
-    const id = normalizeShopId(shopId);
-    credentialCache.delete(id);
-    tokenLocks.delete(id);
+    credentialCache.delete(normalizeShopId(shopId));
   } else {
     credentialCache.clear();
-    tokenLocks.clear();
   }
+}
+
+function trackTokenWork(
+  shopId: string,
+  work: Promise<ShopCredentials | null>,
+): Promise<ShopCredentials | null> {
+  const tracked = work.finally(() => {
+    if (tokenLocks.get(shopId) === tracked) tokenLocks.delete(shopId);
+  });
+  tokenLocks.set(shopId, tracked);
+  return tracked;
 }
 
 function timestampToMs(value: unknown): number | undefined {
@@ -79,26 +119,6 @@ function timestampToMs(value: unknown): number | undefined {
   return undefined;
 }
 
-function parseTokenResponse(data: ShopifyTokenResponse): ShopOAuthTokenBundle {
-  if (!data.access_token) {
-    throw new Error("Shopify token response missing access_token");
-  }
-  const now = Date.now();
-  return {
-    accessToken: data.access_token,
-    scope: data.scope ?? "",
-    refreshToken: data.refresh_token,
-    accessTokenExpiresAtMs:
-      typeof data.expires_in === "number"
-        ? now + data.expires_in * 1000
-        : undefined,
-    refreshTokenExpiresAtMs:
-      typeof data.refresh_token_expires_in === "number"
-        ? now + data.refresh_token_expires_in * 1000
-        : undefined,
-  };
-}
-
 async function postOAuthToken(
   shopDomain: string,
   body: Record<string, string>,
@@ -113,19 +133,17 @@ async function postOAuthToken(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(
-      `Shopify OAuth token request failed (${res.status}): ${text.slice(0, 300)}`,
-    );
+    throw new ShopifyOAuthError(res.status, text);
   }
-  let json: ShopifyTokenResponse;
+  let json: ExpiringTokenResponse;
   try {
-    json = JSON.parse(text) as ShopifyTokenResponse;
+    json = JSON.parse(text) as ExpiringTokenResponse;
   } catch {
     throw new Error(
       `Shopify OAuth token response was not JSON: ${text.slice(0, 300)}`,
     );
   }
-  return parseTokenResponse(json);
+  return parseExpiringTokenResponse(json);
 }
 
 export async function exchangeCodeForExpiringToken(
@@ -172,11 +190,6 @@ async function migrateNonExpiringToken(
   });
 }
 
-function isAccessTokenStale(expiresAtMs: number | undefined): boolean {
-  if (!expiresAtMs) return false;
-  return expiresAtMs - REFRESH_BEFORE_EXPIRY_MS <= Date.now();
-}
-
 function shopToCredentials(shop: {
   shop_domain: string;
   access_token?: string;
@@ -194,8 +207,95 @@ function shopToCredentials(shop: {
   };
 }
 
+function credentialsFromBundle(
+  shopDomain: string,
+  tokens: ShopOAuthTokenBundle,
+): ShopCredentials | null {
+  return shopToCredentials({
+    shop_domain: shopDomain,
+    access_token: tokens.accessToken,
+    scope: tokens.scope,
+    refresh_token: tokens.refreshToken,
+    access_token_expires_at: tokens.accessTokenExpiresAtMs
+      ? Timestamp.fromMillis(tokens.accessTokenExpiresAtMs)
+      : undefined,
+  });
+}
+
+async function persistResolvedTokens(
+  shopId: string,
+  shopDomain: string,
+  tokens: ShopOAuthTokenBundle,
+): Promise<ShopCredentials | null> {
+  await saveShopOAuthTokens(shopId, tokens);
+  invalidateShopTokenCache(shopId);
+  const creds = credentialsFromBundle(shopDomain, tokens);
+  if (creds) cacheCredentials(shopId, creds);
+  return creds;
+}
+
+/**
+ * Shopify keeps the presented refresh token valid until the replacement is
+ * used. A 401 here usually means another instance already rotated it.
+ * Re-read Firestore and continue with that pair instead of forcing reinstall.
+ */
+async function recoverRotatedRefresh(
+  shopId: string,
+  shopDomain: string,
+  rejectedRefreshToken: string,
+): Promise<ShopOAuthTokenBundle | null> {
+  const latest = await getShop(shopId);
+  if (
+    !latest?.access_token ||
+    !latest.refresh_token ||
+    latest.refresh_token === rejectedRefreshToken
+  ) {
+    return null;
+  }
+  const latestExpiry = timestampToMs(latest.access_token_expires_at);
+  if (!isAccessTokenDueForRefresh(latestExpiry, true)) {
+    log.info("shopify_token_refresh_lost_race", { shopId });
+    return {
+      accessToken: latest.access_token,
+      scope: latest.scope ?? "",
+      refreshToken: latest.refresh_token,
+      accessTokenExpiresAtMs: latestExpiry,
+      refreshTokenExpiresAtMs: timestampToMs(latest.refresh_token_expires_at),
+    };
+  }
+  try {
+    log.info("shopify_token_refresh_lost_race", { shopId, retry: true });
+    return await refreshExpiringToken(shopDomain, latest.refresh_token);
+  } catch (e) {
+    if (isRejectedRefreshToken(e)) return null;
+    throw e;
+  }
+}
+
+async function refreshOrReuse(
+  shopId: string,
+  shopDomain: string,
+  refreshToken: string,
+): Promise<ShopOAuthTokenBundle> {
+  try {
+    return await refreshExpiringToken(shopDomain, refreshToken);
+  } catch (e) {
+    if (!isRejectedRefreshToken(e)) throw e;
+    const recovered = await recoverRotatedRefresh(
+      shopId,
+      shopDomain,
+      refreshToken,
+    );
+    if (recovered) return recovered;
+    throw new Error(
+      "SHOPIFY_REAUTH_REQUIRED: Refresh token rejected — merchant must reinstall the app",
+    );
+  }
+}
+
 async function resolveShopCredentials(
   shopId: string,
+  opts: { force?: boolean } = {},
 ): Promise<ShopCredentials | null> {
   const shop = await getShop(shopId);
   if (!shop?.access_token || shop.status !== "ACTIVE") return null;
@@ -209,56 +309,33 @@ async function resolveShopCredentials(
       shop.shop_domain,
       shop.access_token,
     );
-    await saveShopOAuthTokens(shopId, migrated);
-    invalidateShopTokenCache(shopId);
     log.info("shopify_token_migrated", { shopId });
-    const creds = shopToCredentials({
-      shop_domain: shop.shop_domain,
-      access_token: migrated.accessToken,
-      scope: migrated.scope,
-      refresh_token: migrated.refreshToken,
-      access_token_expires_at: migrated.accessTokenExpiresAtMs
-        ? Timestamp.fromMillis(migrated.accessTokenExpiresAtMs)
-        : undefined,
-    });
-    if (creds) cacheCredentials(shopId, creds);
-    return creds;
+    return persistResolvedTokens(shopId, shop.shop_domain, migrated);
   }
 
-  if (
-    refreshExpiresMs !== undefined &&
-    refreshExpiresMs <= Date.now()
-  ) {
+  if (refreshExpiresMs !== undefined && refreshExpiresMs <= Date.now()) {
     throw new Error(
       "SHOPIFY_REAUTH_REQUIRED: Refresh token expired — merchant must reinstall the app",
     );
   }
 
-  if (!isAccessTokenStale(accessExpiresMs)) {
+  if (
+    !opts.force &&
+    !isAccessTokenDueForRefresh(accessExpiresMs, true)
+  ) {
     const creds = shopToCredentials(shop);
     if (creds) cacheCredentials(shopId, creds);
     return creds;
   }
 
-  log.info("shopify_token_refresh_start", { shopId });
-  const refreshed = await refreshExpiringToken(
+  log.info("shopify_token_refresh_start", { shopId, force: !!opts.force });
+  const refreshed = await refreshOrReuse(
+    shopId,
     shop.shop_domain,
     shop.refresh_token,
   );
-  await saveShopOAuthTokens(shopId, refreshed);
-  invalidateShopTokenCache(shopId);
   log.info("shopify_token_refreshed", { shopId });
-  const creds = shopToCredentials({
-    shop_domain: shop.shop_domain,
-    access_token: refreshed.accessToken,
-    scope: refreshed.scope,
-    refresh_token: refreshed.refreshToken,
-    access_token_expires_at: refreshed.accessTokenExpiresAtMs
-      ? Timestamp.fromMillis(refreshed.accessTokenExpiresAtMs)
-      : undefined,
-  });
-  if (creds) cacheCredentials(shopId, creds);
-  return creds;
+  return persistResolvedTokens(shopId, shop.shop_domain, refreshed);
 }
 
 /** Load credentials, migrating legacy tokens and refreshing when needed. */
@@ -274,11 +351,24 @@ export async function ensureValidShopCredentials(
   const pending = tokenLocks.get(id);
   if (pending) return pending;
 
-  const work = resolveShopCredentials(id).finally(() => {
-    tokenLocks.delete(id);
-  });
-  tokenLocks.set(id, work);
-  return work;
+  return trackTokenWork(id, resolveShopCredentials(id));
+}
+
+/**
+ * Bypass the cache and rotate now. Used when the Admin API rejects the
+ * access token (401, or 403 for a non-expiring offline token).
+ */
+export async function refreshShopCredentialsNow(
+  shopId: string,
+): Promise<ShopCredentials | null> {
+  const id = normalizeShopId(shopId);
+  credentialCache.delete(id);
+  const pending = tokenLocks.get(id);
+  if (pending) await pending.catch(() => null);
+  credentialCache.delete(id);
+  const again = tokenLocks.get(id);
+  if (again) return again;
+  return trackTokenWork(id, resolveShopCredentials(id, { force: true }));
 }
 
 /** Proactively migrate/refresh tokens for every active shop (cron). */
