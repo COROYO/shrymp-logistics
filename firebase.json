@@ -5,10 +5,12 @@
     "ignore": [
       "node_modules",
       ".git",
+      ".next",
       "firebase-debug.log",
       "firebase-debug.*.log",
       "functions"
-    ]
+    ],
+    "alwaysDeployFromSource": true
   },
   "firestore": {
     "rules": "firestore.rules",
@@ -18,7 +20,11 @@
     {
       "target": "logistics",
       "source": "apps/logistics",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
       "frameworksBackend": {
         "region": "europe-west3"
       }
@@ -26,7 +32,11 @@
     {
       "target": "website",
       "public": "apps/website/out",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
       "cleanUrls": true
     }
   ],
