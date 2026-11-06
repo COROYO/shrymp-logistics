@@ -34,6 +34,10 @@ const BUCKET_MS = 2000;
 // commit-to-read visibility (~tens of ms). 500ms is comfortably more than
 // enough and barely slows perceived latency.
 const SCHEDULE_BUFFER_MS = 500;
+// Shopify abandons the webhook at 5s. The default Cloud Tasks RPC retries
+// for ~20s when the API is disabled, which is what produced "No response
+// from app". Fail fast and fall back to the inline run instead.
+const CREATE_TASK_DEADLINE_MS = 2_000;
 
 export type EnqueueOptions = {
   shopId: string;
@@ -73,31 +77,35 @@ export async function enqueueAllocationRun(
       `allocation-${shopKey}-${bucketId}`,
     );
 
-    await client.createTask({
-      parent: client.queuePath(projectId, location, queue),
-      task: {
-        name: taskName,
-        scheduleTime: {
-          seconds: Math.floor(fireAtMs / 1000),
-          nanos: (fireAtMs % 1000) * 1_000_000,
-        },
-        httpRequest: {
-          httpMethod: "POST",
-          url: targetUrl,
-          headers: { "Content-Type": "application/json" },
-          body: Buffer.from(
-            JSON.stringify({
-              shopId: opts.shopId,
-              triggeredBy: opts.triggeredBy,
-              triggerEventId: opts.triggerEventId,
-            }),
-          ).toString("base64"),
-          ...(invokerSa
-            ? { oidcToken: { serviceAccountEmail: invokerSa } }
-            : {}),
+    await client.createTask(
+      {
+        parent: client.queuePath(projectId, location, queue),
+        task: {
+          name: taskName,
+          scheduleTime: {
+            seconds: Math.floor(fireAtMs / 1000),
+            nanos: (fireAtMs % 1000) * 1_000_000,
+          },
+          httpRequest: {
+            httpMethod: "POST",
+            url: targetUrl,
+            headers: { "Content-Type": "application/json" },
+            body: Buffer.from(
+              JSON.stringify({
+                shopId: opts.shopId,
+                triggeredBy: opts.triggeredBy,
+                triggerEventId: opts.triggerEventId,
+              }),
+            ).toString("base64"),
+            ...(invokerSa
+              ? { oidcToken: { serviceAccountEmail: invokerSa } }
+              : {}),
+          },
         },
       },
-    });
+      // timeout is ignored while retries are enabled.
+      { timeout: CREATE_TASK_DEADLINE_MS, retry: null },
+    );
 
     log.info("allocation_enqueued", { ...opts, taskName });
     return { enqueued: true, mode: "cloud_tasks", ref: taskName };
