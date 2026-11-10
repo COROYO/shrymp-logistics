@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import { Collections } from "@/server/firestore/schema";
@@ -14,15 +15,18 @@ import { dispatchShopifyWebhook } from "@/server/shopify/webhook-handler";
  *   - Verify HMAC against the shop's custom-app secret (fallback: env).
  *   - Dedupe on `X-Shopify-Webhook-Id` via a Firestore `create()` — second
  *     delivery of the same event is a no-op.
- *   - Dispatch by `X-Shopify-Topic` to the right handler.
- *   - Always respond 200 once we have ANY view of the event (recorded or
- *     not), so Shopify stops retrying. Persistent failures are app bugs,
- *     not Shopify's — they get logged and persisted as FAILED for manual
- *     reprocessing.
+ *   - ACK with 200 within Shopify's ~5s budget, then process via `after()`.
+ *     Heavy work (GraphQL refetch, allocation enqueue) must NOT block the
+ *     response — timeouts show as RESULT_STATUS_FAILURE in Partner logs and
+ *     trigger retries that land as duplicates here.
+ *   - Persistent handler failures are logged + marked FAILED for manual
+ *     reprocessing; Shopify still got 200 so it stops retrying.
  *
  * Only HMAC failure and missing-id return 4xx (request is genuinely
  * malformed / not from Shopify).
  */
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   // Read the body first. The per-shop app secret is loaded next so HMAC
   // can be checked against the custom app from onboarding.
@@ -80,11 +84,8 @@ export async function POST(req: Request) {
 
   const shopId = shop.trim().toLowerCase();
 
-  // Big try/catch around EVERYTHING below so any thrown error gets persisted
-  // and we always 200 back. Without this, an `adminDb()` init crash or an
-  // unhandled exception in `dispatchShopifyWebhook` ends in a 500 with no
-  // webhook_events row — invisible to us, and Shopify retries 19× before
-  // giving up.
+  // Big try/catch around persistence so any thrown error gets logged and we
+  // still 200 back. Handler work runs in `after()` below.
   try {
     const db = adminDb();
     const eventRef = db.collection(Collections.WebhookEvents).doc(webhookId);
@@ -138,44 +139,51 @@ export async function POST(req: Request) {
       return new Response("ok (invalid-json logged)", { status: 200 });
     }
 
-    try {
-      const result = await dispatchShopifyWebhook(topic, body, webhookId, shop);
-      const update: Record<string, unknown> = {
-        status: result.kind === "error" ? "FAILED" : "PROCESSED",
-        processed_at: FieldValue.serverTimestamp(),
-      };
-      if (result.kind === "error") update.error = result.reason;
-      await eventRef.set(update, { merge: true });
+    // Return 200 now; finish mirroring / allocation after the response so
+    // Shopify does not time out at 5s and mark the delivery failed.
+    after(async () => {
+      try {
+        const result = await dispatchShopifyWebhook(
+          topic,
+          body,
+          webhookId,
+          shop,
+        );
+        const update: Record<string, unknown> = {
+          status: result.kind === "error" ? "FAILED" : "PROCESSED",
+          processed_at: FieldValue.serverTimestamp(),
+        };
+        if (result.kind === "error") update.error = result.reason;
+        await eventRef.set(update, { merge: true });
 
-      if (result.kind === "error") {
-        log.error("shopify_webhook_dispatch_app_error", {
+        if (result.kind === "error") {
+          log.error("shopify_webhook_dispatch_app_error", {
+            webhookId,
+            topic,
+            reason: result.reason,
+          });
+        }
+      } catch (e) {
+        log.error("shopify_webhook_dispatch_failed", {
           webhookId,
           topic,
-          reason: result.reason,
+          error: String(e),
+          stack: e instanceof Error ? e.stack : undefined,
         });
+        await eventRef
+          .set(
+            {
+              status: "FAILED",
+              processed_at: FieldValue.serverTimestamp(),
+              error: String(e),
+            },
+            { merge: true },
+          )
+          .catch(() => {});
       }
-      return new Response("ok", { status: 200 });
-    } catch (e) {
-      log.error("shopify_webhook_dispatch_failed", {
-        webhookId,
-        topic,
-        error: String(e),
-        stack: e instanceof Error ? e.stack : undefined,
-      });
-      await eventRef
-        .set(
-          {
-            status: "FAILED",
-            processed_at: FieldValue.serverTimestamp(),
-            error: String(e),
-          },
-          { merge: true },
-        )
-        .catch(() => {});
-      // Persistent failure — don't make Shopify retry, we'll reprocess
-      // manually after the fix.
-      return new Response("ok (dispatch-error logged)", { status: 200 });
-    }
+    });
+
+    return new Response("ok", { status: 200 });
   } catch (e) {
     // Catastrophic: even `adminDb()` failed (env missing, SA JSON parse error,
     // etc). Log + 200 so Shopify stops retrying. Without persistence we still

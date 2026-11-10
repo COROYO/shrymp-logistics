@@ -12,11 +12,36 @@ import { TOPICS, type ShopifyTopic } from "./topics";
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 import { mirrorInternalStatus } from "@/server/allocation/status-guard";
 import { fetchOrderLineItems } from "./bundles";
+import { getShopifyConfig } from "./client";
+import { extractOrderEditOrderId } from "./order-edit";
 import { normalizeShopId } from "@/server/tenant/id";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { markShopUninstalled } from "@/server/tenant/shop";
 import { mergeAutomationLineItems } from "@/server/automation/order-tags";
 import { dispatchAutomationEvent } from "@/server/automation/dispatch";
+
+async function fetchShopifyOrderPayload(
+  shopId: string,
+  orderId: number,
+): Promise<ShopifyOrderPayload | null> {
+  const cfg = await getShopifyConfig(shopId);
+  const url = `https://${cfg.shopDomain}/admin/api/${cfg.apiVersion}/orders/${orderId}.json`;
+  const res = await fetch(url, {
+    headers: {
+      "X-Shopify-Access-Token": cfg.accessToken,
+      Accept: "application/json",
+    },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `shopify_order_fetch_${res.status}: ${text.slice(0, 200)}`,
+    );
+  }
+  const json = (await res.json()) as { order?: ShopifyOrderPayload };
+  return json.order ?? null;
+}
 
 /**
  * Result of dispatching a verified, deduped webhook event.
@@ -47,13 +72,37 @@ export async function dispatchShopifyWebhook(
           webhookId,
         );
       case TOPICS.ORDERS_UPDATED:
-      case TOPICS.ORDERS_EDITED:
         return mirrorOrder(
           shopId,
           body as ShopifyOrderPayload,
           "ORDER_UPDATED",
           webhookId,
         );
+      case TOPICS.ORDERS_EDITED: {
+        // Prefer the documented order_edit wrapper; fall back to a full
+        // order body if Shopify ever sends one (or a test fixture does).
+        const editOrderId = extractOrderEditOrderId(body);
+        if (editOrderId != null) {
+          const payload = await fetchShopifyOrderPayload(shopId, editOrderId);
+          if (!payload) {
+            return { kind: "error", reason: "order_not_found_for_edit" };
+          }
+          return mirrorOrder(shopId, payload, "ORDER_UPDATED", webhookId);
+        }
+        if (
+          body &&
+          typeof body === "object" &&
+          typeof (body as { id?: unknown }).id === "number"
+        ) {
+          return mirrorOrder(
+            shopId,
+            body as ShopifyOrderPayload,
+            "ORDER_UPDATED",
+            webhookId,
+          );
+        }
+        return { kind: "error", reason: "invalid_order_payload" };
+      }
       case TOPICS.ORDERS_CANCELLED:
         return cancelOrder(shopId, body as ShopifyOrderPayload, webhookId);
       case TOPICS.INVENTORY_LEVELS_UPDATE:
