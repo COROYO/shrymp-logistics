@@ -2,8 +2,8 @@
 
 Region: **`europe-west3`** · Project: `$GCP_PROJECT_ID`
 
-The app relies on three scheduled HTTP endpoints (Cloud Scheduler) and one
-Cloud Tasks queue. This is the production setup for all of them.
+The app relies on scheduled HTTP endpoints (Cloud Scheduler) and two Cloud
+Tasks queues. This is the production setup for all of them.
 
 ---
 
@@ -31,6 +31,28 @@ The consumer endpoint verifies an OIDC token minted for
 `ALLOCATION_INVOKER_SERVICE_ACCOUNT` with audience `ALLOCATION_TARGET_URL`.
 That service account needs `roles/cloudtasks.enqueuer` (to be targeted) and the
 enqueueing runtime needs `roles/cloudtasks.enqueuer` on the queue.
+
+---
+
+## 1b. Cloud Tasks queue (Shopify webhook mirror)
+
+`POST /api/webhooks/shopify` only checks the HMAC and enqueues. Shopify gives
+up at 5 seconds, so the Firestore mirror must not run inside that request.
+The consumer is `POST /api/internal/shopify/webhook`. Concurrency stays low so
+an `inventory_levels/update` burst cannot stall Firestore or OOM the instance.
+
+```bash
+gcloud tasks queues create shopify-webhooks \
+  --location=europe-west3 \
+  --max-concurrent-dispatches=4 \
+  --max-dispatches-per-second=10 \
+  --max-attempts=8 \
+  --min-backoff=10s \
+  --max-backoff=300s
+```
+
+OIDC audience is `SHOPIFY_WEBHOOK_TARGET_URL`. The token is minted for
+`ALLOCATION_INVOKER_SERVICE_ACCOUNT` (same runtime SA as allocation).
 
 ---
 
@@ -96,8 +118,10 @@ The 2-min tick guards itself: it skips if an allocation run is already `RUNNING`
 | `GCP_LOCATION` | enqueue | e.g. `europe-west3`. |
 | `ALLOCATION_QUEUE` | enqueue | `allocation-runs`. |
 | `ALLOCATION_TARGET_URL` | enqueue + consumer | Full URL of `/api/internal/allocation/run`; also the OIDC audience. |
-| `ALLOCATION_INVOKER_SERVICE_ACCOUNT` | enqueue + consumer | SA email(s) allowed to invoke the consumer (comma-separated). |
+| `ALLOCATION_INVOKER_SERVICE_ACCOUNT` | enqueue + consumer | SA email(s) allowed to invoke the consumer (comma-separated). Also mints the OIDC token for the Shopify webhook consumer. |
 | `ALLOCATION_ALLOW_UNAUTHENTICATED` | consumer | Set `1` only for local dev to bypass OIDC. **Never in prod.** |
+| `SHOPIFY_WEBHOOK_QUEUE` | webhook enqueue | `shopify-webhooks`. Defaults to that name when unset. |
+| `SHOPIFY_WEBHOOK_TARGET_URL` | webhook enqueue + consumer | Full URL of `/api/internal/shopify/webhook`; also the OIDC audience. Defaults to `$APP_BASE_URL/api/internal/shopify/webhook`. |
 | `CRON_SECRET` | all cron endpoints | Shared secret for scheduler auth. |
 
 If the `ALLOCATION_*` queue vars are **unset**, `enqueueAllocationRun` falls back

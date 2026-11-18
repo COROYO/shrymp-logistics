@@ -1,8 +1,10 @@
 runConfig:
   runCommand: pnpm --filter @shrymp/logistics start
-  # Cap simultaneous requests per instance so a webhook burst scales out
-  # instead of stacking on the 512Mi container (Shopify gives up at 6s).
+  # Shopify abandons a webhook at 5s. The receiver only verifies HMAC and
+  # enqueues; the mirror runs on the shopify-webhooks queue. 512Mi was OOM-killed
+  # when inventory_levels/update bursts stacked on one instance.
   concurrency: 20
+  memoryMiB: 1024
 
 env:
   # ---------- Firebase (server) ----------
@@ -74,6 +76,13 @@ env:
   # console (App Hosting backend → service account) before the first run.
   - variable: ALLOCATION_INVOKER_SERVICE_ACCOUNT
     value: firebase-app-hosting-compute@shrymp-logistics.iam.gserviceaccount.com
+  # Shopify webhook mirror. Same invoker SA and OIDC pattern as allocation.
+  # Queue must exist in GCP_LOCATION with a small concurrency cap — see
+  # docs/scheduler.md. Defaults in code match these values.
+  - variable: SHOPIFY_WEBHOOK_QUEUE
+    value: shopify-webhooks
+  - variable: SHOPIFY_WEBHOOK_TARGET_URL
+    value: https://lager.shrymp.de/api/internal/shopify/webhook
 
   # ---------- App ----------
   - variable: APP_BASE_URL
