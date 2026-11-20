@@ -74,6 +74,12 @@ async function ensureSchema(client: SqlClient): Promise<void> {
       CREATE INDEX IF NOT EXISTS documents_collection_shop_id
       ON documents (collection, (data->>'shop_id'))
     `);
+    // Optimistic concurrency for BulkWriter lastUpdateTime. Existing rows
+    // get the migration time; the next write moves it forward.
+    await client.query(`
+      ALTER TABLE documents
+      ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    `);
   })().catch((error: unknown) => {
     schemas.delete(client);
     throw error;
@@ -150,6 +156,15 @@ function normalize(value: unknown): Json | undefined {
     return out;
   }
   return null;
+}
+
+function updatedAtIso(value: unknown): string | undefined {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+  if (typeof value === "string") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.toISOString();
+  }
+  return undefined;
 }
 
 function reviveTime(iso: string): Record<string, unknown> {
@@ -300,11 +315,16 @@ function needsReadModify(value: unknown): boolean {
 }
 
 class Snapshot {
+  readonly updateTime: ReturnType<typeof reviveTime> | undefined;
+
   constructor(
     readonly id: string,
     private readonly row: Record<string, unknown> | undefined,
     readonly ref: DocRef,
-  ) {}
+    updatedAt?: string,
+  ) {
+    this.updateTime = updatedAt ? reviveTime(updatedAt) : undefined;
+  }
 
   get exists(): boolean {
     return this.row !== undefined;
@@ -473,6 +493,76 @@ class Batch {
   }
 }
 
+type BulkItem = {
+  kind: "set" | "update" | "delete" | "create";
+  ref: DocRef;
+  data?: Record<string, unknown>;
+  merge?: boolean;
+  precondition?: { lastUpdateTime?: { toMillis?: () => number } };
+  resolve: () => void;
+  reject: (error: unknown) => void;
+};
+
+// Firestore BulkWriter, buffered until close(). Each op settles on its own
+// promise. A stale lastUpdateTime skips that write (gRPC code 9) and leaves
+// the rest of the batch intact. close() rejects on any other failure.
+class BulkWriter {
+  private ops: BulkItem[] = [];
+  private closed = false;
+  private closing: Promise<void> | null = null;
+
+  constructor(private readonly db: PgDb) {}
+
+  set(ref: DocRef, data: Record<string, unknown>, options?: { merge?: boolean }): Promise<void> {
+    return this.enqueue({ kind: "set", ref, data, merge: options?.merge === true });
+  }
+
+  update(
+    ref: DocRef,
+    data: Record<string, unknown>,
+    precondition?: { lastUpdateTime?: { toMillis?: () => number } },
+  ): Promise<void> {
+    return this.enqueue({ kind: "update", ref, data, precondition });
+  }
+
+  delete(ref: DocRef): Promise<void> {
+    return this.enqueue({ kind: "delete", ref });
+  }
+
+  create(ref: DocRef, data: Record<string, unknown>): Promise<void> {
+    return this.enqueue({ kind: "create", ref, data });
+  }
+
+  close(): Promise<void> {
+    if (this.closing) return this.closing;
+    this.closed = true;
+    const ops = this.ops.splice(0);
+    this.closing = (async () => {
+      try {
+        await this.db.commitBulk(ops);
+      } catch (error) {
+        for (const op of ops) op.reject(error);
+        throw error;
+      }
+    })();
+    return this.closing;
+  }
+
+  private enqueue(op: Omit<BulkItem, "resolve" | "reject">): Promise<void> {
+    if (this.closed) throw new Error("BulkWriter has already been closed.");
+    let resolve: () => void = () => undefined;
+    let reject: (error: unknown) => void = () => undefined;
+    const promise = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    // Callers often ignore the per-op promise and only await close().
+    promise.catch(() => undefined);
+    this.ops.push({ ...op, resolve, reject });
+    return promise;
+  }
+}
+
 // Callers often do not await tx.set/tx.update/tx.delete and then call tx.get.
 // Queue writes and flush them before the next read and before commit.
 class Transaction {
@@ -530,24 +620,36 @@ class PgDb {
     return new Batch(this);
   }
 
+  bulkWriter(): BulkWriter {
+    return new BulkWriter(this);
+  }
+
   async getAll(...refs: DocRef[]): Promise<Snapshot[]> {
     await this.ready();
     if (refs.length === 0) return [];
     const lock = this.inTransaction ? " FOR UPDATE" : "";
     const result = await this.client.query(
-      `SELECT collection, id, data
+      `SELECT collection, id, data, updated_at
        FROM documents
        WHERE (collection, id) IN (
          SELECT * FROM UNNEST($1::text[], $2::text[])
        )${lock}`,
       [refs.map((ref) => ref.collectionName), refs.map((ref) => ref.id)],
     );
-    const found = new Map<string, Record<string, unknown>>();
+    const found = new Map<string, { data: Record<string, unknown>; updatedAt?: string }>();
     for (const row of result.rows) {
       const data = asRecord(row.data);
-      if (data) found.set(`${String(row.collection)}/${String(row.id)}`, data);
+      if (data) {
+        found.set(`${String(row.collection)}/${String(row.id)}`, {
+          data,
+          updatedAt: updatedAtIso(row.updated_at),
+        });
+      }
     }
-    return refs.map((ref) => new Snapshot(ref.id, found.get(`${ref.collectionName}/${ref.id}`), ref));
+    return refs.map((ref) => {
+      const hit = found.get(`${ref.collectionName}/${ref.id}`);
+      return new Snapshot(ref.id, hit?.data, ref, hit?.updatedAt);
+    });
   }
 
   async runTransaction<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -578,10 +680,11 @@ class PgDb {
     await this.ready();
     const lock = this.inTransaction ? " FOR UPDATE" : "";
     const result = await this.client.query(
-      `SELECT data FROM documents WHERE collection = $1 AND id = $2${lock}`,
+      `SELECT data, updated_at FROM documents WHERE collection = $1 AND id = $2${lock}`,
       [ref.collectionName, ref.id],
     );
-    return new Snapshot(ref.id, asRecord(result.rows[0]?.data), ref);
+    const row = result.rows[0];
+    return new Snapshot(ref.id, asRecord(row?.data), ref, updatedAtIso(row?.updated_at));
   }
 
   async write(ref: DocRef, data: Record<string, unknown>, merge: boolean): Promise<void> {
@@ -608,19 +711,19 @@ class PgDb {
     const json = JSON.stringify(normalize(data) ?? {});
     if (merge) {
       await this.client.query(
-        `INSERT INTO documents (collection, id, data)
-         VALUES ($1, $2, $3::jsonb)
+        `INSERT INTO documents (collection, id, data, updated_at)
+         VALUES ($1, $2, $3::jsonb, clock_timestamp())
          ON CONFLICT (collection, id)
-         DO UPDATE SET data = documents.data || EXCLUDED.data`,
+         DO UPDATE SET data = documents.data || EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
         [ref.collectionName, ref.id, json],
       );
       return;
     }
     await this.client.query(
-      `INSERT INTO documents (collection, id, data)
-       VALUES ($1, $2, $3::jsonb)
+      `INSERT INTO documents (collection, id, data, updated_at)
+       VALUES ($1, $2, $3::jsonb, clock_timestamp())
        ON CONFLICT (collection, id)
-       DO UPDATE SET data = EXCLUDED.data`,
+       DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
       [ref.collectionName, ref.id, json],
     );
   }
@@ -629,8 +732,8 @@ class PgDb {
     await this.ready();
     const json = JSON.stringify(normalize(data) ?? {});
     const result = await this.client.query(
-      `INSERT INTO documents (collection, id, data)
-       VALUES ($1, $2, $3::jsonb)
+      `INSERT INTO documents (collection, id, data, updated_at)
+       VALUES ($1, $2, $3::jsonb, clock_timestamp())
        ON CONFLICT (collection, id) DO NOTHING`,
       [ref.collectionName, ref.id, json],
     );
@@ -678,10 +781,10 @@ class PgDb {
     }
     const json = JSON.stringify(data);
     await this.client.query(
-      `INSERT INTO documents (collection, id, data)
-       VALUES ($1, $2, $3::jsonb)
+      `INSERT INTO documents (collection, id, data, updated_at)
+       VALUES ($1, $2, $3::jsonb, clock_timestamp())
        ON CONFLICT (collection, id)
-       DO UPDATE SET data = EXCLUDED.data`,
+       DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
       [ref.collectionName, ref.id, json],
     );
   }
@@ -696,7 +799,7 @@ class PgDb {
     const data = { ...row };
     for (const [key, value] of Object.entries(patch)) applySentinel(data, key, value);
     await this.client.query(
-      "UPDATE documents SET data = $3::jsonb WHERE collection = $1 AND id = $2",
+      "UPDATE documents SET data = $3::jsonb, updated_at = clock_timestamp() WHERE collection = $1 AND id = $2",
       [ref.collectionName, ref.id, JSON.stringify(data)],
     );
   }
@@ -711,11 +814,16 @@ class PgDb {
 
   async queryDocs(query: Query, lock = this.inTransaction): Promise<Snapshot[]> {
     await this.ready();
-    const { sql, params } = compile(query, "id, data", { lock });
+    const { sql, params } = compile(query, "id, data, updated_at", { lock });
     const result = await this.client.query(sql, params);
     return result.rows.map((row) => {
       const id = String(row.id);
-      return new Snapshot(id, asRecord(row.data), new DocRef(this, query.collectionName, id));
+      return new Snapshot(
+        id,
+        asRecord(row.data),
+        new DocRef(this, query.collectionName, id),
+        updatedAtIso(row.updated_at),
+      );
     });
   }
 
@@ -760,6 +868,87 @@ class PgDb {
       else if (op.kind === "update") await this.patch(ref, op.data);
       else await this.write(ref, op.data, op.merge);
     }
+  }
+
+  async commitBulk(ops: BulkItem[]): Promise<void> {
+    await this.ready();
+    const run = async (db: PgDb) => {
+      const ok: BulkItem[] = [];
+      const skipped: Array<{ op: BulkItem; error: unknown }> = [];
+      for (const op of ops) {
+        try {
+          await db.applyBulkOp(op);
+          ok.push(op);
+        } catch (error) {
+          // FAILED_PRECONDITION: this write is stale. Keep the other ops.
+          if ((error as { code?: number }).code === 9) {
+            skipped.push({ op, error });
+            continue;
+          }
+          throw error;
+        }
+      }
+      return { ok, skipped };
+    };
+    const settle = (result: { ok: BulkItem[]; skipped: Array<{ op: BulkItem; error: unknown }> }) => {
+      for (const op of result.ok) op.resolve();
+      for (const item of result.skipped) item.op.reject(item.error);
+    };
+
+    if (this.inTransaction) {
+      settle(await run(this));
+      return;
+    }
+    if (!this.pool) throw new Error("No connection pool for bulk writer");
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await run(new PgDb(client, true, null));
+      await client.query("COMMIT");
+      settle(result);
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  private async applyBulkOp(op: BulkItem): Promise<void> {
+    const ref = new DocRef(this, op.ref.collectionName, op.ref.id);
+    if (op.kind === "delete") {
+      await this.remove(ref);
+      return;
+    }
+    if (op.kind === "create") {
+      await this.create(ref, op.data ?? {});
+      return;
+    }
+    if (op.kind === "set") {
+      await this.write(ref, op.data ?? {}, op.merge === true);
+      return;
+    }
+    const expected = op.precondition?.lastUpdateTime;
+    if (expected && typeof expected.toMillis === "function") {
+      const current = await this.currentUpdateMillis(ref);
+      if (current == null || current !== expected.toMillis()) {
+        const error = new Error(`Document ${ref.path} changed since it was read`) as Error & {
+          code: number;
+        };
+        error.code = 9;
+        throw error;
+      }
+    }
+    await this.patch(ref, op.data ?? {});
+  }
+
+  private async currentUpdateMillis(ref: DocRef): Promise<number | null> {
+    const result = await this.client.query(
+      "SELECT updated_at FROM documents WHERE collection = $1 AND id = $2 FOR UPDATE",
+      [ref.collectionName, ref.id],
+    );
+    const iso = updatedAtIso(result.rows[0]?.updated_at);
+    return iso ? new Date(iso).getTime() : null;
   }
 }
 

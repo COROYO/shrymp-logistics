@@ -168,6 +168,54 @@ describe("postgres document store", () => {
     expect(ids.docs.map((doc) => doc.id)).toEqual([ref.id]);
   });
 
+  it("bulkWriter commits writes and skips a stale update", async () => {
+    await db.collection("orders").doc("o1").set({ internal_status: "NEW", n: 1 });
+    await db.collection("variants").doc("v1").set({ reserved_total: 1, available: 5 });
+    const stale = await db.collection("orders").doc("o1").get();
+    const [viaGetAll] = await db.getAll(db.collection("orders").doc("o1"));
+    expect(stale.updateTime?.toMillis()).toBe(viaGetAll?.updateTime?.toMillis());
+
+    await postgres.query(
+      "UPDATE documents SET updated_at = '2000-01-01T00:00:00.000Z' WHERE collection = 'orders' AND id = 'o1'",
+    );
+
+    const bulk = db.bulkWriter();
+    const rejected = bulk.update(
+      db.collection("orders").doc("o1"),
+      { internal_status: "SHIP" },
+      { lastUpdateTime: stale.updateTime },
+    );
+    bulk.set(db.collection("orders").doc("o2"), { ok: true });
+    bulk.update(db.collection("variants").doc("v1"), {
+      reserved_total: FieldValue.increment(2),
+      available: FieldValue.increment(-2),
+    });
+    bulk.delete(db.collection("orders").doc("gone"));
+    const closed = bulk.close();
+    await expect(rejected).rejects.toMatchObject({ code: 9 });
+    await closed;
+
+    expect((await db.collection("orders").doc("o1").get()).data()).toEqual({
+      internal_status: "NEW",
+      n: 1,
+    });
+    expect((await db.collection("orders").doc("o2").get()).data()).toEqual({ ok: true });
+    expect((await db.collection("variants").doc("v1").get()).data()).toEqual({
+      reserved_total: 3,
+      available: 3,
+    });
+
+    const fresh = await db.collection("orders").doc("o1").get();
+    const retry = db.bulkWriter();
+    retry.update(
+      db.collection("orders").doc("o1"),
+      { internal_status: "SHIP" },
+      { lastUpdateTime: fresh.updateTime },
+    );
+    await retry.close();
+    expect((await db.collection("orders").doc("o1").get()).data()?.internal_status).toBe("SHIP");
+  });
+
   it("creates the shop_id expression index", async () => {
     await db.collection("orders").doc("o1").set({ shop_id: "shop.myshopify.com" });
     const indexes = await postgres.query<{ indexname: string }>(
