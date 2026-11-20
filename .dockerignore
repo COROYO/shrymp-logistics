@@ -1,0 +1,13 @@
+**/node_modules
+**/.next
+**/.git
+**/google-cloud-sdk
+**/*.tar.gz
+**/.env
+**/.env.*
+**/.env.local
+**/coverage
+**/*.log
+**/firebase-debug.log
+**/service-account*.json
+**/*.pem

@@ -10,13 +10,13 @@ import { isSupportedTopic } from "@/server/shopify/topics";
  *
  * Contract:
  *   - Verify HMAC (env secret first, no Firestore on the hot path).
- *   - Hand the delivery to the `shopify-webhooks` Cloud Tasks queue and
+ *   - Hand the delivery to the in-process queue (INPROCESS_JOBS=1) and
  *     ACK with 200. Shopify abandons the attempt at ~5s; the mirror runs
- *     on a separate request so a burst cannot pin this instance.
- *   - If the queue is unavailable, fall back to `after()` so the event is
- *     not dropped. That path still ACKs before any Firestore write.
+ *     afterwards so a burst cannot pin this request.
+ *   - If the queue is off, fall back to `after()` so the event is not
+ *     dropped. That path still ACKs before any database write.
  *   - Only HMAC failure, a stuck credential lookup, and a missing id
- *     return non-2xx. A 503 makes Shopify retry once Firestore answers.
+ *     return non-2xx. A 503 makes Shopify retry once the database answers.
  */
 export const maxDuration = 60;
 

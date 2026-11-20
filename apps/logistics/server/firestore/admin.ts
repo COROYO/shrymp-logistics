@@ -1,8 +1,9 @@
 import "server-only";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import type { Firestore } from "firebase-admin/firestore";
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { runtimeEnv } from "@/lib/runtime-env";
+import { getPostgresDb } from "@/server/firestore/postgres";
 
 /**
  * Firebase Admin SDK initialization.
@@ -78,6 +79,10 @@ export function resolveFirebaseProjectId(): string | undefined {
   }
 }
 
+export function ensureFirebaseApp(): App {
+  return getAdminApp();
+}
+
 function getAdminApp(): App {
   if (cachedApp) return cachedApp;
   const existing = getApps()[0];
@@ -124,33 +129,14 @@ function getAdminApp(): App {
 }
 
 export function adminDb(): Firestore {
-  const db = getFirestore(getAdminApp());
-  // `db.settings()` can only be called once per Firestore instance, BEFORE
-  // any other method on it. In serverless runtimes (Vercel / Firebase
-  // Functions) the SDK's `getFirestore()` returns the same cached instance
-  // across our module reloads — so a module-scoped "already applied" flag
-  // is unreliable. The SDK doesn't expose a way to query current settings,
-  // so the cleanest approach is to attempt the call and swallow the
-  // "already initialized" error.
-  //
-  // Setting `ignoreUndefinedProperties: true` makes writes drop undefined
-  // fields instead of throwing — matches our schema convention where
-  // optional fields are simply omitted from documents.
-  try {
-    db.settings({ ignoreUndefinedProperties: true });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (!msg.includes("already been initialized")) {
-      // Different error — surface it. We don't want to swallow real
-      // configuration bugs.
-      throw e;
-    }
-    // Settings already applied on a previous request in this runtime —
-    // safe to continue.
+  if (!process.env.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL is not set. This process does not fall back to Firestore.",
+    );
   }
-  return db;
+  return getPostgresDb() as unknown as Firestore;
 }
 
 export function adminAuth(): Auth {
-  return getAuth(getAdminApp());
+  return getAuth(ensureFirebaseApp());
 }

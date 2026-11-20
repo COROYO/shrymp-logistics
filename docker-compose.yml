@@ -1,0 +1,42 @@
+# Dokploy loads .env from the Environment tab next to this file.
+# Postgres is a separate Dokploy database service on dokploy-network, not a sidecar.
+# DATABASE_URL uses that service name, for example postgres://lager:PASSWORD@lager-postgres:5432/lager
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
+    restart: unless-stopped
+    mem_limit: 1g
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOST: 0.0.0.0
+      INPROCESS_JOBS: "1"
+    expose:
+      - "3000"
+    networks:
+      - default
+      - dokploy-network
+    # Uncomment once the public host is real.
+    # Labels in this file survive a recreate. Labels set only in the UI can disappear.
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.docker.network=dokploy-network
+    #   - traefik.http.routers.lager.rule=Host(`APP_HOST`)
+    #   - traefik.http.routers.lager.entrypoints=websecure
+    #   - traefik.http.routers.lager.tls.certresolver=letsencrypt
+    #   - traefik.http.services.lager.loadbalancer.server.port=3000
+
+networks:
+  dokploy-network:
+    external: true

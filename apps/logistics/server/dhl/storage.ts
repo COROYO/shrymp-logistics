@@ -1,6 +1,6 @@
 import "server-only";
 import { getStorage } from "firebase-admin/storage";
-import { resolveFirebaseProjectId } from "@/server/firestore/admin";
+import { ensureFirebaseApp, resolveFirebaseProjectId } from "@/server/firestore/admin";
 
 /**
  * Firebase Storage helpers for DHL label PDFs.
@@ -28,13 +28,17 @@ export type StoredLabel = {
   expiresAt: Date;
 };
 
+function labelBucket() {
+  ensureFirebaseApp();
+  return getStorage().bucket(bucketName());
+}
+
 export async function uploadLabelPdf(
   orderId: string,
   shipmentNo: string,
   pdf: Buffer,
 ): Promise<StoredLabel> {
-  const storage = getStorage();
-  const bucket = storage.bucket(bucketName());
+  const bucket = labelBucket();
   const storagePath = `dhl-labels/${orderId}/${shipmentNo}.pdf`;
   const file = bucket.file(storagePath);
   await file.save(pdf, {
@@ -52,8 +56,7 @@ export async function signLabel(
   orderId: string,
   shipmentNo: string,
 ): Promise<StoredLabel> {
-  const storage = getStorage();
-  const bucket = storage.bucket(bucketName());
+  const bucket = labelBucket();
   const storagePath = `dhl-labels/${orderId}/${shipmentNo}.pdf`;
   const file = bucket.file(storagePath);
   const expiresAt = new Date(Date.now() + SIGNED_URL_TTL_MS);
