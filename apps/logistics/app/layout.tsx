@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
-import { Montserrat, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { pickClientMessages } from "@/i18n/client-messages";
 import "./globals.css";
 
-const montserrat = Montserrat({
+// Variable latin files. Google Fonts now serves kit URLs without a file
+// extension, which crashes next/font/google during `next build`.
+const montserrat = localFont({
+  src: "./fonts/montserrat-latin.woff2",
+  weight: "400 700",
   variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: "./fonts/jetbrains-mono-latin.woff2",
+  weight: "400 700",
   variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
