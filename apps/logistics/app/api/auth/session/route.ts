@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { adminAuth } from "@/server/firestore/admin";
+import { adminAuth, adminDb } from "@/server/firestore/admin";
+import {
+  LOCAL_SESSION_MAX_AGE_MS,
+  signLocalSession,
+} from "@/lib/auth/local-session";
 import { SESSION_COOKIE } from "@/lib/auth/session";
 import { log } from "@/lib/logger";
+import { Collections, type UserRole } from "@/server/firestore/schema";
 
 const Body = z.object({ idToken: z.string().min(10) });
-
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export async function POST(req: Request) {
   let parsed;
@@ -17,17 +20,28 @@ export async function POST(req: Request) {
   }
 
   try {
-    const sessionCookie = await adminAuth().createSessionCookie(
-      parsed.idToken,
-      { expiresIn: SESSION_DURATION_MS },
-    );
+    // Public-key check only. Creating a Firebase session cookie needs a
+    // service account key, which this project is not allowed to mint.
+    const decoded = await adminAuth().verifyIdToken(parsed.idToken, false);
+    const claim = decoded.role;
+    let role: UserRole | null = claim === "ADMIN" || claim === "LAGER" ? claim : null;
+    if (!role) {
+      const snap = await adminDb().collection(Collections.Users).doc(decoded.uid).get();
+      const stored = snap.data()?.role;
+      role = stored === "ADMIN" || stored === "LAGER" ? stored : null;
+    }
+    const sessionCookie = signLocalSession({
+      uid: decoded.uid,
+      email: decoded.email ?? null,
+      role,
+    });
 
     const res = NextResponse.json({ ok: true });
     res.cookies.set(SESSION_COOKIE, sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: SESSION_DURATION_MS / 1000,
+      maxAge: LOCAL_SESSION_MAX_AGE_MS / 1000,
       path: "/",
     });
     return res;

@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { readLocalSession } from "@/lib/auth/local-session";
 import { adminAuth } from "@/server/firestore/admin";
 import type { UserRole } from "@/server/firestore/schema";
 
@@ -9,9 +10,9 @@ import type { UserRole } from "@/server/firestore/schema";
  *
  * Flow:
  * 1. Client signs in with `signInWithEmailAndPassword`, receives an ID token.
- * 2. Client POSTs the ID token to `/api/auth/session` which sets a
- *    server-side `__session` cookie containing a Firebase session cookie
- *    (long-lived, revocable).
+ * 2. Client POSTs the ID token to `/api/auth/session`. The server checks
+ *    the token signature against Google's public keys and sets a signed
+ *    `__session` cookie. No Firebase service-account key is required.
  * 3. Server code (layouts, server actions, route handlers) calls
  *    `getSessionUser()` to read + verify the cookie.
  */
@@ -30,8 +31,9 @@ async function getSessionUserUncached(): Promise<SessionUser | null> {
   if (!cookie) return null;
 
   try {
-    // checkRevoked=false — avoids an extra Auth round-trip per request; role
-    // changes still apply on next token refresh / re-login.
+    const local = readLocalSession(cookie);
+    if (local) return local;
+    // Older Firebase session cookies, when a service account is configured.
     const decoded = await adminAuth().verifySessionCookie(cookie, false);
     const role = (decoded.role ?? null) as UserRole | null;
     return {
