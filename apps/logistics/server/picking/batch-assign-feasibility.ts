@@ -6,6 +6,7 @@ import {
   isBatchExpired,
   toEpochMs,
 } from "./batch-assignability";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 export type BatchAssignBlockReason =
   | "BATCH_EXPIRED"
@@ -66,7 +67,7 @@ export function evaluateBatchAssignFeasibility(
     pool.set(variantId, entries);
   }
 
-  for (const li of lineItems) {
+  for (const li of stockLineItems(lineItems)) {
     let need = li.qty;
     const entries = pool.get(li.variant_id) ?? [];
     for (const e of entries) {
@@ -111,8 +112,9 @@ export async function loadBatchAssignFeasibility(
 ): Promise<BatchAssignFeasibility> {
   const db = adminDb();
   const variantIds = Array.from(
-    new Set(order.line_items.map((li) => li.variant_id)),
+    new Set(stockLineItems(order.line_items).map((li) => li.variant_id)),
   );
+  if (variantIds.length === 0) return { assignable: true };
   const batches: Batch[] = [];
   for (const c of chunk(variantIds, 30)) {
     const snap = await db

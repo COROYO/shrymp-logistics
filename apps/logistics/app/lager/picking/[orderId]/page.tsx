@@ -18,6 +18,7 @@ import { PickScanVerifier } from "./pick-scan-verifier";
 import { OrderNoteIcon } from "@/app/_components/order-note-icon";
 import { OrderStatusRow } from "@/app/_components/order-status";
 import { getTranslations } from "next-intl/server";
+import { isStockLineItem, stockLineItems } from "@/lib/orders/stock-line-items";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,10 @@ type LineItemDisplay = {
   title: string;
   sku: string | null;
   qty: number;
-  variantId: string;
+  variantId: string | null;
   variantTitle: string;
   productTitle: string;
+  custom: boolean;
   allocations: AllocationLine[];
 };
 
@@ -51,7 +53,7 @@ function mergeLineItems(items: LineItemDisplay[]): LineItemDisplay[] {
   const order: string[] = [];
 
   for (const li of items) {
-    const key = `${li.productTitle} ${li.variantTitle} ${li.sku ?? ""}`;
+    const key = `${li.custom ? "c" : "s"} ${li.productTitle} ${li.variantTitle} ${li.sku ?? ""}`;
     let g = groups.get(key);
     if (!g) {
       g = { ...li, allocations: [] };
@@ -106,9 +108,9 @@ async function loadOrder(orderId: string) {
       .where("order_id", "==", orderId)
       .get(),
     Promise.all(
-      Array.from(new Set(order.line_items.map((li) => li.variant_id))).map(
-        (vid) => db.collection(Collections.Variants).doc(vid).get(),
-      ),
+      [
+        ...new Set(stockLineItems(order.line_items).map((li) => li.variant_id)),
+      ].map((vid) => db.collection(Collections.Variants).doc(vid).get()),
     ),
   ]);
 
@@ -188,18 +190,21 @@ async function loadOrder(orderId: string) {
   }
 
   const rawLineItems: LineItemDisplay[] = order.line_items.map((li) => {
-    const v = variantById.get(li.variant_id);
-    const productTitle = v?.product_id
-      ? (productById.get(v.product_id) ?? "—")
-      : "—";
+    const custom = !isStockLineItem(li);
+    const v = li.variant_id ? variantById.get(li.variant_id) : undefined;
+    const catalogTitle = v?.product_id
+      ? productById.get(v.product_id)
+      : undefined;
     return {
       id: li.id,
       title: li.title,
       sku: li.sku,
       qty: li.qty,
       variantId: li.variant_id,
-      variantTitle: v?.title ?? "—",
-      productTitle,
+      variantTitle:
+        v?.title && v.title !== "Default Title" ? v.title : "",
+      productTitle: catalogTitle || li.title,
+      custom,
       allocations: allocsByLineItem.get(li.id) ?? [],
     };
   });
@@ -337,14 +342,20 @@ export default async function PickingDetailPage({
             </thead>
             <tbody>
               {lineItems.map((li) => {
-                const bin = binByVariant.get(li.variantId);
+                const bin = li.variantId
+                  ? binByVariant.get(li.variantId)
+                  : undefined;
                 return (
                 <tr key={li.id}>
                   <td>
                     <div className="font-semibold text-brand-navy">
                       {li.productTitle}
                     </div>
-                    {li.variantTitle && li.variantTitle !== "Default Title" ? (
+                    {li.custom ? (
+                      <div className="text-xs text-brand-navy/60">
+                        {t("items.custom")}
+                      </div>
+                    ) : li.variantTitle ? (
                       <div className="text-xs text-brand-navy/60">
                         {li.variantTitle}
                       </div>
@@ -369,7 +380,9 @@ export default async function PickingDetailPage({
                   </td>
                   {batchesEnabled ? (
                     <td>
-                      {li.allocations.length === 0 ? (
+                      {li.custom ? (
+                        <span className="text-xs text-brand-navy/45">—</span>
+                      ) : li.allocations.length === 0 ? (
                         <span className="chip chip-amber">
                           {t("items.noCharge")}
                         </span>

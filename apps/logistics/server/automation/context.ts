@@ -9,6 +9,7 @@ import { ordersForShop } from "@/server/tenant/queries";
 import { effectiveOrderTags } from "./order-tags";
 import { loadLagerConfig } from "@/server/lager/config";
 import { hasPriorityTag } from "@/server/allocation/types";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 export type EvalContext = {
   order: {
@@ -74,7 +75,7 @@ export async function buildEvalContext(
 
   if (order?.line_items?.length) {
     const variantIds = [
-      ...new Set(order.line_items.map((li) => li.variant_id).filter(Boolean)),
+      ...new Set(stockLineItems(order.line_items).map((li) => li.variant_id)),
     ];
     const db = adminDb();
     const variantSnaps = await Promise.all(
@@ -127,7 +128,9 @@ export async function buildEvalContext(
           skus: order.line_items
             .map((li) => li.sku)
             .filter((s): s is string => !!s),
-          variant_ids: order.line_items.map((li) => li.variant_id),
+          variant_ids: order.line_items
+            .map((li) => li.variant_id)
+            .filter((id): id is string => !!id),
           product_ids: productIds,
           product_types: productTypes,
           has_priority_tag: hasPriorityTag(tags, lagerCfg.priority_tags),

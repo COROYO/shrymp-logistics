@@ -7,6 +7,7 @@ import {
   type Variant,
 } from "@/server/firestore/schema";
 import { loadBinsForVariants } from "./bins";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 /**
  * One expected pick position for the scan verifier. Quantities are aggregated
@@ -31,7 +32,7 @@ export async function loadPickScanItems(
   void shopId;
   const db = adminDb();
   const variantIds = [
-    ...new Set(order.line_items.map((li) => li.variant_id).filter(Boolean)),
+    ...new Set(stockLineItems(order.line_items).map((li) => li.variant_id)),
   ];
   if (variantIds.length === 0) return [];
 
@@ -59,7 +60,7 @@ export async function loadPickScanItems(
   }
 
   const byVariant = new Map<string, PickScanItem>();
-  for (const li of order.line_items) {
+  for (const li of stockLineItems(order.line_items)) {
     const v = variantById.get(li.variant_id);
     const p = v ? productById.get(v.product_id) : undefined;
     const bin = bins.get(li.variant_id);

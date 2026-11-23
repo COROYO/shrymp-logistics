@@ -18,6 +18,7 @@ import {
 import { releaseUnshippableBatchAssignments } from "./release-invalid-assignments";
 import { orderAssignmentCoversLineItems } from "./assignment-coverage";
 import { orderHasActiveConsumption } from "./consume-guard";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 export { orderAssignmentCoversLineItems } from "./assignment-coverage";
 
@@ -93,11 +94,20 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
       .map((d) => ({ ref: d.ref, data: d.data() as Allocation }))
       .filter((a) => !a.data.consumed_at);
 
+    // Custom items (no Shopify variant) are printed, never pinned to a Charge.
+    const stockItems = stockLineItems(order.line_items ?? []);
+    if (stockItems.length === 0) {
+      if (myOpen.length > 0) {
+        await releaseOpenAssignments(tx, db, myOpen, referenceDate);
+      }
+      return true;
+    }
+
     // Already fully assigned → idempotent reprint only if every pinned Charge
     // is still shippable (not expired / within the MHD cutoff).
     if (
       myOpen.length > 0 &&
-      orderAssignmentCoversLineItems(order.line_items, myOpen.map((a) => a.data))
+      orderAssignmentCoversLineItems(stockItems, myOpen.map((a) => a.data))
     ) {
       const assignedBatchIds = Array.from(
         new Set(myOpen.map((a) => a.data.batch_id)),
@@ -125,9 +135,7 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
     }
 
     // ACTIVE batches with assignable stock for the order's variants.
-    const variantIds = Array.from(
-      new Set(order.line_items.map((li) => li.variant_id)),
-    );
+    const variantIds = Array.from(new Set(stockItems.map((li) => li.variant_id)));
     const batchDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
     for (const c of chunk(variantIds, 30)) {
       const snap = await tx.get(
@@ -184,7 +192,7 @@ export async function assignBatchesForOrder(orderId: string): Promise<boolean> {
     type Pick = { lineItemId: string; variantId: string; batchId: string; qty: number };
     const picks: Pick[] = [];
     const batchTake = new Map<string, number>(); // batchId → units to decrement
-    for (const li of order.line_items) {
+    for (const li of stockItems) {
       let need = li.qty;
       const entries = pool.get(li.variant_id) ?? [];
       for (const e of entries) {

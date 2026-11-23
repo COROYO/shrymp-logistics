@@ -290,7 +290,8 @@
       "title": "What goes in the box",
       "product": "Product",
       "qty": "Qty",
-      "batches": "Batches"
+      "batches": "Batches",
+      "custom": "Custom item"
     },
     "dhl": {
       "eyebrow": "Shipping label",
@@ -369,6 +370,7 @@
       "qty": "Qty",
       "charge": "Batch",
       "noCharge": "No batch assigned",
+      "custom": "Custom item",
       "qtyUnit": "pcs",
       "printPicklist": "Print picklist",
       "printSlip": "Packing slip"
@@ -652,6 +654,7 @@
       "bundles": "bundles",
       "components": "components",
       "mergedFrom": "Merged from {count} positions: {ids}",
+      "customItem": "Custom item",
       "imageMissing": {
         "noVariant": "Variant not in Firestore — run product sync",
         "noProduct": "Product not in Firestore — run product sync",
@@ -701,6 +704,7 @@
       "allocations": "Allocations",
       "variant": "Variant",
       "none": "— none —",
+      "custom": "Custom item",
       "consumed": "✓ consumed {when}",
       "reserved": "reserved"
     },
@@ -1053,6 +1057,7 @@
     "charge": "Charge · MHD",
     "chargeOnly": "Charge",
     "noAllocation": "— keine Allokation —",
+    "custom": "Sonderartikel",
     "expiry": "MHD",
     "qtyUnit": "Stk",
     "footerOrderId": "Order-ID:",
@@ -1079,6 +1084,7 @@
     "charge": "Charge",
     "expiry": "MHD",
     "noCharge": "—",
+    "custom": "Sonderartikel",
     "noteKeep": "Bewahre den Lieferschein bitte mit der Charge und dem MHD auf, falls du Rückfragen zur Lieferung hast.",
     "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
     "signature": "Vielen Dank und guten Appetit!\nDein IKRiNKA-Team",

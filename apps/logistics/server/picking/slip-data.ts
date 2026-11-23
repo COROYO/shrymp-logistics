@@ -27,6 +27,7 @@ import {
   isBatchExpired,
 } from "./batch-assignability";
 import { log } from "@/lib/logger";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 import { loadBinsForVariants } from "@/server/warehouse/bins";
 import type {
   SlipAllocLine,
@@ -228,7 +229,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   // Variant titles per line item (for the slip's "Variante" column). Skip
   // Shopify's "Default Title" placeholder — those products have no variant.
   const variantIds = Array.from(
-    new Set(order.line_items.map((li) => li.variant_id).filter(Boolean)),
+    new Set(stockLineItems(order.line_items).map((li) => li.variant_id)),
   );
   const variantTitleById = new Map<string, string | null>();
   const variantById = new Map<string, Variant>();
@@ -249,7 +250,10 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   }
   const variantTitleByLi = new Map<string, string | null>();
   for (const li of order.line_items) {
-    variantTitleByLi.set(li.id, variantTitleById.get(li.variant_id) ?? null);
+    variantTitleByLi.set(
+      li.id,
+      li.variant_id ? (variantTitleById.get(li.variant_id) ?? null) : null,
+    );
   }
 
   const bins = await loadBinsForVariants(variantIds);

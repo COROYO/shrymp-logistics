@@ -45,9 +45,9 @@ describe("buildSlipSections", () => {
 
     expect(sections).toHaveLength(1);
     expect(sections[0]!.bundle).toBeNull();
-    expect(sections[0]!.lines.map((l) => [l.title, l.qty])).toEqual([
-      ["Forellenkaviar", 3],
-      ["Keta", 1],
+    expect(sections[0]!.lines.map((l) => [l.title, l.qty, l.custom])).toEqual([
+      ["Forellenkaviar", 3, false],
+      ["Keta", 1, false],
     ]);
   });
 
@@ -189,5 +189,22 @@ describe("buildSlipSections", () => {
       "https://cdn.shopify.com/keta.jpg",
       null,
     ]);
+  });
+
+  it("prints a custom item that has no Shopify variant", () => {
+    const items = [
+      li({ id: "1", title: "Keta", qty: 1 }),
+      li({
+        id: "2",
+        title: "Grußkarte",
+        qty: 1,
+        variant_id: null,
+        variant_gid: null,
+        custom: true,
+      }),
+    ];
+    const sections = buildSlipSections(items, noAllocs, noTitles, noBins);
+    const custom = sections[0]!.lines.find((l) => l.title === "Grußkarte");
+    expect(custom).toMatchObject({ qty: 1, custom: true, binCode: null, sku: null });
   });
 });

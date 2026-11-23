@@ -21,6 +21,34 @@ describe("evaluateBatchAssignFeasibility", () => {
   const minDays = 3;
   const ref = new Date("2026-06-11T12:00:00Z");
 
+  it("ignores custom line items that have no catalog variant", () => {
+    const result = evaluateBatchAssignFeasibility(
+      [
+        { id: "li1", variant_id: "v1", qty: 1, sku: "S", title: "T" },
+        {
+          id: "c1",
+          variant_id: null,
+          variant_gid: null,
+          qty: 2,
+          sku: null,
+          title: "Grußkarte",
+          custom: true,
+        },
+      ],
+      [
+        batch({
+          id: "b1",
+          variant_id: "v1",
+          expiry_date: new Date("2026-06-20"),
+          remaining_qty: 5,
+        }),
+      ],
+      minDays,
+      ref,
+    );
+    expect(result).toEqual({ assignable: true });
+  });
+
   it("returns assignable when FEFO pool covers the order", () => {
     const result = evaluateBatchAssignFeasibility(
       [{ id: "li1", variant_id: "v1", qty: 2, sku: "S", title: "T" }],

@@ -19,6 +19,7 @@ import {
   type BatchAssignBlockReason,
 } from "./batch-assign-feasibility";
 import { orderAssignmentCoversLineItems } from "./assignment-coverage";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 /**
  * Flip SHIP/PICKING → STOP when no versandfähige Charge can be pinned.
@@ -109,7 +110,7 @@ async function stopOrderForBatchBlock(
       updated_at: FieldValue.serverTimestamp(),
     });
 
-    for (const li of order.line_items) {
+    for (const li of stockLineItems(order.line_items)) {
       const variantRef = db.collection(Collections.Variants).doc(li.variant_id);
       tx.update(variantRef, {
         reserved_total: FieldValue.increment(-li.qty),

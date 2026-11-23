@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapShopifyOrderToFirestore } from "./mappers";
+import { mapShopifyOrderToFirestore, orderLineItemsFromGql } from "./mappers";
 
 const baseOrder = {
   id: 5001,
@@ -72,7 +72,7 @@ describe("mapShopifyOrderToFirestore", () => {
     );
   });
 
-  it("filters out line items without a variant_id", () => {
+  it("keeps custom line items that have no Shopify variant", () => {
     const doc = mapShopifyOrderToFirestore(
       {
         ...baseOrder,
@@ -81,15 +81,59 @@ describe("mapShopifyOrderToFirestore", () => {
           {
             id: 7002,
             variant_id: null,
-            title: "Custom Gift Note",
-            quantity: 1,
+            title: "Grußkarte",
+            quantity: 2,
+            sku: null,
           },
         ],
       },
       SHOP,
       null,
     );
-    expect(doc.line_items.length).toBe(1);
+    expect(doc.line_items).toHaveLength(2);
+    expect(doc.line_items[1]).toMatchObject({
+      id: "7002",
+      title: "Grußkarte",
+      qty: 2,
+      variant_id: null,
+      variant_gid: null,
+      custom: true,
+    });
+  });
+
+  it("maps GraphQL custom items and drops removed lines", () => {
+    const items = orderLineItemsFromGql([
+      {
+        id: "gid://shopify/LineItem/1",
+        title: "Black Cod",
+        quantity: 1,
+        sku: "BC",
+        variant: { id: "gid://shopify/ProductVariant/9" },
+        lineItemGroup: null,
+      },
+      {
+        id: "gid://shopify/LineItem/2",
+        title: "  Handschriftliche Karte  ",
+        quantity: 1,
+        sku: null,
+        variant: null,
+        lineItemGroup: null,
+      },
+      {
+        id: "gid://shopify/LineItem/3",
+        title: "Removed",
+        quantity: 0,
+        sku: null,
+        variant: null,
+        lineItemGroup: null,
+      },
+    ]);
+    expect(items.map((li) => li.title)).toEqual([
+      "Black Cod",
+      "Handschriftliche Karte",
+    ]);
+    expect(items[1]?.custom).toBe(true);
+    expect(items[1]?.variant_id).toBeNull();
   });
 
   it("returns null shipping_address when not provided", () => {

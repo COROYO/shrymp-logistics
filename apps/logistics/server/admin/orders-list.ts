@@ -17,6 +17,7 @@ import type {
 } from "@/app/admin/orders/orders-table";
 import type { OrdersListFilter } from "@/app/admin/orders/filters";
 import { UNPAID_FINANCIAL_STATUSES } from "@/server/orders/financial-status";
+import { isStockLineItem, stockLineItems } from "@/lib/orders/stock-line-items";
 
 function tsToIso(t: unknown): string {
   if (!t) return "";
@@ -47,7 +48,7 @@ function mergeDuplicateLineItems(items: OrderLineItemRow[]): OrderLineItemRow[] 
   const merged: OrderLineItemRow[] = [];
   const idxByKey = new Map<string, number>();
   for (const li of items) {
-    const key = `${li.bundle?.groupId ?? "_"}|${li.sku ?? "_"}|${li.title}`;
+    const key = `${li.custom ? "c" : "s"}|${li.bundle?.groupId ?? "_"}|${li.sku ?? "_"}|${li.title}`;
     const existingIdx = idxByKey.get(key);
     if (existingIdx === undefined) {
       idxByKey.set(key, merged.length);
@@ -89,8 +90,12 @@ export async function loadOrderRows(
   if (orders.length === 0) return [];
 
   const variantIds = Array.from(
-    new Set(orders.flatMap((o) => o.line_items.map((li) => li.variant_id))),
-  ).filter(Boolean);
+    new Set(
+      orders.flatMap((o) =>
+        stockLineItems(o.line_items).map((li) => li.variant_id),
+      ),
+    ),
+  );
 
   const orderIdChunks = chunkIds(
     orders.map((o) => o.id),
@@ -187,20 +192,26 @@ export async function loadOrderRows(
     const chargesByLine = chargesByOrderLine.get(o.id);
     const itemCount = o.line_items.reduce((sum, li) => sum + li.qty, 0);
     const rawItems: OrderLineItemRow[] = o.line_items.map((li) => {
-      const variant = variantById.get(li.variant_id);
+      const custom = !isStockLineItem(li);
+      const variant = li.variant_id ? variantById.get(li.variant_id) : undefined;
       const product = variant ? productById.get(variant.product_id) : undefined;
-      const imageUrl = product?.image_url ?? null;
-      const imageMissingReason = imageUrl
+      const imageUrl = custom ? null : (product?.image_url ?? null);
+      const imageMissingReason = custom
         ? null
-        : !variant
-          ? "no_variant"
-          : !product
-            ? "no_product"
-            : "no_image";
-      const onHand = lagerCfg.batches_enabled
-        ? (shippableByVariant?.get(li.variant_id) ?? 0)
-        : (variant?.on_hand_total ?? 0);
-      const reserved = variant?.reserved_total ?? 0;
+        : imageUrl
+          ? null
+          : !variant
+            ? "no_variant"
+            : !product
+              ? "no_product"
+              : "no_image";
+      const variantId = li.variant_id;
+      const onHand = !variantId
+        ? 0
+        : lagerCfg.batches_enabled
+          ? (shippableByVariant?.get(variantId) ?? 0)
+          : (variant?.on_hand_total ?? 0);
+      const reserved = custom ? 0 : (variant?.reserved_total ?? 0);
       return {
         id: li.id,
         title: product?.title ?? li.title,
@@ -210,6 +221,7 @@ export async function loadOrderRows(
         imageUrl,
         imageMissingReason,
         variantId: li.variant_id,
+        custom,
         onHand,
         reserved,
         available: onHand - reserved,

@@ -268,10 +268,16 @@ export default async function AdminOrderDetailPage({
                       <div className="font-semibold text-brand-navy">
                         {li.title}
                       </div>
-                      <div className="text-xs text-brand-navy/60">
-                        {t("table.variant")}{" "}
-                        <span className="font-mono">{li.variant_id}</span>
-                      </div>
+                      {li.custom || !li.variant_id ? (
+                        <div className="text-xs text-brand-navy/60">
+                          {t("table.custom")}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-brand-navy/60">
+                          {t("table.variant")}{" "}
+                          <span className="font-mono">{li.variant_id}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="font-mono text-xs text-brand-navy/70">
                       {li.sku ?? "—"}
@@ -280,7 +286,9 @@ export default async function AdminOrderDetailPage({
                       {li.qty}
                     </td>
                     <td className="space-y-1 text-xs">
-                      {liAllocs.length === 0 ? (
+                      {li.custom || !li.variant_id ? (
+                        <span className="text-xs text-brand-navy/45">—</span>
+                      ) : liAllocs.length === 0 ? (
                         <span className="chip chip-amber">
                           {t("table.none")}
                         </span>

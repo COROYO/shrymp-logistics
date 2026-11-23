@@ -26,6 +26,8 @@ export type MergedSlipLine = {
   binCode: string | null;
   imageUrl: string | null;
   qty: number;
+  /** Shopify custom item: no catalog product, no Charge. */
+  custom: boolean;
   allocs: { chargeNumber: string; qty: number }[];
 };
 
@@ -91,9 +93,14 @@ export function buildSlipSections(
         title: li.title,
         variantTitle: variantTitleByLi.get(li.id) ?? null,
         sku: li.sku ?? null,
-        binCode: binByVariant.get(li.variant_id) ?? null,
-        imageUrl: imageByVariant.get(li.variant_id) ?? null,
+        binCode: li.variant_id
+          ? (binByVariant.get(li.variant_id) ?? null)
+          : null,
+        imageUrl: li.variant_id
+          ? (imageByVariant.get(li.variant_id) ?? null)
+          : null,
         qty: 0,
+        custom: li.custom === true || !li.variant_id,
         allocs: [],
       };
       section.lines.set(lineKey, g);

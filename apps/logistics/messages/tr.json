@@ -290,7 +290,8 @@
       "title": "Kutuya ne girecek",
       "product": "Ürün",
       "qty": "Adet",
-      "batches": "Partiler"
+      "batches": "Partiler",
+      "custom": "Özel ürün"
     },
     "dhl": {
       "eyebrow": "Kargo etiketi",
@@ -369,6 +370,7 @@
       "qty": "Adet",
       "charge": "Parti",
       "noCharge": "Parti atanmadı",
+      "custom": "Özel ürün",
       "qtyUnit": "adet",
       "printPicklist": "Toplama listesini yazdır",
       "printSlip": "İrsaliye"
@@ -652,6 +654,7 @@
       "bundles": "setler",
       "components": "bileşenler",
       "mergedFrom": "{count} kalemden birleştirildi: {ids}",
+      "customItem": "Özel ürün",
       "imageMissing": {
         "noVariant": "Varyant Firestore’da yok — ürün senkronunu çalıştırın",
         "noProduct": "Ürün Firestore’da yok — ürün senkronunu çalıştırın",
@@ -701,6 +704,7 @@
       "allocations": "Tahsisler",
       "variant": "Varyant",
       "none": "— yok —",
+      "custom": "Özel ürün",
       "consumed": "✓ tüketildi {when}",
       "reserved": "rezerve"
     },
@@ -1053,6 +1057,7 @@
     "charge": "Charge · MHD",
     "chargeOnly": "Charge",
     "noAllocation": "— keine Allokation —",
+    "custom": "Sonderartikel",
     "expiry": "MHD",
     "qtyUnit": "Stk",
     "footerOrderId": "Order-ID:",
@@ -1079,6 +1084,7 @@
     "charge": "Charge",
     "expiry": "MHD",
     "noCharge": "—",
+    "custom": "Sonderartikel",
     "noteKeep": "Bewahre den Lieferschein bitte mit der Charge und dem MHD auf, falls du Rückfragen zur Lieferung hast.",
     "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
     "signature": "Vielen Dank und guten Appetit!\nDein IKRiNKA-Team",

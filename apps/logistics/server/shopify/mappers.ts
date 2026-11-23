@@ -108,17 +108,107 @@ function mapAddress(
   };
 }
 
+function numericTail(gid: string): string {
+  const i = gid.lastIndexOf("/");
+  return i < 0 ? gid : gid.slice(i + 1);
+}
+
+/** GraphQL line item node shared by the webhook re-fetch and the order backfill. */
+export type ShopifyGqlLineItemNode = {
+  id: string;
+  title: string;
+  quantity: number;
+  sku: string | null;
+  variant: { id: string } | null;
+  lineItemGroup: {
+    id: string;
+    productId: string | null;
+    variantId: string | null;
+    variantSku: string | null;
+    title: string;
+    quantity: number;
+  } | null;
+};
+
+/**
+ * Map current-quantity GraphQL line items.
+ * Items with `quantity <= 0` (removed via order edit) are dropped.
+ * Items without a variant are kept as custom display lines — they are not
+ * catalog products and must not enter allocation.
+ */
+export function orderLineItemsFromGql(
+  nodes: ShopifyGqlLineItemNode[],
+): OrderLineItem[] {
+  const out: OrderLineItem[] = [];
+  for (const li of nodes) {
+    if (li.quantity <= 0) continue;
+    const title = li.title?.trim();
+    if (!title) continue;
+    if (!li.variant?.id) {
+      out.push({
+        id: numericTail(li.id),
+        variant_id: null,
+        variant_gid: null,
+        qty: li.quantity,
+        title,
+        sku: li.sku ?? null,
+        custom: true,
+      });
+      continue;
+    }
+    const vid = numericTail(li.variant.id);
+    const g = li.lineItemGroup;
+    const item: OrderLineItem = {
+      id: numericTail(li.id),
+      variant_id: vid,
+      variant_gid: li.variant.id,
+      qty: li.quantity,
+      title,
+      sku: li.sku ?? null,
+    };
+    if (g) {
+      item.bundle = {
+        group_id: numericTail(g.id),
+        product_id: g.productId ? numericTail(g.productId) : null,
+        variant_id: g.variantId ? numericTail(g.variantId) : null,
+        variant_sku: g.variantSku ?? null,
+        title: g.title,
+        quantity: g.quantity,
+      };
+    }
+    out.push(item);
+  }
+  return out;
+}
+
 function mapLineItems(items: ShopifyLineItemPayload[]): OrderLineItem[] {
-  return items
-    .filter((li) => li.variant_id != null)
-    .map((li) => ({
+  const out: OrderLineItem[] = [];
+  for (const li of items) {
+    if (li.quantity <= 0) continue;
+    const title = li.title?.trim();
+    if (!title) continue;
+    if (li.variant_id == null) {
+      out.push({
+        id: String(li.id),
+        variant_id: null,
+        variant_gid: null,
+        qty: li.quantity,
+        title,
+        sku: li.sku ?? null,
+        custom: true,
+      });
+      continue;
+    }
+    out.push({
       id: String(li.id),
       variant_id: String(li.variant_id),
       variant_gid: `gid://shopify/ProductVariant/${li.variant_id}`,
       qty: li.quantity,
-      title: li.title,
+      title,
       sku: li.sku ?? null,
-    }));
+    });
+  }
+  return out;
 }
 
 /** Map the first Shopify shipping line to our persisted shipping_method. */

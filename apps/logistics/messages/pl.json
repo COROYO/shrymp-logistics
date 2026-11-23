@@ -290,7 +290,8 @@
       "title": "Co trafia do paczki",
       "product": "Produkt",
       "qty": "Ilość",
-      "batches": "Partie"
+      "batches": "Partie",
+      "custom": "Pozycja niestandardowa"
     },
     "dhl": {
       "eyebrow": "Etykieta wysyłkowa",
@@ -369,6 +370,7 @@
       "qty": "Ilość",
       "charge": "Partia",
       "noCharge": "Brak przypisanej partii",
+      "custom": "Pozycja niestandardowa",
       "qtyUnit": "szt.",
       "printPicklist": "Drukuj listę kompletacji",
       "printSlip": "Specyfikacja wysyłki"
@@ -652,6 +654,7 @@
       "bundles": "zestawy",
       "components": "komponenty",
       "mergedFrom": "Scalono z {count} pozycji: {ids}",
+      "customItem": "Pozycja niestandardowa",
       "imageMissing": {
         "noVariant": "Wariant nie jest w Firestore — uruchom synchronizację produktów",
         "noProduct": "Produkt nie jest w Firestore — uruchom synchronizację produktów",
@@ -701,6 +704,7 @@
       "allocations": "Alokacje",
       "variant": "Wariant",
       "none": "— brak —",
+      "custom": "Pozycja niestandardowa",
       "consumed": "✓ zużyto {when}",
       "reserved": "zarezerwowane"
     },
@@ -1053,6 +1057,7 @@
     "charge": "Charge · MHD",
     "chargeOnly": "Charge",
     "noAllocation": "— keine Allokation —",
+    "custom": "Sonderartikel",
     "expiry": "MHD",
     "qtyUnit": "Stk",
     "footerOrderId": "Order-ID:",
@@ -1079,6 +1084,7 @@
     "charge": "Charge",
     "expiry": "MHD",
     "noCharge": "—",
+    "custom": "Sonderartikel",
     "noteKeep": "Bewahre den Lieferschein bitte mit der Charge und dem MHD auf, falls du Rückfragen zur Lieferung hast.",
     "noteContact": "Bei Fragen erreichst du uns unter <strong>{email}</strong>.",
     "signature": "Vielen Dank und guten Appetit!\nDein IKRiNKA-Team",

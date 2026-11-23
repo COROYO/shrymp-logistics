@@ -246,12 +246,15 @@ export const OrderLineItemBundleSchema = z.object({
 
 export const OrderLineItemSchema = z.object({
   id: z.string(), // shopify line item id — or `auto:{ruleId}:{variantId}` for local gifts
-  variant_id: z.string(), // firestore variant doc id
-  variant_gid: z.string(),
+  /** Null for Shopify custom items (manual order, no catalog product). */
+  variant_id: z.string().nullable(),
+  variant_gid: z.string().nullable(),
   qty: z.number().int().positive(),
   title: z.string(),
   sku: z.string().nullable().default(null),
   bundle: OrderLineItemBundleSchema.optional(),
+  /** Manual / custom Shopify line: display only, never reserved or batched. */
+  custom: z.boolean().optional(),
   /** shopify = mirrored; automation = local-only (never pushed to Shopify). */
   source: z.enum(["shopify", "automation"]).optional(),
   automation_rule_id: z.string().optional(),

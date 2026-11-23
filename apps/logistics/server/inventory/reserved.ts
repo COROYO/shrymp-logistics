@@ -3,6 +3,7 @@ import { adminDb } from "@/server/firestore/admin";
 import { Collections, type Order } from "@/server/firestore/schema";
 import { ordersForShop } from "@/server/tenant/queries";
 import { normalizeShopId } from "@/server/tenant/id";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 /** Statuses that actually reserve stock (allocation + picking). */
 export const RESERVED_ORDER_STATUSES = ["SHIP", "PICKING"] as const;
@@ -47,7 +48,7 @@ async function loadDemandDetailByVariant(
   for (const d of snap.docs) {
     const o = d.data() as Order;
     if (normalizedShop && o.shop_id && o.shop_id !== normalizedShop) continue;
-    for (const li of o.line_items ?? []) {
+    for (const li of stockLineItems(o.line_items ?? [])) {
       const cur = reserved.get(li.variant_id) ?? {
         qty: 0,
         orderIds: new Set<string>(),

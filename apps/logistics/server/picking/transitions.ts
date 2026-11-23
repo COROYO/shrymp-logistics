@@ -14,6 +14,7 @@ import { loadLagerConfig, shouldPushInventoryToShopify } from "@/server/lager/co
 import { enqueueAllocationRun } from "@/server/allocation/enqueue";
 import { assignBatchesForOrder } from "./assign-batches";
 import { orderHasActiveConsumption } from "./consume-guard";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 /**
  * Atomic state transitions for the picking/packing workflow.
@@ -266,8 +267,9 @@ export async function confirmPacking(
           });
         }
       } else {
+        const stockItems = stockLineItems(order.line_items);
         const variantIds = Array.from(
-          new Set(order.line_items.map((li) => li.variant_id)),
+          new Set(stockItems.map((li) => li.variant_id)),
         );
         const variantRefs = variantIds.map((id) =>
           db.collection(Collections.Variants).doc(id),
@@ -301,7 +303,7 @@ export async function confirmPacking(
           });
         }
 
-        for (const li of order.line_items) {
+        for (const li of stockItems) {
           consumedByVariant[li.variant_id] =
             (consumedByVariant[li.variant_id] ?? 0) + li.qty;
         }

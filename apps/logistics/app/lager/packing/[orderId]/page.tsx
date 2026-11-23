@@ -267,6 +267,11 @@ export default async function PackingPage({
                       <div className="font-semibold text-brand-navy">
                         {li.title}
                       </div>
+                      {li.custom || !li.variant_id ? (
+                        <div className="text-xs text-brand-navy/55">
+                          {tPack("custom")}
+                        </div>
+                      ) : null}
                       {li.sku ? (
                         <div className="font-mono text-xs text-brand-navy/60">
                           SKU {li.sku}
@@ -278,6 +283,9 @@ export default async function PackingPage({
                     </td>
                     {batchesEnabled ? (
                       <td className="text-xs">
+                        {li.custom || !li.variant_id ? (
+                          <span className="text-brand-navy/40">—</span>
+                        ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {allocs.map((a, idx) => (
                             <span
@@ -288,6 +296,7 @@ export default async function PackingPage({
                             </span>
                           ))}
                         </div>
+                        )}
                       </td>
                     ) : null}
                   </tr>

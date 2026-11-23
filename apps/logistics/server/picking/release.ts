@@ -28,7 +28,7 @@ export type ReleaseResult = {
 
 export type ReleasePrevOrder = {
   internal_status?: string;
-  line_items?: { variant_id: string; qty: number }[];
+  line_items?: { variant_id: string | null; qty: number }[];
 };
 
 export async function releaseOrderAllocations(
@@ -67,6 +67,7 @@ export async function releaseOrderAllocations(
     prevOrder?.internal_status === "PICKING";
   if (wasReserved && prevOrder?.line_items) {
     for (const li of prevOrder.line_items) {
+      if (!li.variant_id) continue;
       freedByVariant[li.variant_id] =
         (freedByVariant[li.variant_id] ?? 0) + li.qty;
     }

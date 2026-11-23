@@ -17,6 +17,8 @@ import {
   allocationRunMayWriteStatus,
 } from "./status-guard";
 import type { AllocationInput, OrderInput, VariantAvail, Decision } from "./types";
+import { hasPriorityTag } from "./types";
+import { isDisplayOnlyOrder, stockLineItems } from "@/lib/orders/stock-line-items";
 import { processOutbox, processOutboxByIds } from "@/server/shopify/outbox";
 import { enqueueAllocationRun } from "./enqueue";
 import { log } from "@/lib/logger";
@@ -103,7 +105,7 @@ export async function runAllocationInFirestore(
     const oldSetReserved = new Map<string, number>();
     for (const o of ordersRaw) {
       if (o.internal_status !== "SHIP") continue;
-      for (const li of o.line_items) {
+      for (const li of stockLineItems(o.line_items)) {
         oldSetReserved.set(
           li.variant_id,
           (oldSetReserved.get(li.variant_id) ?? 0) + li.qty,
@@ -125,7 +127,7 @@ export async function runAllocationInFirestore(
     const lockedByVariant = new Map<string, number>();
     for (const d of pickingSnap.docs) {
       const o = d.data() as Order;
-      for (const li of o.line_items ?? []) {
+      for (const li of stockLineItems(o.line_items ?? [])) {
         lockedByVariant.set(
           li.variant_id,
           (lockedByVariant.get(li.variant_id) ?? 0) + li.qty,
@@ -134,7 +136,11 @@ export async function runAllocationInFirestore(
     }
 
     const variantIds = Array.from(
-      new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
+      new Set(
+        ordersRaw.flatMap((o) =>
+          stockLineItems(o.line_items).map((li) => li.variant_id),
+        ),
+      ),
     );
     const variants: VariantAvail[] = [];
     let preAssignedOrderIds = new Set<string>();
@@ -181,7 +187,7 @@ export async function runAllocationInFirestore(
       priorityScore: o.priority_score ?? 0,
       financialStatus: o.shopify_financial_status,
       fulfillmentStatus: o.shopify_fulfillment_status,
-      lineItems: o.line_items.map((li) => ({
+      lineItems: stockLineItems(o.line_items).map((li) => ({
         id: li.id,
         variantId: li.variant_id,
         qty: li.qty,
@@ -198,6 +204,27 @@ export async function runAllocationInFirestore(
       shipFulfillmentStatuses: lagerCfg.ship_fulfillment_statuses,
     };
     const result = allocate(input);
+    // Custom-only orders have nothing to reserve. allocate() sees an empty
+    // line list and STOPs them as EMPTY_ORDER; they should still ship.
+    let shipCount = result.stats.shipCount;
+    let stopCount = result.stats.stopCount;
+    const decisions: Decision[] = result.decisions.map((d) => {
+      if (d.status !== "STOP" || d.reason !== "EMPTY_ORDER") return d;
+      const order = ordersRaw.find((o) => o.id === d.orderId);
+      if (!order || !isDisplayOnlyOrder(order.line_items)) return d;
+      shipCount += 1;
+      stopCount -= 1;
+      return {
+        orderId: d.orderId,
+        status: "SHIP",
+        mode: hasPriorityTag(
+          effectiveOrderTags(order),
+          lagerCfg.priority_tags,
+        )
+          ? "EXPRESS"
+          : "STANDARD",
+      };
+    });
 
     // ----- 4. Commit -----
     // RECONCILE/MANUAL are rare, operator-initiated safety nets: recompute
@@ -210,7 +237,7 @@ export async function runAllocationInFirestore(
     const lagerOutboxIds = await commitDecisions(
       runRef.id,
       shopId,
-      result.decisions,
+      decisions,
       ordersRaw,
       oldSetReserved,
       recomputeMode,
@@ -219,7 +246,7 @@ export async function runAllocationInFirestore(
     );
 
     // Fire SHIP/STOP automation for status transitions (best-effort).
-    for (const d of result.decisions) {
+    for (const d of decisions) {
       const prev = ordersRaw.find((o) => o.id === d.orderId);
       if (!prev) continue;
       const nextStatus = d.status === "SHIP" ? "SHIP" : "STOP";
@@ -235,8 +262,8 @@ export async function runAllocationInFirestore(
       finished_at: FieldValue.serverTimestamp(),
       status: "COMMITTED" satisfies AllocationRunStatus,
       stats: {
-        ship_count: result.stats.shipCount,
-        stop_count: result.stats.stopCount,
+        ship_count: shipCount,
+        stop_count: stopCount,
         duration_ms: Math.round(result.stats.durationMs),
       },
     });
@@ -370,7 +397,7 @@ async function commitDecisions(
     // is self-healed by RECONCILE/MANUAL runs. Only the status/tag WRITES below
     // are guarded.
     if (nextStatus === "SHIP") {
-      for (const li of o.line_items) {
+      for (const li of stockLineItems(o.line_items)) {
         newSetReserved.set(
           li.variant_id,
           (newSetReserved.get(li.variant_id) ?? 0) + li.qty,
@@ -445,7 +472,11 @@ async function commitDecisions(
     await bulk.close();
     await recomputeReservedTotals(
       shopId,
-      new Set(ordersRaw.flatMap((o) => o.line_items.map((li) => li.variant_id))),
+      new Set(
+        ordersRaw.flatMap((o) =>
+          stockLineItems(o.line_items).map((li) => li.variant_id),
+        ),
+      ),
     );
   } else {
     // Hot path: apply the in-memory delta = (now reserved by set) − (was
@@ -542,7 +573,7 @@ async function recomputeReservedTotals(
       .get();
     for (const d of snap.docs) {
       const o = d.data() as Order;
-      for (const li of o.line_items) {
+      for (const li of stockLineItems(o.line_items)) {
         if (!variantIds.has(li.variant_id)) continue;
         reservedByVariant.set(
           li.variant_id,

@@ -1,4 +1,5 @@
 import type { Allocation, Order } from "@/server/firestore/schema";
+import { stockLineItems } from "@/lib/orders/stock-line-items";
 
 function coversAllLineItems(
   lineItems: Order["line_items"],
@@ -11,10 +12,13 @@ function coversAllLineItems(
       (assignedByLi.get(a.data.line_item_id) ?? 0) + a.data.qty,
     );
   }
-  for (const li of lineItems) {
+  // Custom items have no Charge. An order made only of them is covered.
+  const stock = stockLineItems(lineItems);
+  if (stock.length === 0) return true;
+  for (const li of stock) {
     if ((assignedByLi.get(li.id) ?? 0) !== li.qty) return false;
   }
-  return assignedByLi.size === new Set(lineItems.map((li) => li.id)).size;
+  return assignedByLi.size === new Set(stock.map((li) => li.id)).size;
 }
 
 /** Whether open Charge assignments fully cover every line item. */

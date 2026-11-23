@@ -291,6 +291,11 @@ function SlipDocument({
                         >
                           {line.title}
                         </div>
+                        {line.custom ? (
+                          <div className="mt-0.5 text-[9pt] text-brand-navy/55">
+                            {t("custom")}
+                          </div>
+                        ) : null}
                         {showSku && line.sku ? (
                           <div
                             className="mt-0.5 font-mono text-brand-navy/55"

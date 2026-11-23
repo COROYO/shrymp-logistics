@@ -34,7 +34,9 @@ export type OrderLineItemRow = {
   qty: number;
   imageUrl: string | null;
   imageMissingReason: "no_variant" | "no_product" | "no_image" | null;
-  variantId: string;
+  variantId: string | null;
+  /** Shopify custom line: no catalog product and no stock. */
+  custom: boolean;
   onHand: number;
   reserved: number;
   available: number;
@@ -445,7 +447,7 @@ function ItemRow({
   component: boolean;
 }) {
   const t = useTranslations("ordersAdmin");
-  const shortfall = li.available < li.qty;
+  const shortfall = !li.custom && li.available < li.qty;
   return (
     <tr className={component ? "bg-indigo-50/20" : undefined}>
       <td className="px-3 py-2">
@@ -459,7 +461,9 @@ function ItemRow({
           <div
             className="h-12 w-12 overflow-hidden rounded border border-zinc-200 bg-zinc-50"
             title={
-              li.imageMissingReason === "no_variant"
+              li.custom
+                ? t("table.customItem")
+                : li.imageMissingReason === "no_variant"
                 ? t("table.imageMissing.noVariant")
                 : li.imageMissingReason === "no_product"
                   ? t("table.imageMissing.noProduct")
@@ -476,7 +480,7 @@ function ItemRow({
                 className="h-full w-full object-cover"
                 loading="lazy"
               />
-            ) : (
+            ) : li.custom ? null : (
               <div className="flex h-full w-full items-center justify-center text-center text-[9px] leading-tight text-zinc-400">
                 {li.imageMissingReason === "no_variant"
                   ? t("table.imageMissing.noVariantShort")
@@ -503,7 +507,9 @@ function ItemRow({
             </span>
           ) : null}
         </div>
-        {li.variantTitle && li.variantTitle !== "Default Title" ? (
+        {li.custom ? (
+          <div className="text-xs text-zinc-500">{t("table.customItem")}</div>
+        ) : li.variantTitle && li.variantTitle !== "Default Title" ? (
           <div className="text-xs text-zinc-500">{li.variantTitle}</div>
         ) : null}
       </td>
@@ -515,12 +521,16 @@ function ItemRow({
         {li.qty}
       </td>
       <td className="px-3 py-2 text-right">
-        <StockBadge
-          onHand={li.onHand}
-          reserved={li.reserved}
-          available={li.available}
-          shortfall={shortfall}
-        />
+        {li.custom ? (
+          <span className="text-xs text-brand-navy/40">{t("table.customItem")}</span>
+        ) : (
+          <StockBadge
+            onHand={li.onHand}
+            reserved={li.reserved}
+            available={li.available}
+            shortfall={shortfall}
+          />
+        )}
       </td>
     </tr>
   );

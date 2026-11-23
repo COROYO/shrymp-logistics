@@ -26,6 +26,7 @@ type MergedLine = {
   title: string;
   sku: string | null;
   qty: number;
+  custom: boolean;
   allocs: { chargeNumber: string; expiryDateIso: string | null; qty: number }[];
 };
 
@@ -41,10 +42,18 @@ function mergeLines(
   const groups = new Map<string, MergedLine>();
   const order: string[] = [];
   for (const li of lineItems) {
-    const key = `${li.title} ${li.sku ?? ""}`;
+    const custom = li.custom === true || !li.variant_id;
+    const key = `${custom ? "c" : "s"} ${li.title} ${li.sku ?? ""}`;
     let g = groups.get(key);
     if (!g) {
-      g = { key, title: li.title, sku: li.sku ?? null, qty: 0, allocs: [] };
+      g = {
+        key,
+        title: li.title,
+        sku: li.sku ?? null,
+        qty: 0,
+        custom,
+        allocs: [],
+      };
       groups.set(key, g);
       order.push(key);
     }
@@ -279,6 +288,9 @@ export default async function PrintPicklist({
                   <div className="font-semibold text-brand-navy">
                     {li.title}
                   </div>
+                  {li.custom ? (
+                    <div className="text-xs text-brand-navy/55">{t("custom")}</div>
+                  ) : null}
                 </td>
                 <td className="px-3 py-3 pr-4 font-mono text-xs">
                   {li.sku ?? "—"}
@@ -289,9 +301,13 @@ export default async function PrintPicklist({
                 {batchesEnabled ? (
                   <td className="px-3 py-3 pr-4">
                     {allocs.length === 0 ? (
-                      <span className="text-xs italic text-brand-burgundy">
-                        {t("noAllocation")}
-                      </span>
+                      li.custom ? (
+                        <span className="text-xs text-brand-navy/40">—</span>
+                      ) : (
+                        <span className="text-xs italic text-brand-burgundy">
+                          {t("noAllocation")}
+                        </span>
+                      )
                     ) : (
                       <div className="space-y-1">
                         {allocs.map((a, idx) => (

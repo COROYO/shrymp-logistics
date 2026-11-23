@@ -1,6 +1,9 @@
 import "server-only";
 import { shopifyGraphQL } from "./client";
-import { numericIdFromGid } from "./sync";
+import {
+  orderLineItemsFromGql,
+  type ShopifyGqlLineItemNode,
+} from "./mappers";
 import type {
   OrderLineItem,
   OrderLineItemBundle,
@@ -52,24 +55,8 @@ const ORDER_LINE_ITEMS_QUERY = /* GraphQL */ `
   }
 `;
 
-type GqlLineItem = {
-  id: string;
-  title: string;
-  sku: string | null;
-  quantity: number;
-  variant: { id: string } | null;
-  lineItemGroup: {
-    id: string;
-    productId: string | null;
-    variantId: string | null;
-    variantSku: string | null;
-    title: string;
-    quantity: number;
-  } | null;
-};
-
 type OrderLineItemsResponse = {
-  order: { lineItems: { nodes: GqlLineItem[] } } | null;
+  order: { lineItems: { nodes: ShopifyGqlLineItemNode[] } } | null;
 };
 
 /**
@@ -79,9 +66,8 @@ type OrderLineItemsResponse = {
  * in which case the caller should fall back to whatever they already have
  * (don't blow away the order doc).
  *
- * Line items without a `variant.id` are dropped — same as the REST mapper
- * does — because we can't allocate against them. Items with `quantity = 0`
- * (removed via order edit) are also dropped.
+ * Line items without a variant are kept as custom display lines (manual
+ * orders). Items with `quantity = 0` (removed via order edit) are dropped.
  */
 export async function fetchOrderLineItems(
   orderGid: string,
@@ -93,32 +79,7 @@ export async function fetchOrderLineItems(
     shopId ? { shopId } : undefined,
   );
   if (!data.order) return null;
-
-  return data.order.lineItems.nodes
-    .filter((li) => li.variant?.id && li.quantity > 0)
-    .map((li) => {
-      const vid = numericIdFromGid(li.variant!.id);
-      const g = li.lineItemGroup;
-      const item: OrderLineItem = {
-        id: numericIdFromGid(li.id),
-        variant_id: vid,
-        variant_gid: li.variant!.id,
-        qty: li.quantity,
-        title: li.title,
-        sku: li.sku ?? null,
-      };
-      if (g) {
-        item.bundle = {
-          group_id: numericIdFromGid(g.id),
-          product_id: g.productId ? numericIdFromGid(g.productId) : null,
-          variant_id: g.variantId ? numericIdFromGid(g.variantId) : null,
-          variant_sku: g.variantSku ?? null,
-          title: g.title,
-          quantity: g.quantity,
-        };
-      }
-      return item;
-    });
+  return orderLineItemsFromGql(data.order.lineItems.nodes);
 }
 
 /**

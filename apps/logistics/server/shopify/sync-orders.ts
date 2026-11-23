@@ -9,7 +9,7 @@ import {
 import { log } from "@/lib/logger";
 import { shopifyGraphQL } from "./client";
 import { numericIdFromGid } from "./sync";
-import { moneyDecimalToCents } from "./mappers";
+import { moneyDecimalToCents, orderLineItemsFromGql } from "./mappers";
 import { mirrorInternalStatus } from "@/server/allocation/status-guard";
 import { runWithTenantAsync } from "@/server/tenant/context";
 import { normalizeShopId } from "@/server/tenant/id";
@@ -294,36 +294,7 @@ export async function backfillOrders(
           return { title: line.title, code: line.code ?? null };
         })(),
         line_items: mergeAutomationLineItems(
-          n.lineItems.nodes
-          .filter((li) => li.variant?.id)
-          .map((li) => {
-            const vid = numericIdFromGid(li.variant!.id);
-            const g = li.lineItemGroup;
-            return {
-              id: numericIdFromGid(li.id),
-              variant_id: vid,
-              variant_gid: li.variant!.id,
-              qty: li.quantity,
-              title: li.title,
-              sku: li.sku ?? null,
-              ...(g
-                ? {
-                    bundle: {
-                      group_id: numericIdFromGid(g.id),
-                      product_id: g.productId
-                        ? numericIdFromGid(g.productId)
-                        : null,
-                      variant_id: g.variantId
-                        ? numericIdFromGid(g.variantId)
-                        : null,
-                      variant_sku: g.variantSku ?? null,
-                      title: g.title,
-                      quantity: g.quantity,
-                    },
-                  }
-                : {}),
-            };
-          }),
+          orderLineItemsFromGql(n.lineItems.nodes),
           (existingData as Order | undefined)?.line_items,
         ),
         shopify_financial_status: n.displayFinancialStatus ?? null,
