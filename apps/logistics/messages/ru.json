@@ -664,7 +664,9 @@
         "noneShort": "без фото"
       }
     },
+    "search": "Заказ, клиент, e-mail, город, SKU…",
     "empty": "Нет заказов в этом фильтре.",
+    "emptySearch": "Нет заказов по этому запросу.",
     "printSlip": "🧾 Накладная",
     "selected": "Выбрано: {count}",
     "clear": "Снять выбор",
@@ -684,6 +686,8 @@
     "metaOrderId": "ID заказа",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Создан",
+    "viewSlip": "Открыть накладную",
+    "printSlip": "Печать",
     "sync": {
       "label": "Обновить из Shopify",
       "pending": "Обновление…",

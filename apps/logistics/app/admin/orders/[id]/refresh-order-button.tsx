@@ -40,7 +40,7 @@ export function RefreshOrderButton({
       type="button"
       onClick={handle}
       disabled={pending}
-      className="btn-ghost ml-auto"
+      className="btn-ghost"
     >
       {pending ? t("pending") : t("label")}
     </button>

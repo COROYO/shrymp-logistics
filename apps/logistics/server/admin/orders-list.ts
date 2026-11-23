@@ -1,5 +1,9 @@
 import "server-only";
-import type { DocumentSnapshot } from "firebase-admin/firestore";
+import type {
+  DocumentSnapshot,
+  Query,
+  QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
 import { adminDb } from "@/server/firestore/admin";
 import { ordersForShop } from "@/server/tenant/queries";
 import {
@@ -18,6 +22,13 @@ import type {
 import type { OrdersListFilter } from "@/app/admin/orders/filters";
 import { UNPAID_FINANCIAL_STATUSES } from "@/server/orders/financial-status";
 import { isStockLineItem, stockLineItems } from "@/lib/orders/stock-line-items";
+import {
+  ORDER_LIST_LIMIT,
+  ORDER_SEARCH_MATCH_LIMIT,
+  ORDER_SEARCH_PAGE,
+  ORDER_SEARCH_SCAN_LIMIT,
+  orderMatchesQuery,
+} from "@/server/admin/order-search";
 
 function tsToIso(t: unknown): string {
   if (!t) return "";
@@ -66,29 +77,61 @@ function mergeDuplicateLineItems(items: OrderLineItemRow[]): OrderLineItemRow[] 
   return merged;
 }
 
+function ordersQuery(shopId: string, filter: OrdersListFilter): Query {
+  const db = adminDb();
+  const base = ordersForShop(db, shopId);
+  if (filter === "ALL") return base.orderBy("created_at_shopify", "desc");
+  if (filter === "UNPAID") {
+    return base
+      .where("shopify_financial_status", "in", [...UNPAID_FINANCIAL_STATUSES])
+      .orderBy("created_at_shopify", "desc");
+  }
+  return base
+    .where("internal_status", "==", filter)
+    .orderBy("created_at_shopify", "desc");
+}
+
+/**
+ * Firestore has no substring index. A search walks the shop's orders (newest
+ * first) and keeps the first matches. The status filter still applies.
+ */
+async function scanMatchingOrders(base: Query, query: string): Promise<Order[]> {
+  const matches: Order[] = [];
+  let scanned = 0;
+  let cursor: QueryDocumentSnapshot | undefined;
+
+  while (matches.length < ORDER_SEARCH_MATCH_LIMIT && scanned < ORDER_SEARCH_SCAN_LIMIT) {
+    const pageSize = Math.min(ORDER_SEARCH_PAGE, ORDER_SEARCH_SCAN_LIMIT - scanned);
+    let page = base.limit(pageSize);
+    if (cursor) page = page.startAfter(cursor);
+    const snap = await page.get();
+    if (snap.empty) break;
+    scanned += snap.size;
+    for (const doc of snap.docs) {
+      const order = doc.data() as Order;
+      if (!orderMatchesQuery(order, query)) continue;
+      matches.push(order);
+      if (matches.length >= ORDER_SEARCH_MATCH_LIMIT) break;
+    }
+    if (snap.size < pageSize) break;
+    cursor = snap.docs[snap.docs.length - 1];
+  }
+
+  return matches;
+}
+
 export async function loadOrderRows(
   filter: OrdersListFilter,
   shopId: string,
+  query = "",
 ): Promise<OrderRow[]> {
-  const db = adminDb();
-  const baseCol = ordersForShop(db, shopId);
-  const q =
-    filter === "ALL"
-      ? baseCol.orderBy("created_at_shopify", "desc").limit(100)
-      : filter === "UNPAID"
-        ? baseCol
-            .where("shopify_financial_status", "in", [...UNPAID_FINANCIAL_STATUSES])
-            .orderBy("created_at_shopify", "desc")
-            .limit(100)
-        : baseCol
-            .where("internal_status", "==", filter)
-            .orderBy("created_at_shopify", "desc")
-            .limit(100);
-
-  const snap = await q.get();
-  const orders = snap.docs.map((d) => d.data() as Order);
+  const base = ordersQuery(shopId, filter);
+  const orders = query
+    ? await scanMatchingOrders(base, query)
+    : (await base.limit(ORDER_LIST_LIMIT).get()).docs.map((d) => d.data() as Order);
   if (orders.length === 0) return [];
 
+  const db = adminDb();
   const variantIds = Array.from(
     new Set(
       orders.flatMap((o) =>

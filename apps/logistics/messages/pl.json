@@ -664,7 +664,9 @@
         "noneShort": "brak zdjęcia"
       }
     },
+    "search": "Zamówienie, klient, e-mail, miasto, SKU…",
     "empty": "Brak zamówień w tym filtrze.",
+    "emptySearch": "Brak zamówień dla tego wyszukiwania.",
     "printSlip": "🧾 Specyfikacja",
     "selected": "Wybrano: {count}",
     "clear": "Wyczyść wybór",
@@ -684,6 +686,8 @@
     "metaOrderId": "ID zamówienia",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Utworzono",
+    "viewSlip": "Zobacz specyfikację",
+    "printSlip": "Drukuj",
     "sync": {
       "label": "Odśwież z Shopify",
       "pending": "Odświeżanie…",

@@ -8,6 +8,8 @@ import {
   type OrdersListFilter,
 } from "./filters";
 import { OrdersContent } from "./orders-content";
+import { OrdersSearch } from "./orders-search";
+import { normalizeOrderSearchQuery } from "@/server/admin/order-search";
 
 type Filter = OrdersListFilter;
 const FILTERS = ORDERS_LIST_FILTERS;
@@ -15,12 +17,21 @@ const FILTERS = ORDERS_LIST_FILTERS;
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
   const filter: Filter = (FILTERS as string[]).includes(status ?? "")
     ? (status as Filter)
     : "ALL";
+  const query = normalizeOrderSearchQuery(q);
+
+  const hrefFor = (f: Filter): string => {
+    const params = new URLSearchParams();
+    if (f !== "ALL") params.set("status", f);
+    if (query) params.set("q", query);
+    const s = params.toString();
+    return s ? `/admin/orders?${s}` : "/admin/orders";
+  };
 
   const t = await getTranslations("ordersAdmin");
 
@@ -49,35 +60,39 @@ export default async function OrdersPage({
         <SyncOrdersButton />
       </div>
 
-      <nav className="flex flex-wrap items-center gap-2 text-sm">
-        {FILTERS.map((f) => {
-          const isActive = filter === f;
-          return (
-            <Link
-              key={f}
-              href={f === "ALL" ? "/admin/orders" : `/admin/orders?status=${f}`}
-              className={`rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${
-                isActive
-                  ? "bg-brand-navy text-white"
-                  : "border border-zinc-200 bg-white text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"
-              }`}
-            >
-              {filterLabel(f)}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="space-y-3">
+        <OrdersSearch initialQuery={query} placeholder={t("search")} />
+
+        <nav className="flex flex-wrap items-center gap-2 text-sm">
+          {FILTERS.map((f) => {
+            const isActive = filter === f;
+            return (
+              <Link
+                key={f}
+                href={hrefFor(f)}
+                className={`rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${
+                  isActive
+                    ? "bg-brand-navy text-white"
+                    : "border border-zinc-200 bg-white text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"
+                }`}
+              >
+                {filterLabel(f)}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
 
       <div className="card overflow-hidden">
         <Suspense
-          key={filter}
+          key={`${filter}:${query}`}
           fallback={
             <div className="relative">
               <TableSkeleton rows={10} cols={4} />
             </div>
           }
         >
-          <OrdersContent filter={filter} />
+          <OrdersContent filter={filter} query={query} />
         </Suspense>
       </div>
     </div>

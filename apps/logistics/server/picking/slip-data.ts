@@ -89,7 +89,10 @@ const DEFAULT_VARIANT_TITLE = "Default Title";
  *
  * Returns `null` if the order doesn't exist.
  */
-export async function loadSlipData(orderId: string): Promise<SlipData | null> {
+export async function loadSlipData(
+  orderId: string,
+  opts?: { preview?: boolean },
+): Promise<SlipData | null> {
   const db = adminDb();
 
   const orderSnap = await db
@@ -110,8 +113,11 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   // slip from the existing (consumed) allocations exactly as first printed.
   const isReprint = order.internal_status === "PACKED";
   const batchesEnabled = lagerCfg.batches_enabled;
+  // Admin preview only renders what is already stored. It must not pin
+  // Chargen or issue a Lieferschein number.
+  const preview = opts?.preview === true;
 
-  if (batchesEnabled && !isReprint && shopId) {
+  if (!preview && batchesEnabled && !isReprint && shopId) {
     // Tenant context so the batch helpers resolve lager config for this shop.
     await runWithTenantAsync(shopId, async () => {
       await releaseUnshippableBatchAssignments(orderId);
@@ -157,7 +163,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     .get();
   const allocs = allocSnap.docs.map((d) => d.data() as Allocation);
 
-  if (batchesEnabled) {
+  if (!preview && batchesEnabled) {
     const covered = isReprint
       ? orderAssignmentCoversLineItemsAnyState(order.line_items, allocs)
       : orderAssignmentCoversLineItems(order.line_items, allocs);
@@ -178,7 +184,7 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
     if (b.exists) batchById.set(b.id, b.data() as Batch);
   }
 
-  if (batchesEnabled && !isReprint) {
+  if (!preview && batchesEnabled && !isReprint) {
     const referenceDate = new Date();
     const minDays = lagerCfg.batch_min_days_before_expiry;
     const openAllocs = allocs.filter((a) => !a.consumed_at);
@@ -270,10 +276,18 @@ export async function loadSlipData(orderId: string): Promise<SlipData | null> {
   // the freshest doc. The helper is itself transactional — if the order
   // already has a number the existing one comes back, otherwise a new one
   // is allocated and written through.
-  const lieferschein = await getOrAssignLieferscheinNo(orderId);
+  const lieferschein = preview
+    ? {
+        number: order.lieferschein_no ?? "—",
+        dateIso: order.lieferschein_no
+          ? (tsToDate(order.lieferschein_date)?.toISOString() ??
+            new Date().toISOString())
+          : "",
+      }
+    : await getOrAssignLieferscheinNo(orderId);
   // Reflect the assignment locally so the SlipBody renders the right value
   // on the FIRST print without an extra read round-trip.
-  order.lieferschein_no = lieferschein.number;
+  if (!preview) order.lieferschein_no = lieferschein.number;
 
   return {
     order,

@@ -664,7 +664,9 @@
         "noneShort": "görsel yok"
       }
     },
+    "search": "Sipariş, müşteri, e-posta, şehir, SKU…",
     "empty": "Bu filtrede sipariş yok.",
+    "emptySearch": "Bu arama için sipariş yok.",
     "printSlip": "🧾 İrsaliye",
     "selected": "{count} seçili",
     "clear": "Seçimi kaldır",
@@ -684,6 +686,8 @@
     "metaOrderId": "Sipariş ID",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Oluşturuldu",
+    "viewSlip": "İrsaliyeyi gör",
+    "printSlip": "Yazdır",
     "sync": {
       "label": "Shopify’dan güncelle",
       "pending": "Güncelleniyor…",

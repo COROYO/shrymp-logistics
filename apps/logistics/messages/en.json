@@ -664,7 +664,9 @@
         "noneShort": "no image"
       }
     },
+    "search": "Order, customer, email, city, SKU…",
     "empty": "No orders in this filter.",
+    "emptySearch": "No orders match this search.",
     "printSlip": "🧾 Packing slip",
     "selected": "{count} selected",
     "clear": "Clear selection",
@@ -684,6 +686,8 @@
     "metaOrderId": "Order ID",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Created",
+    "viewSlip": "View packing slip",
+    "printSlip": "Print",
     "sync": {
       "label": "Refresh from Shopify",
       "pending": "Refreshing…",

@@ -75,9 +75,11 @@ function financialStatusBadge(status: string | null): string {
 export function OrdersTable({
   orders,
   priorityTags = [],
+  searchActive = false,
 }: {
   orders: OrderRow[];
   priorityTags?: readonly string[];
+  searchActive?: boolean;
 }) {
   const t = useTranslations("ordersAdmin");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -120,7 +122,7 @@ export function OrdersTable({
   if (orders.length === 0) {
     return (
       <p className="px-6 py-10 text-center text-sm text-brand-navy/60">
-        {t("empty")}
+        {searchActive ? t("emptySearch") : t("empty")}
       </p>
     );
   }

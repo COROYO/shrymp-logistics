@@ -120,7 +120,17 @@ export default async function AdminOrderDetailPage({
               {tag}
             </span>
           ))}
-          <RefreshOrderButton orderId={order.id} orderName={order.name} />
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <a
+              href={`/lager/picking/${order.id}/slip?preview=1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost"
+            >
+              {t("viewSlip")}
+            </a>
+            <RefreshOrderButton orderId={order.id} orderName={order.name} />
+          </div>
         </div>
         <p className="mt-3 text-xs text-brand-navy/60">
           {t("metaOrderId")}{" "}

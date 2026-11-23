@@ -664,7 +664,9 @@
         "noneShort": "kein Bild"
       }
     },
+    "search": "Order, Kunde, E-Mail, Stadt, SKU…",
     "empty": "Keine Orders im gewählten Filter.",
+    "emptySearch": "Keine Orders für diese Suche.",
     "printSlip": "🧾 Lieferschein",
     "selected": "{count} ausgewählt",
     "clear": "Auswahl aufheben",
@@ -684,6 +686,8 @@
     "metaOrderId": "Order-ID",
     "metaShopifyGid": "Shopify-ID",
     "metaCreated": "Erstellt",
+    "viewSlip": "Lieferschein ansehen",
+    "printSlip": "Drucken",
     "sync": {
       "label": "Aus Shopify aktualisieren",
       "pending": "Aktualisiere…",

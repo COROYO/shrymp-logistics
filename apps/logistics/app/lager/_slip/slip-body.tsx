@@ -500,6 +500,7 @@ function recordToMap<T>(record: Record<string, T>): Map<string, T> {
 }
 
 function formatGermanDate(iso: string): string {
+  if (!iso) return "—";
   try {
     return new Date(iso).toLocaleDateString("de-DE", {
       day: "2-digit",

@@ -22,6 +22,7 @@ const CLIENT_NAMESPACES = [
   "confirmPacking",
   "pickRun",
   "ordersAdmin",
+  "orderDetail",
   "orderStatus",
   "products",
   "productEditor",
