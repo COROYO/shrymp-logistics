@@ -684,6 +684,13 @@
     "metaOrderId": "Sipariş ID",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Oluşturuldu",
+    "sync": {
+      "label": "Shopify’dan güncelle",
+      "pending": "Güncelleniyor…",
+      "success": "Sipariş Shopify’dan güncellendi.",
+      "error": "Güncelleme başarısız.",
+      "missing": "Sipariş Shopify’da bulunamadı."
+    },
     "comments": {
       "title": "Yorumlar",
       "customerNote": "Müşteri notu",

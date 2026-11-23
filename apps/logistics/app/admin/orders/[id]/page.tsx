@@ -13,6 +13,7 @@ import {
 import { releaseUnshippableBatchAssignments } from "@/server/picking/release-invalid-assignments";
 import { assertShopAccessibleForPage } from "@/lib/auth/tenant-page";
 import { loadLagerConfig } from "@/server/lager/config";
+import { RefreshOrderButton } from "./refresh-order-button";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,7 @@ export default async function AdminOrderDetailPage({
               {tag}
             </span>
           ))}
+          <RefreshOrderButton orderId={order.id} orderName={order.name} />
         </div>
         <p className="mt-3 text-xs text-brand-navy/60">
           {t("metaOrderId")}{" "}

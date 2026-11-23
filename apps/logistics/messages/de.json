@@ -684,6 +684,13 @@
     "metaOrderId": "Order-ID",
     "metaShopifyGid": "Shopify-ID",
     "metaCreated": "Erstellt",
+    "sync": {
+      "label": "Aus Shopify aktualisieren",
+      "pending": "Aktualisiere…",
+      "success": "Bestellung aus Shopify aktualisiert.",
+      "error": "Aktualisierung fehlgeschlagen.",
+      "missing": "Bestellung wurde in Shopify nicht gefunden."
+    },
     "comments": {
       "title": "Kommentare",
       "customerNote": "Kundenkommentar",

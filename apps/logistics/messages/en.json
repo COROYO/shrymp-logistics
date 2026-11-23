@@ -684,6 +684,13 @@
     "metaOrderId": "Order ID",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Created",
+    "sync": {
+      "label": "Refresh from Shopify",
+      "pending": "Refreshing…",
+      "success": "Order refreshed from Shopify.",
+      "error": "Refresh failed.",
+      "missing": "Order was not found in Shopify."
+    },
     "comments": {
       "title": "Comments",
       "customerNote": "Customer note",

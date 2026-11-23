@@ -39,6 +39,76 @@ export type BackfillOrdersOptions = {
   pageSize?: number;
 };
 
+const ORDER_NODE_FIELDS = /* GraphQL */ `
+  id
+  name
+  tags
+  createdAt
+  updatedAt
+  cancelledAt
+  cancelReason
+  displayFinancialStatus
+  displayFulfillmentStatus
+  currencyCode
+  note
+  email
+  customer {
+    id
+    email
+    firstName
+    lastName
+  }
+  totalOutstandingSet {
+    shopMoney {
+      amount
+      currencyCode
+    }
+  }
+  currentTotalPriceSet {
+    shopMoney {
+      amount
+      currencyCode
+    }
+  }
+  shippingLines(first: 5) {
+    nodes {
+      title
+      code
+    }
+  }
+  shippingAddress {
+    firstName
+    lastName
+    company
+    address1
+    address2
+    zip
+    city
+    country
+    countryCodeV2
+    phone
+  }
+  lineItems(first: 250) {
+    nodes {
+      id
+      title
+      quantity
+      sku
+      variant {
+        id
+      }
+      lineItemGroup {
+        id
+        productId
+        variantId
+        variantSku
+        title
+        quantity
+      }
+    }
+  }
+`;
+
 const PAGE_QUERY = /* GraphQL */ `
   query OrdersPage($cursor: String, $pageSize: Int!, $query: String) {
     orders(
@@ -53,74 +123,16 @@ const PAGE_QUERY = /* GraphQL */ `
         endCursor
       }
       nodes {
-        id
-        name
-        tags
-        createdAt
-        updatedAt
-        cancelledAt
-        cancelReason
-        displayFinancialStatus
-        displayFulfillmentStatus
-        currencyCode
-        note
-        email
-        customer {
-          id
-          email
-          firstName
-          lastName
-        }
-        totalOutstandingSet {
-          shopMoney {
-            amount
-            currencyCode
-          }
-        }
-        currentTotalPriceSet {
-          shopMoney {
-            amount
-            currencyCode
-          }
-        }
-        shippingLines(first: 5) {
-          nodes {
-            title
-            code
-          }
-        }
-        shippingAddress {
-          firstName
-          lastName
-          company
-          address1
-          address2
-          zip
-          city
-          country
-          countryCodeV2
-          phone
-        }
-        lineItems(first: 250) {
-          nodes {
-            id
-            title
-            quantity
-            sku
-            variant {
-              id
-            }
-            lineItemGroup {
-              id
-              productId
-              variantId
-              variantSku
-              title
-              quantity
-            }
-          }
-        }
+        ${ORDER_NODE_FIELDS}
       }
+    }
+  }
+`;
+
+const ORDER_BY_ID_QUERY = /* GraphQL */ `
+  query OrderById($id: ID!) {
+    order(id: $id) {
+      ${ORDER_NODE_FIELDS}
     }
   }
 `;
@@ -248,87 +260,8 @@ export async function backfillOrders(
     for (const n of data.orders.nodes) {
       const orderId = numericIdFromGid(n.id);
       const ref = db.collection(Collections.Orders).doc(orderId);
-
-      // Preserve existing internal_status so we don't reset SHIP/STOP/PACKED.
       const existingData = existingByeId.get(orderId);
-      const prevStatus =
-        (existingData?.internal_status as OrderInternalStatus | undefined) ??
-        null;
-      // LAGER tags are system-owned; preserve our confirmed push state across
-      // mirrors so a Shopify webhook doesn't reset it and re-trigger a push.
-      const prevLagerSynced =
-        (existingData?.lager_tag_synced as "SHIP" | "STOP" | null | undefined) ??
-        null;
-      // Never let a Shopify re-sync change an existing order's internal status
-      // (owned by the state machine) — only init a new order or move forward to
-      // CANCELLED. Same invariant as the webhook mirror.
-      const cancelled = !!n.cancelledAt;
-      const internalStatus: OrderInternalStatus = mirrorInternalStatus(
-        prevStatus,
-        cancelled,
-      );
-
-      const doc: Omit<Order, "updated_at"> = {
-        id: orderId,
-        shop_id: shopId,
-        shopify_gid: n.id,
-        name: n.name,
-        tags: n.tags ?? [],
-        shipping_address: n.shippingAddress
-          ? {
-              first_name: n.shippingAddress.firstName,
-              last_name: n.shippingAddress.lastName,
-              company: n.shippingAddress.company,
-              address1: n.shippingAddress.address1,
-              address2: n.shippingAddress.address2,
-              zip: n.shippingAddress.zip,
-              city: n.shippingAddress.city,
-              country: n.shippingAddress.country,
-              country_code: n.shippingAddress.countryCodeV2,
-              phone: n.shippingAddress.phone,
-            }
-          : null,
-        shipping_method: (() => {
-          const line = n.shippingLines.nodes[0];
-          if (!line?.title) return null;
-          return { title: line.title, code: line.code ?? null };
-        })(),
-        line_items: mergeAutomationLineItems(
-          orderLineItemsFromGql(n.lineItems.nodes),
-          (existingData as Order | undefined)?.line_items,
-        ),
-        shopify_financial_status: n.displayFinancialStatus ?? null,
-        shopify_fulfillment_status: n.displayFulfillmentStatus ?? null,
-        internal_status: internalStatus,
-        lager_tag_synced: prevLagerSynced,
-        cod_amount_cents:
-          moneyDecimalToCents(
-            n.totalOutstandingSet?.shopMoney?.amount ?? null,
-          ) ??
-          moneyDecimalToCents(
-            n.currentTotalPriceSet?.shopMoney?.amount ?? null,
-          ),
-        currency:
-          n.currencyCode ??
-          n.totalOutstandingSet?.shopMoney?.currencyCode ??
-          null,
-        customer_note: n.note?.trim() ? n.note.trim() : null,
-        ...(n.cancelledAt
-          ? {
-              cancelled_at: new Date(n.cancelledAt),
-              cancel_reason: n.cancelReason ?? null,
-            }
-          : {}),
-        customer: mapCustomerFromGql(n),
-        total_price_cents: moneyDecimalToCents(
-          n.currentTotalPriceSet?.shopMoney?.amount ?? null,
-        ),
-        local_tags: (existingData as Order | undefined)?.local_tags ?? [],
-        priority_score: (existingData as Order | undefined)?.priority_score ?? 0,
-        automation_hold:
-          (existingData as Order | undefined)?.automation_hold ?? false,
-        created_at_shopify: new Date(n.createdAt),
-      };
+      const doc = orderFromGqlNode(n, shopId, existingData);
 
       // merge:true so a Shopify re-sync never wipes our internal state-machine
       // fields (packed_at, externally_fulfilled, tracking, picking_*, …) that
@@ -384,6 +317,112 @@ export async function backfillOrders(
   });
   return { mirroredCount, pages };
   });
+}
+
+/**
+ * Re-read one order from Shopify and merge it into Firestore.
+ * Internal status stays owned by the warehouse state machine, except a
+ * Shopify cancellation, which moves the order to CANCELLED.
+ * Returns `found: false` when Shopify no longer has the order.
+ */
+export async function refreshOrderFromShopify(
+  shopId: string,
+  orderGid: string,
+): Promise<{ found: boolean }> {
+  const normalized = normalizeShopId(shopId);
+  return runWithTenantAsync(normalized, async () => {
+    const data = await shopifyGraphQL<{ order: GqlOrderNode | null }>(
+      ORDER_BY_ID_QUERY,
+      { id: orderGid },
+    );
+    if (!data.order) return { found: false };
+
+    const db = adminDb();
+    const orderId = numericIdFromGid(data.order.id);
+    const ref = db.collection(Collections.Orders).doc(orderId);
+    const snap = await ref.get();
+    const doc = orderFromGqlNode(
+      data.order,
+      normalized,
+      snap.exists ? snap.data() : undefined,
+    );
+    await ref.set(
+      { ...doc, updated_at: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    log.info("order_refreshed_from_shopify", { orderId, shopId: normalized });
+    return { found: true };
+  });
+}
+
+function orderFromGqlNode(
+  n: GqlOrderNode,
+  shopId: string,
+  existing: FirebaseFirestore.DocumentData | undefined,
+): Omit<Order, "updated_at"> {
+  const orderId = numericIdFromGid(n.id);
+  const existingOrder = existing as Order | undefined;
+  const prevStatus =
+    (existing?.internal_status as OrderInternalStatus | undefined) ?? null;
+  const prevLagerSynced =
+    (existing?.lager_tag_synced as "SHIP" | "STOP" | null | undefined) ?? null;
+  const cancelled = !!n.cancelledAt;
+  return {
+    id: orderId,
+    shop_id: shopId,
+    shopify_gid: n.id,
+    name: n.name,
+    tags: n.tags ?? [],
+    shipping_address: n.shippingAddress
+      ? {
+          first_name: n.shippingAddress.firstName,
+          last_name: n.shippingAddress.lastName,
+          company: n.shippingAddress.company,
+          address1: n.shippingAddress.address1,
+          address2: n.shippingAddress.address2,
+          zip: n.shippingAddress.zip,
+          city: n.shippingAddress.city,
+          country: n.shippingAddress.country,
+          country_code: n.shippingAddress.countryCodeV2,
+          phone: n.shippingAddress.phone,
+        }
+      : null,
+    shipping_method: (() => {
+      const line = n.shippingLines.nodes[0];
+      if (!line?.title) return null;
+      return { title: line.title, code: line.code ?? null };
+    })(),
+    line_items: mergeAutomationLineItems(
+      orderLineItemsFromGql(n.lineItems.nodes),
+      existingOrder?.line_items,
+    ),
+    shopify_financial_status: n.displayFinancialStatus ?? null,
+    shopify_fulfillment_status: n.displayFulfillmentStatus ?? null,
+    internal_status: mirrorInternalStatus(prevStatus, cancelled),
+    lager_tag_synced: prevLagerSynced,
+    cod_amount_cents:
+      moneyDecimalToCents(n.totalOutstandingSet?.shopMoney?.amount ?? null) ??
+      moneyDecimalToCents(n.currentTotalPriceSet?.shopMoney?.amount ?? null),
+    currency:
+      n.currencyCode ??
+      n.totalOutstandingSet?.shopMoney?.currencyCode ??
+      null,
+    customer_note: n.note?.trim() ? n.note.trim() : null,
+    ...(n.cancelledAt
+      ? {
+          cancelled_at: new Date(n.cancelledAt),
+          cancel_reason: n.cancelReason ?? null,
+        }
+      : {}),
+    customer: mapCustomerFromGql(n),
+    total_price_cents: moneyDecimalToCents(
+      n.currentTotalPriceSet?.shopMoney?.amount ?? null,
+    ),
+    local_tags: existingOrder?.local_tags ?? [],
+    priority_score: existingOrder?.priority_score ?? 0,
+    automation_hold: existingOrder?.automation_hold ?? false,
+    created_at_shopify: new Date(n.createdAt),
+  };
 }
 
 function mapCustomerFromGql(n: GqlOrderNode): {

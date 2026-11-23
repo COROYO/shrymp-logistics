@@ -684,6 +684,13 @@
     "metaOrderId": "ID zamówienia",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Utworzono",
+    "sync": {
+      "label": "Odśwież z Shopify",
+      "pending": "Odświeżanie…",
+      "success": "Zamówienie odświeżone z Shopify.",
+      "error": "Odświeżenie nie powiodło się.",
+      "missing": "Nie znaleziono zamówienia w Shopify."
+    },
     "comments": {
       "title": "Komentarze",
       "customerNote": "Notatka klienta",

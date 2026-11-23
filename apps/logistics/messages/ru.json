@@ -684,6 +684,13 @@
     "metaOrderId": "ID заказа",
     "metaShopifyGid": "Shopify GID",
     "metaCreated": "Создан",
+    "sync": {
+      "label": "Обновить из Shopify",
+      "pending": "Обновление…",
+      "success": "Заказ обновлён из Shopify.",
+      "error": "Не удалось обновить.",
+      "missing": "Заказ не найден в Shopify."
+    },
     "comments": {
       "title": "Комментарии",
       "customerNote": "Комментарий клиента",
