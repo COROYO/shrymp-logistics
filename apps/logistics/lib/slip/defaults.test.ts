@@ -17,6 +17,10 @@ describe("resolveSlipBranding", () => {
     expect(branding.col_qty).toBe(true);
     expect(branding.title_size_pt).toBe(11);
     expect(branding.sku_size_pt).toBe(9);
+    expect(branding.print_pick_list).toBe(false);
+    expect(resolveSlipBranding({ print_pick_list: true }).print_pick_list).toBe(
+      true,
+    );
   });
 
   it("keeps a saved title and Art.-Nr. size inside the allowed range", () => {
@@ -42,8 +46,10 @@ describe("resolveSlipBranding", () => {
 
   it("fills every layout flag when the shop has no branding yet", () => {
     const branding = resolveSlipBranding(null);
+    const optIn = new Set(["show_order_note", "col_image"]);
     for (const key of SLIP_LAYOUT_FLAG_KEYS) {
-      expect(branding[key]).toBe(true);
+      expect(branding[key]).toBe(!optIn.has(key));
     }
+    expect(branding.print_pick_list).toBe(false);
   });
 });

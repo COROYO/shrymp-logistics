@@ -18,7 +18,8 @@ export default async function LieferscheinSettingsPage() {
       </h2>
       <p className="mt-1 text-xs text-brand-navy/60">
         Briefkopf, Anschrift, Farben und sichtbare Angaben für den gedruckten
-        Lieferschein — pro Shop. Tabellen-Labels bleiben auf Deutsch.
+        Lieferschein — pro Shop. Die Pickliste ist eine eigene Seite hinter
+        dem Lieferschein. Tabellen-Labels bleiben auf Deutsch.
       </p>
       <div className="mt-6">
         <SlipBrandingForm current={slipBranding} />

@@ -850,6 +850,8 @@ export const SlipBrandingSchema = z.object({
   sku_size_pt: z.number().int().min(6).max(18).default(9),
   /** http(s) image URL printed as the QR code. Empty hides it. */
   qr_url: z.string().max(2000).default(""),
+  /** Opt-in: print a pick list as its own page after the delivery note. */
+  print_pick_list: z.boolean().default(false),
   updated_at: FirestoreTimestamp.optional(),
   updated_by_uid: z.string().nullable().optional(),
 });

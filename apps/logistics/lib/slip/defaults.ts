@@ -62,6 +62,8 @@ export const DEFAULT_SLIP_BRANDING = {
   title_size_pt: DEFAULT_TITLE_SIZE_PT,
   sku_size_pt: DEFAULT_SKU_SIZE_PT,
   qr_url: "",
+  /** Extra warehouse page printed after the delivery note. Opt-in. */
+  print_pick_list: false,
   ...DEFAULT_LAYOUT_FLAGS,
 } as const;
 
@@ -82,6 +84,8 @@ export type SlipBrandingConfig = {
   sku_size_pt: number;
   /** http(s) image URL printed as the QR code. Empty hides it. */
   qr_url: string;
+  /** When true, print a pick list on its own page after the delivery note. */
+  print_pick_list: boolean;
 } & Record<SlipLayoutFlag, boolean>;
 
 /** Keep only http(s) URLs. Anything else prints as no QR. */
@@ -144,6 +148,7 @@ export function resolveSlipBranding(
     title_size_pt: sizePt(partial.title_size_pt, DEFAULT_TITLE_SIZE_PT),
     sku_size_pt: sizePt(partial.sku_size_pt, DEFAULT_SKU_SIZE_PT),
     qr_url: normalizeSlipQrUrl(partial.qr_url),
+    print_pick_list: partial.print_pick_list === true,
     ...layoutFlags(partial),
   };
 }

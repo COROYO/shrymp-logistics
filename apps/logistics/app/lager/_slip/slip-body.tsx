@@ -23,20 +23,30 @@ export function SlipBody({
   data: SlipViewData;
   pageBreakAfter?: boolean;
 }) {
+  const pickList = data.branding.print_pick_list;
   return (
     <NextIntlClientProvider locale="de" messages={SLIP_MESSAGES}>
-      <SlipDocument data={data} pageBreakAfter={pageBreakAfter} />
+      <SlipDocument
+        data={data}
+        pageBreakAfter={pickList || pageBreakAfter}
+      />
+      {pickList ? (
+        <SlipDocument data={data} kind="picklist" pageBreakAfter={pageBreakAfter} />
+      ) : null}
     </NextIntlClientProvider>
   );
 }
 
 function SlipDocument({
   data,
+  kind = "slip",
   pageBreakAfter = false,
 }: {
   data: SlipViewData;
+  kind?: "slip" | "picklist";
   pageBreakAfter?: boolean;
 }) {
+  const isPickList = kind === "picklist";
   const { branding, batchesEnabled } = data;
   const shipping = data.shippingAddress;
   const sections = buildSlipSections(
@@ -56,10 +66,13 @@ function SlipDocument({
   );
   const columnCount =
     1 +
+    Number(isPickList) +
     Number(showVariant) +
     Number(showBin) +
     Number(showQty) +
     Number(showCharge);
+  const documentTitle = isPickList ? "Pickliste" : branding.document_title;
+  const showDocumentTitle = isPickList || branding.show_document_title;
 
   const t = useTranslations("packingSlip");
 
@@ -112,14 +125,14 @@ function SlipDocument({
             </div>
           ) : null}
         </div>
-        {branding.show_document_title || branding.show_header_ls_no ? (
+        {showDocumentTitle || branding.show_header_ls_no ? (
           <div className="text-right text-[10pt] text-brand-navy/70">
-            {branding.show_document_title ? (
+            {showDocumentTitle ? (
               <div
                 className="text-[10pt] font-semibold uppercase tracking-[0.14em]"
                 style={{ color: accent }}
               >
-                {branding.document_title}
+                {documentTitle}
               </div>
             ) : null}
             {branding.show_header_ls_no ? (
@@ -135,7 +148,9 @@ function SlipDocument({
       </header>
 
       <SlipMeta
-        branding={branding}
+        branding={
+          isPickList ? { ...branding, show_customer_no: true } : branding
+        }
         customerNo={data.customerShopifyId ?? t("noCharge")}
         lsNo={data.lieferschein.number}
         lsDate={formatGermanDate(data.lieferschein.dateIso)}
@@ -143,6 +158,7 @@ function SlipDocument({
         orderDate={orderDateStr}
       />
 
+      {isPickList ? null : (
       <section className="mt-6">
         <div
           className="mb-0.5 text-[8pt] font-semibold uppercase tracking-[0.12em]"
@@ -174,8 +190,9 @@ function SlipDocument({
           {shipping?.country}
         </address>
       </section>
+      )}
 
-      {data.orderNote ? (
+      {!isPickList && data.orderNote ? (
         <section
           className="mt-4 break-inside-avoid border-l-4 py-1 pl-3"
           style={{ borderColor: accent }}
@@ -195,6 +212,11 @@ function SlipDocument({
       <table className="mt-6 w-full border-collapse text-[11pt]">
         <thead>
           <tr className="text-left text-white" style={{ backgroundColor: header }}>
+            {isPickList ? (
+              <th className="w-[14mm] px-2 py-2 text-center text-[10pt] font-semibold">
+                ✓
+              </th>
+            ) : null}
             <th className="px-3 py-2 text-[10pt] font-semibold uppercase tracking-[0.1em]">
               {t("product")}
             </th>
@@ -270,6 +292,11 @@ function SlipDocument({
                       : undefined
                   }
                 >
+                  {isPickList ? (
+                    <td className="px-2 py-2 text-center align-middle">
+                      <span className="inline-block h-[5mm] w-[5mm] border-2 border-zinc-800" />
+                    </td>
+                  ) : null}
                   <td className={`px-3 py-2 pr-4 ${section.bundle ? "pl-6" : ""}`}>
                     <div className={showImage ? "flex items-start gap-3" : undefined}>
                       {showImage ? (
@@ -362,6 +389,7 @@ function SlipDocument({
         </tbody>
       </table>
 
+      {isPickList ? null : (
       <section className="mt-12 flex items-start justify-between gap-8 text-[10pt] leading-relaxed text-brand-navy/80">
         <div className="min-w-0 flex-1">
           {branding.contact_email ? (
@@ -387,7 +415,9 @@ function SlipDocument({
           />
         ) : null}
       </section>
+      )}
 
+      {isPickList ? null : (
       <footer className="mt-16 flex justify-between gap-4 border-t border-zinc-300 pt-2 text-[8pt] text-brand-navy/60">
         <span>
           {t.rich("footerOrder", {
@@ -402,6 +432,7 @@ function SlipDocument({
         </span>
         <span className="max-w-[55%] text-right">{branding.footer_legal}</span>
       </footer>
+      )}
     </article>
   );
 }

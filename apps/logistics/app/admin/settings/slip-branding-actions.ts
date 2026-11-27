@@ -44,6 +44,7 @@ export async function saveSlipBrandingAction(
     footer_legal: formData.get("footer_legal"),
     title_size_pt: Number(formData.get("title_size_pt")),
     sku_size_pt: Number(formData.get("sku_size_pt")),
+    print_pick_list: formData.get("print_pick_list") === "1",
     ...layoutFlags,
   });
   if (!parsed.success) {

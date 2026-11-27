@@ -94,6 +94,25 @@ export function SlipBrandingForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
+      <fieldset className="space-y-3">
+        <legend className={labelClass}>Pickliste</legend>
+        <p className="text-xs text-brand-navy/60">
+          Zusätzlich zum Lieferschein eine eigene Seite fürs Lager: Briefkopf,
+          Kundennummer, Belegdaten und Positionen mit Ankreuzfeld. Ohne
+          Lieferadresse, Abschluss und Footer.
+        </p>
+        <label className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-brand-navy">
+          <input
+            type="checkbox"
+            name="print_pick_list"
+            value="1"
+            defaultChecked={current.print_pick_list}
+            className="h-4 w-4 rounded border-zinc-300"
+          />
+          Pickliste mitdrucken
+        </label>
+      </fieldset>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Markenname</label>
