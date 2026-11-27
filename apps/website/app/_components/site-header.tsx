@@ -33,50 +33,53 @@ export function SiteHeader() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition duration-300 ${
-        scrolled || menuOpen
-          ? "border-b border-border/80 bg-surface/85 shadow-sm backdrop-blur-xl"
-          : "bg-transparent"
+      className={`fixed inset-x-0 top-0 z-50 border-b bg-brand-cream transition-[border-color] duration-150 ease-craft ${
+        scrolled || menuOpen ? "border-brand-ink/10" : "border-transparent"
       }`}
     >
-      <div className="container-narrow flex h-16 items-center justify-between px-5 sm:px-6">
+      <div className="container-narrow flex h-16 items-center justify-between px-6 lg:px-8">
         <Link
           href="/"
-          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2"
+          className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2"
         >
           <BrandMark />
         </Link>
 
-        <nav
-          className="hidden items-center gap-1 md:flex"
-          aria-label="Hauptnavigation"
-        >
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Hauptnavigation">
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className="btn-ghost">
+            <a
+              key={link.href}
+              href={link.href}
+              className="rounded-md px-3 py-2 text-sm font-medium text-secondary transition-colors duration-150 ease-craft hover:text-brand-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/20 focus-visible:ring-offset-2"
+            >
               {link.label}
             </a>
           ))}
-          <a href={logisticsUrl} className="btn-primary ml-2">
+          <a href={logisticsUrl} className="btn-nav ml-2">
             Beta starten
           </a>
         </nav>
 
         <button
           type="button"
-          className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface text-brand-navy md:hidden"
+          className="inline-flex size-11 cursor-pointer items-center justify-center rounded-lg border border-brand-ink/10 bg-white text-brand-navy md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30"
           aria-expanded={menuOpen}
           aria-controls="mobile-nav"
           aria-label={menuOpen ? "Menü schließen" : "Menü öffnen"}
           onClick={() => setMenuOpen((open) => !open)}
         >
-          {menuOpen ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
+          {menuOpen ? (
+            <X className="size-4" strokeWidth={1.5} aria-hidden />
+          ) : (
+            <Menu className="size-4" strokeWidth={1.5} aria-hidden />
+          )}
         </button>
       </div>
 
       {menuOpen ? (
         <nav
           id="mobile-nav"
-          className="border-t border-border bg-surface/95 px-5 py-4 backdrop-blur-xl md:hidden"
+          className="border-t border-brand-ink/10 bg-brand-cream px-6 py-4 md:hidden"
           aria-label="Mobile Navigation"
         >
           <ul className="flex flex-col gap-1">
@@ -84,7 +87,7 @@ export function SiteHeader() {
               <li key={link.href}>
                 <a
                   href={link.href}
-                  className="block min-h-11 rounded-lg px-3 py-2.5 text-base font-medium text-secondary hover:bg-brand-navy-50 hover:text-brand-navy"
+                  className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-secondary transition-colors duration-150 ease-craft hover:bg-white hover:text-brand-navy"
                   onClick={() => setMenuOpen(false)}
                 >
                   {link.label}

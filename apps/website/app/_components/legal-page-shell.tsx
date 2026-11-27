@@ -15,7 +15,9 @@ export function LegalPageShell({ title, children }: LegalPageShellProps) {
         <article className="section-pad">
           <div className="container-narrow legal-prose mx-auto max-w-3xl">
             <p className="eyebrow">Rechtliches</p>
-            <h1 className="display-heading mt-3 text-3xl sm:text-4xl">{title}</h1>
+            <h1 className="display-heading mt-4 text-[28px] leading-[1.15] sm:text-4xl">
+              {title}
+            </h1>
             {children}
           </div>
         </article>

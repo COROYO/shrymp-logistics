@@ -5,36 +5,28 @@ type BrandMarkProps = {
 
 export function BrandMark({ variant = "light", compact = false }: BrandMarkProps) {
   const isDark = variant === "dark";
-  const bg = isDark ? "bg-brand-navy" : "bg-white";
-  const text = isDark ? "text-white" : "text-brand-navy";
-  const accent = "text-brand-burgundy";
 
   return (
-    <span className="flex items-center gap-2.5">
+    <span className="flex items-center gap-2">
       <span
-        className={`grid h-9 w-9 place-items-center rounded-md ${bg} ring-1 ring-brand-navy/10`}
+        className={`grid size-8 place-items-center rounded-md ring-1 ${
+          isDark
+            ? "bg-white/10 text-white ring-white/15"
+            : "bg-white text-brand-navy ring-brand-ink/10"
+        }`}
       >
-        <span
-          className={`font-bold leading-none tracking-tight ${text}`}
-          style={{ fontSize: "15px" }}
-        >
-          S<span className={accent}>·</span>L
+        <span className="text-[15px] font-medium leading-none">
+          S<span className="text-brand-burgundy">·</span>L
         </span>
       </span>
       {!compact ? (
-        <span className="flex flex-col leading-tight">
+        <span className="flex flex-col leading-none">
           <span
-            className={`text-[15px] font-bold uppercase tracking-[0.18em] ${
-              isDark ? "text-white" : "text-brand-navy"
-            }`}
+            className={`text-base font-medium ${isDark ? "text-white" : "text-brand-navy"}`}
           >
             Shrymp
           </span>
-          <span
-            className={`text-[10px] font-semibold uppercase tracking-[0.32em] ${
-              isDark ? "text-brand-burgundy" : "text-brand-burgundy"
-            }`}
-          >
+          <span className={`mt-1 text-xs ${isDark ? "text-stone-400" : "text-secondary"}`}>
             Logistics
           </span>
         </span>

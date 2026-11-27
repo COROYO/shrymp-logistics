@@ -16,7 +16,7 @@ import {
 const features = [
   {
     icon: GitBranch,
-    title: "Intelligente Allocation",
+    title: "Allocation",
     body: "Bei knappem Bestand maximal viele Orders fulfillen — all-or-nothing pro Order, Express-Vorrang, SHIP/STOP automatisch zurück an Shopify.",
   },
   {
@@ -78,38 +78,36 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="section-pad">
+    <section id="features" className="section-pad scroll-mt-20 border-t border-brand-ink/8">
       <div className="container-narrow">
-        <div className="mx-auto max-w-2xl text-center">
+        <div className="max-w-2xl">
           <p className="eyebrow">Die Lösung</p>
-          <h2 className="display-heading mt-3 text-3xl sm:text-4xl">
-            Alles, was dein Lager braucht
+          <h2 className="display-heading mt-4 text-[28px] leading-[1.15] sm:text-4xl">
+            Von der Order bis zum Label
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-secondary">
+          <p className="mt-4 text-lg leading-8 text-secondary">
             Von der Bestellung bis zum Versand: Shrymp Logistics entscheidet,
-            reserviert, pickt und verschickt — Shopify bleibt dein
-            Shop-Frontend.
+            reserviert, pickt und verschickt — Shopify bleibt dein Shop-Frontend.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-16 grid gap-x-16 sm:grid-cols-2">
           {features.map((feature) => (
-            <article
-              key={feature.title}
-              className="rounded-2xl border border-border bg-surface p-6 transition duration-200 hover:border-brand-burgundy/30 hover:shadow-[0_8px_30px_rgba(15,27,51,0.06)]"
-            >
-              <div className="inline-flex rounded-xl bg-brand-navy-50 p-3 text-brand-navy">
-                <feature.icon className="h-5 w-5" aria-hidden />
+            <li key={feature.title} className="border-t border-brand-ink/8 py-6">
+              <div className="flex items-start gap-3">
+                <feature.icon
+                  className="mt-0.5 size-4 shrink-0 text-secondary"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+                <div>
+                  <h3 className="text-base font-medium text-brand-navy">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-5 text-secondary">{feature.body}</p>
+                </div>
               </div>
-              <h3 className="mt-5 text-lg font-semibold text-brand-navy">
-                {feature.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-secondary">
-                {feature.body}
-              </p>
-            </article>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   );

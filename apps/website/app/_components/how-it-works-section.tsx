@@ -24,54 +24,44 @@ const steps = [
     step: "04",
     icon: PackageCheck,
     title: "Versand",
-    body: "Alles dokumentiert, rückverfolgbar, synchron. Bald: DHL-Labels direkt aus der App.",
+    body: "Inland-Labels aus dem Packing-Screen. Tracking geht automatisch zurück an die Order.",
   },
 ] as const;
 
 export function HowItWorksSection() {
   return (
-    <section id="ablauf" className="section-pad bg-brand-navy text-white">
+    <section id="ablauf" className="section-pad scroll-mt-20 bg-brand-navy text-white">
       <div className="container-narrow">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="eyebrow text-brand-burgundy">
-            In vier Schritten
-          </p>
-          <h2 className="display-heading mt-3 text-3xl text-white sm:text-4xl">
+          <p className="text-xs font-medium text-stone-300">In vier Schritten</p>
+          <h2 className="mt-4 text-balance text-[28px] font-medium leading-[1.15] text-white sm:text-4xl">
             Von Shopify ins Lager — und zurück
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-stone-300">
+          <p className="mt-4 text-lg leading-8 text-stone-300">
             Kein monatelanges Onboarding. Verbinden, Chargen pflegen, loslegen.
           </p>
         </div>
 
-        <ol className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((item, index) => (
+        <ol className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((item) => (
             <li
               key={item.step}
-              className="relative rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+              className="rounded-2xl border border-white/10 bg-brand-navy-soft p-6"
             >
-              {index < steps.length - 1 ? (
-                <span
-                  className="absolute -right-3 top-1/2 hidden h-px w-6 -translate-y-1/2 bg-white/20 lg:block"
-                  aria-hidden
-                />
-              ) : null}
               <div className="flex items-center justify-between">
-                <span className="font-mono text-sm text-brand-burgundy">{item.step}</span>
-                <item.icon className="h-5 w-5 text-stone-400" aria-hidden />
+                <span className="font-mono text-xs text-stone-300">{item.step}</span>
+                <item.icon className="size-4 text-stone-300" strokeWidth={1.5} aria-hidden />
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-stone-400">
-                {item.body}
-              </p>
+              <h3 className="mt-4 text-base font-medium text-white">{item.title}</h3>
+              <p className="mt-2 text-sm leading-5 text-stone-400">{item.body}</p>
             </li>
           ))}
         </ol>
 
         <div className="mt-12 text-center">
-          <a href={logisticsUrl} className="btn-primary inline-flex">
+          <a href={logisticsUrl} className="btn-primary">
             Jetzt verbinden
-            <ArrowRight className="h-4 w-4" aria-hidden />
+            <ArrowRight className="size-4" strokeWidth={1.5} aria-hidden />
           </a>
         </div>
       </div>

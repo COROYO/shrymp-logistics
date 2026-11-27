@@ -17,19 +17,20 @@
   --color-primary: #0f1b33;
   --color-on-primary: #ffffff;
   --color-secondary: #4a5568;
+  --color-muted: #6b7280;
   --color-accent: #9b1b30;
   --color-accent-hover: #7e1426;
-  --color-accent-soft: #fdecef;
   --color-background: #faf7f1;
   --color-foreground: #1c1c1c;
-  --color-muted: #ececec;
-  --color-border: #d6d3d1;
+  --color-border: rgb(28 28 28 / 0.08);
   --color-surface: #ffffff;
-  --color-surface-glass: rgb(255 255 255 / 0.72);
+
+  --ease-craft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 80px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -50,53 +51,48 @@ html {
 
 body {
   font-family: var(--font-sans);
-  letter-spacing: -0.005em;
   color: var(--color-foreground);
   background-color: var(--color-background);
 }
 
 @layer components {
-  .glass-panel {
-    @apply rounded-2xl border border-white/60 bg-surface-glass shadow-[0_8px_32px_rgba(15,27,51,0.06)] backdrop-blur-xl;
-  }
-
-  .glass-panel-dark {
-    @apply rounded-2xl border border-white/10 bg-brand-navy/95 text-on-primary shadow-[0_16px_48px_rgba(15,27,51,0.32)] backdrop-blur-xl;
-  }
-
   .btn-primary {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md
-           bg-brand-burgundy px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-white
-           shadow-sm transition duration-200 ease-out
+    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-lg
+           bg-brand-burgundy px-5 text-sm font-medium text-white
+           transition-[color,background-color,transform] duration-150 ease-craft
            hover:bg-brand-burgundy-dark
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2;
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2
+           active:scale-[0.98];
+  }
+
+  .btn-nav {
+    @apply inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg
+           bg-brand-burgundy px-4 text-sm font-medium text-white
+           transition-[color,background-color,transform] duration-150 ease-craft
+           hover:bg-brand-burgundy-dark
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2
+           active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md
-           border border-brand-navy bg-white px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-brand-navy
-           transition duration-200 ease-out
-           hover:bg-brand-navy hover:text-white
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30 focus-visible:ring-offset-2;
-  }
-
-  .btn-ghost {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2
-           text-sm font-medium text-secondary transition duration-200
-           hover:text-brand-navy
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/20 focus-visible:ring-offset-2;
+    @apply inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-lg
+           border border-brand-ink/10 bg-white px-5 text-sm font-medium text-brand-navy
+           transition-[color,background-color,border-color,transform] duration-150 ease-craft
+           hover:bg-brand-navy-50
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30 focus-visible:ring-offset-2
+           active:scale-[0.98];
   }
 
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy;
+    @apply text-xs font-medium text-secondary;
   }
 
   .display-heading {
-    @apply text-balance font-semibold tracking-tight text-brand-navy;
+    @apply text-balance font-medium text-brand-navy;
   }
 
   .section-pad {
-    @apply px-5 py-20 sm:px-6 sm:py-24 lg:py-28;
+    @apply px-6 py-24 lg:px-8 lg:py-32;
   }
 
   .container-narrow {
@@ -108,7 +104,7 @@ body {
   }
 
   .legal-prose h2 {
-    @apply mt-10 text-lg font-semibold text-brand-navy first:mt-8;
+    @apply mt-10 text-lg font-medium text-brand-navy first:mt-8;
   }
 
   .legal-prose p {
@@ -116,7 +112,7 @@ body {
   }
 
   .legal-prose ul {
-    @apply mt-3 list-disc space-y-1.5 pl-5;
+    @apply mt-3 list-disc space-y-2 pl-5;
   }
 
   .legal-prose address {
@@ -124,17 +120,10 @@ body {
   }
 
   .legal-prose a {
-    @apply text-brand-burgundy underline decoration-brand-burgundy/30 underline-offset-2 transition hover:decoration-brand-burgundy;
+    @apply text-brand-burgundy underline decoration-brand-burgundy/30 underline-offset-2 transition-colors duration-150 ease-craft hover:decoration-brand-burgundy;
   }
 
   .legal-prose .legal-meta {
-    @apply mt-10 text-sm text-secondary/70;
+    @apply mt-10 text-sm text-muted;
   }
-}
-
-.hero-glow {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgb(253 236 239 / 0.7), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 90% 20%, rgb(155 27 48 / 0.08), transparent 50%),
-    radial-gradient(ellipse 40% 35% at 10% 30%, rgb(15 27 51 / 0.06), transparent 50%);
 }

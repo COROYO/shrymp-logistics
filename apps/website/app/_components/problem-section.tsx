@@ -20,34 +20,28 @@ const problems = [
 
 export function ProblemSection() {
   return (
-    <section id="problem" className="section-pad bg-brand-stone/50">
+    <section id="problem" className="section-pad scroll-mt-20 border-t border-brand-ink/8">
       <div className="container-narrow">
         <div className="mx-auto max-w-2xl text-center">
           <p className="eyebrow">Das Problem</p>
-          <h2 className="display-heading mt-3 text-3xl sm:text-4xl">
+          <h2 className="display-heading mt-4 text-[28px] leading-[1.15] sm:text-4xl">
             Shopify allein reicht nicht
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-secondary">
+          <p className="mt-4 text-lg leading-8 text-secondary">
             Dein Shop verwaltet SKUs und Bestellungen — aber nicht, welcher
             Artikel aus welchem Lagerplatz heute optimal raus muss.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-3">
+        <div className="mt-16 grid gap-4 sm:grid-cols-3">
           {problems.map((item) => (
             <article
               key={item.title}
-              className="glass-panel group p-6 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(15,27,51,0.08)]"
+              className="rounded-2xl border border-brand-ink/8 bg-white p-6"
             >
-              <div className="inline-flex rounded-xl bg-brand-burgundy-soft p-3 text-brand-burgundy transition group-hover:bg-brand-burgundy group-hover:text-white">
-                <item.icon className="h-5 w-5" aria-hidden />
-              </div>
-              <h3 className="mt-5 text-lg font-semibold text-brand-navy">
-                {item.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-secondary">
-                {item.body}
-              </p>
+              <item.icon className="size-4 text-secondary" strokeWidth={1.5} aria-hidden />
+              <h3 className="mt-4 text-base font-medium text-brand-navy">{item.title}</h3>
+              <p className="mt-2 text-sm leading-5 text-secondary">{item.body}</p>
             </article>
           ))}
         </div>

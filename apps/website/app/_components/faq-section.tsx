@@ -30,16 +30,16 @@ export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="section-pad">
+    <section id="faq" className="section-pad scroll-mt-20 border-t border-brand-ink/8">
       <div className="container-narrow">
         <div className="mx-auto max-w-2xl text-center">
           <p className="eyebrow">FAQ</p>
-          <h2 className="display-heading mt-3 text-3xl sm:text-4xl">
+          <h2 className="display-heading mt-4 text-[28px] leading-[1.15] sm:text-4xl">
             Häufige Fragen
           </h2>
         </div>
 
-        <div className="mx-auto mt-12 max-w-2xl divide-y divide-border rounded-2xl border border-border bg-surface">
+        <div className="mx-auto mt-16 max-w-2xl divide-y divide-brand-ink/8 overflow-hidden rounded-2xl border border-brand-ink/8 bg-white">
           {faqs.map((item, index) => {
             const isOpen = openIndex === index;
             const panelId = `faq-panel-${index}`;
@@ -51,16 +51,17 @@ export function FaqSection() {
                   <button
                     id={buttonId}
                     type="button"
-                    className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left font-semibold text-brand-navy transition hover:bg-brand-navy-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-burgundy/30"
+                    className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium text-brand-navy transition-colors duration-150 ease-craft hover:bg-brand-navy-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-burgundy/30"
                     aria-expanded={isOpen}
                     aria-controls={panelId}
                     onClick={() => setOpenIndex(isOpen ? null : index)}
                   >
                     {item.q}
                     <ChevronDown
-                      className={`h-5 w-5 shrink-0 text-secondary transition duration-200 ${
+                      className={`size-4 shrink-0 text-secondary transition-transform duration-150 ease-craft ${
                         isOpen ? "rotate-180" : ""
                       }`}
+                      strokeWidth={1.5}
                       aria-hidden
                     />
                   </button>
