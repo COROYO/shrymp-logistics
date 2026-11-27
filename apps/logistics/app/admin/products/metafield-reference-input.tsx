@@ -17,7 +17,7 @@ import type { MetafieldReferenceOption } from "@/server/shopify/metafield-refere
 const chipClass =
   "inline-flex items-center gap-1 rounded-full bg-brand-cream px-2 py-0.5 text-xs text-brand-navy ring-1 ring-zinc-200";
 const inputClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+  "w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
 export function MetafieldReferenceInput({
   type,

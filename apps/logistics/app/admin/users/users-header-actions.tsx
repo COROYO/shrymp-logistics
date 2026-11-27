@@ -13,7 +13,7 @@ export function UsersHeaderActions() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90"
+        className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-brand-burgundy/90"
       >
         <PlusIcon className="h-4 w-4" />
         Mitarbeiter:in anlegen

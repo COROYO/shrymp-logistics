@@ -53,7 +53,7 @@ export default async function SelectShopPage({
                   <input type="hidden" name="next" value={nextPath} />
                   <button
                     type="submit"
-                    className="flex w-full items-center justify-between px-6 py-4 text-left text-sm font-semibold text-brand-navy transition hover:bg-zinc-50"
+                    className="flex w-full items-center justify-between px-6 py-4 text-left text-sm font-medium text-brand-navy transition-colors hover:bg-zinc-50"
                   >
                     <span>{shop.shop_domain}</span>
                     <span className="text-brand-burgundy">→</span>

@@ -37,20 +37,16 @@ export type RunLineView = {
   slots: RunLineSlotView[];
 };
 
-// One stable colour per cart slot — makes "put into slot 3" unmistakable.
+// One stable tote colour per cart slot. Muted so the bin label stays the loudest thing.
 const SLOT_COLORS = [
-  "bg-emerald-600",
-  "bg-sky-600",
-  "bg-violet-600",
-  "bg-amber-600",
-  "bg-rose-600",
-  "bg-teal-600",
-  "bg-indigo-600",
-  "bg-orange-600",
-  "bg-pink-600",
-  "bg-lime-600",
-  "bg-cyan-600",
-  "bg-fuchsia-600",
+  "bg-brand-navy",
+  "bg-brand-burgundy",
+  "bg-[#3d5a40]",
+  "bg-[#8a5a2b]",
+  "bg-[#1f4e5f]",
+  "bg-[#5c5346]",
+  "bg-[#6b3a3a]",
+  "bg-[#3f4a3c]",
 ];
 
 function slotColor(slot: number): string {
@@ -217,7 +213,7 @@ export function RunPickClient({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="eyebrow">{t("eyebrow")}</p>
-            <h1 className="mt-1 text-2xl font-bold text-brand-navy">
+            <h1 className="mt-1 text-2xl font-medium text-brand-navy">
               {t("title", { count: slots.length })}
             </h1>
           </div>
@@ -233,16 +229,16 @@ export function RunPickClient({
 
         <div>
           <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-brand-navy/70">
+            <span className="font-medium text-brand-navy/70">
               {t("progress")}
             </span>
-            <span className="tabular-nums font-bold text-brand-navy">
+            <span className="tabular-nums font-medium text-brand-navy">
               {totals.picked} / {totals.total}
             </span>
           </div>
           <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-zinc-200">
             <div
-              className={`h-full rounded-full transition-all ${
+              className={`h-full rounded-full ${
                 totals.complete ? "bg-emerald-500" : "bg-brand-burgundy"
               }`}
               style={{ width: `${pct}%` }}
@@ -254,15 +250,17 @@ export function RunPickClient({
           {slots.map((s) => (
             <span
               key={s.slot}
-              className={`inline-flex items-center gap-1.5 rounded-full ${slotColor(
+              className={`inline-flex items-center gap-1.5 rounded-lg ${slotColor(
                 s.slot,
-              )} px-2.5 py-1 text-xs font-semibold text-white`}
+              )} px-2.5 py-1 text-xs font-medium text-white`}
             >
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-white/25 font-bold">
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-white/25 font-medium">
                 {s.slot}
               </span>
               <span className="font-mono">{s.orderName}</span>
-              {s.express ? <span aria-hidden>⚡</span> : null}
+              {s.express ? (
+                <span className="text-white/80">Express</span>
+              ) : null}
             </span>
           ))}
         </div>
@@ -271,13 +269,13 @@ export function RunPickClient({
       {errors.length > 0 ? (
         <div className="mt-4 rounded-md border border-red-300 bg-red-50 p-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-[0.12em] text-red-700">
+            <span className="text-xs font-medium text-red-700">
               {t("errorsTitle")}
             </span>
             <button
               type="button"
               onClick={() => setErrors([])}
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-red-700/70 hover:text-red-800"
+              className="text-xs font-medium text-red-700/70 hover:text-red-800"
             >
               {t("clearErrors")}
             </button>
@@ -311,20 +309,18 @@ export function RunPickClient({
           return (
             <li
               key={line.variantId}
-              className={`card p-3 transition ${done ? "opacity-60" : ""}`}
+              className={`card p-3 transition-colors ${done ? "opacity-60" : ""}`}
             >
               <div className="flex items-start gap-3">
                 {line.binCode ? (
-                  <span className="grid shrink-0 place-items-center rounded-md bg-brand-cream px-2 py-1 text-center font-mono text-sm font-bold text-brand-navy">
-                    {line.binCode}
-                  </span>
+                  <span className="bin-label">{line.binCode}</span>
                 ) : (
-                  <span className="grid shrink-0 place-items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-center text-[10px] font-semibold text-amber-700">
+                  <span className="grid shrink-0 place-items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-center text-xs font-medium text-amber-700">
                     {t("binNone")}
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold leading-tight text-brand-navy">
+                  <div className="font-medium leading-tight text-brand-navy">
                     {line.title}
                   </div>
                   <div className="truncate text-xs text-brand-navy/60">
@@ -334,7 +330,7 @@ export function RunPickClient({
                 </div>
                 <div className="shrink-0 text-right">
                   <span
-                    className={`tabular-nums text-lg font-bold ${
+                    className={`tabular-nums text-lg font-medium ${
                       done ? "text-emerald-600" : "text-brand-navy"
                     }`}
                   >
@@ -353,26 +349,26 @@ export function RunPickClient({
                         s.slot,
                       )} px-1 py-0.5 text-white ${slotDone ? "opacity-50" : ""}`}
                     >
-                      <span className="grid h-5 w-5 place-items-center rounded bg-white/25 text-xs font-bold">
+                      <span className="grid h-5 w-5 place-items-center rounded bg-white/25 text-xs font-medium">
                         {s.slot}
                       </span>
                       <button
                         type="button"
                         onClick={() => manualAdjust(line.variantId, s.slot, -1)}
                         disabled={s.picked === 0}
-                        className="grid h-6 w-6 place-items-center rounded text-base font-bold hover:bg-white/20 disabled:opacity-30"
+                        className="grid h-6 w-6 place-items-center rounded text-base font-medium hover:bg-white/20 disabled:opacity-30"
                         aria-label="-1"
                       >
                         −
                       </button>
-                      <span className="min-w-[2.2rem] text-center text-xs font-bold tabular-nums">
+                      <span className="min-w-[2.2rem] text-center text-xs font-medium tabular-nums">
                         {s.picked}/{s.qty}
                       </span>
                       <button
                         type="button"
                         onClick={() => manualAdjust(line.variantId, s.slot, +1)}
                         disabled={s.picked >= s.qty}
-                        className="grid h-6 w-6 place-items-center rounded text-base font-bold hover:bg-white/20 disabled:opacity-30"
+                        className="grid h-6 w-6 place-items-center rounded text-base font-medium hover:bg-white/20 disabled:opacity-30"
                         aria-label="+1"
                       >
                         +
@@ -391,7 +387,7 @@ export function RunPickClient({
           type="button"
           onClick={handleComplete}
           disabled={!totals.complete || busy}
-          className="w-full rounded-md bg-emerald-700 px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
+          className="btn-primary w-full py-3 disabled:bg-zinc-300 disabled:text-zinc-500"
         >
           {totals.complete ? t("complete") : t("completeLocked")}
         </button>
@@ -408,14 +404,14 @@ export function RunPickClient({
               put.slot,
             )} px-3 py-2 text-white`}
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/25 text-lg font-bold">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/25 text-lg font-medium">
               {put.slot}
             </span>
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/80">
+              <div className="text-xs font-medium text-white/80">
                 {t("putInto", { order: put.orderName })}
               </div>
-              <div className="truncate text-sm font-semibold">{put.title}</div>
+              <div className="truncate text-sm font-medium">{put.title}</div>
             </div>
           </div>
         ) : null}

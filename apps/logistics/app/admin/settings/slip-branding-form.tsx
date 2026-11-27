@@ -15,7 +15,7 @@ import {
 } from "@/app/admin/_components/admin-jobs-events";
 
 const labelClass =
-  "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60";
+  "block text-xs font-medium text-brand-navy/60";
 
 const inputClass =
   "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";

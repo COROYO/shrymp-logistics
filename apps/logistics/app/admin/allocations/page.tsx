@@ -259,7 +259,7 @@ export default async function AllocationsPage({
             {" · "}
             <Link
               href="/admin/allocations"
-              className="font-semibold text-brand-burgundy underline-offset-2 hover:underline"
+              className="font-medium text-brand-burgundy underline-offset-2 hover:underline"
             >
               Filter zurücksetzen
             </Link>
@@ -279,7 +279,7 @@ export default async function AllocationsPage({
         <section className="card overflow-hidden">
           <div className="border-b border-zinc-200 px-6 py-4">
             <p className="eyebrow">Reservierte Ware</p>
-            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            <h2 className="mt-1 text-sm font-medium text-brand-navy">
               {reservedTotal} Stück in {reservedSummary.length} Variante
               {reservedSummary.length === 1 ? "" : "n"} gebunden
             </h2>
@@ -302,7 +302,7 @@ export default async function AllocationsPage({
                 {reservedSummary.map((r) => (
                   <tr key={r.variantId}>
                     <td className="text-xs text-brand-navy/80">
-                      <div className="font-semibold">{r.productTitle}</div>
+                      <div className="font-medium">{r.productTitle}</div>
                       {r.variantTitle ? (
                         <div className="text-brand-navy/60">
                           {r.variantTitle}
@@ -312,7 +312,7 @@ export default async function AllocationsPage({
                     <td className="font-mono text-xs text-brand-navy/70">
                       {r.sku ?? "—"}
                     </td>
-                    <td className="text-right text-base font-bold text-brand-burgundy">
+                    <td className="text-right text-base font-medium text-brand-burgundy">
                       {r.qty}
                     </td>
                     <td className="text-right text-xs text-brand-navy/70">
@@ -339,7 +339,7 @@ export default async function AllocationsPage({
             <Link
               key={f}
               href={href}
-              className={`rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 isActive
                   ? "bg-brand-navy text-white"
                   : "border border-zinc-200 bg-white text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"
@@ -367,11 +367,11 @@ function Stat({
 }) {
   return (
     <div className={`card p-5 ${highlight ? "ring-1 ring-brand-burgundy/30" : ""}`}>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <dt className="text-xs font-medium text-brand-navy/60">
         {label}
       </dt>
       <dd
-        className={`mt-1.5 text-2xl font-bold tabular-nums ${
+        className={`mt-1.5 text-2xl font-medium tabular-nums ${
           highlight ? "text-brand-burgundy" : "text-brand-navy"
         }`}
       >

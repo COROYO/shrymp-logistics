@@ -36,7 +36,7 @@ export function SlipBlockedMessage({
       <p className="text-sm leading-relaxed text-brand-ink">{body}</p>
       <Link
         href={`/lager/picking/${orderId}`}
-        className="inline-flex text-sm font-semibold text-brand-burgundy underline-offset-2 hover:underline"
+        className="inline-flex text-sm font-medium text-brand-burgundy underline-offset-2 hover:underline"
       >
         Zurück zur Kommissionierung
       </Link>

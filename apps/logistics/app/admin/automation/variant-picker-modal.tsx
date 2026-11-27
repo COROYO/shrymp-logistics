@@ -97,7 +97,7 @@ export function VariantPickerModal({
                           onSelect(v);
                           onClose();
                         }}
-                        className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-brand-navy/5 ${
+                        className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-brand-navy/5 ${
                           selected ? "bg-brand-navy/5" : ""
                         }`}
                       >
@@ -105,12 +105,12 @@ export function VariantPickerModal({
                           <span className="block text-sm font-medium text-brand-navy">
                             {title}
                           </span>
-                          <span className="mt-0.5 block font-mono text-[11px] text-brand-navy/50">
+                          <span className="mt-0.5 block font-mono text-xs text-brand-navy/50">
                             {v.sku ? `SKU ${v.sku}` : `ID ${v.variantId}`}
                           </span>
                         </span>
                         {selected ? (
-                          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-brand-burgundy">
+                          <span className="shrink-0 text-xs font-medium text-brand-burgundy">
                             Gewählt
                           </span>
                         ) : null}

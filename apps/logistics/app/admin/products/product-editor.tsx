@@ -56,7 +56,7 @@ function slugify(title: string): string {
 }
 
 const inputClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
 type VariantImageState = {
   image_url: string | null;
@@ -178,11 +178,11 @@ export function ProductEditor({
         <div>
           <Link
             href="/admin/products"
-            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
+            className="text-xs font-medium text-brand-navy/60 transition-colors hover:text-brand-burgundy"
           >
             {t("back")}
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-brand-navy">
+          <h1 className="mt-2 text-2xl font-medium text-brand-navy">
             {payload.isNew ? t("newTitle") : state.title || t("editTitle")}
           </h1>
         </div>
@@ -340,7 +340,7 @@ export function ProductEditor({
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-200 text-left text-[11px] uppercase tracking-[0.12em] text-brand-navy/60">
+                  <tr className="border-b border-zinc-200 text-left text-xs text-brand-navy/60">
                     {optionColumns.map((col) => (
                       <th key={col.key} className="px-2 py-2">
                         {col.label}
@@ -546,7 +546,7 @@ export function ProductEditor({
                   },
                 ])
               }
-              className="mt-3 text-sm font-semibold text-brand-burgundy"
+              className="mt-3 text-sm font-medium text-brand-burgundy"
             >
               {t("addVariant")}
             </button>
@@ -723,7 +723,7 @@ function Section({
 }) {
   return (
     <section className="card p-5">
-      <h2 className="text-sm font-semibold text-brand-navy">{title}</h2>
+      <h2 className="text-sm font-medium text-brand-navy">{title}</h2>
       <div className="mt-4 space-y-4">{children}</div>
     </section>
   );
@@ -738,7 +738,7 @@ function Field({
 }) {
   return (
     <div className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <span className="text-xs font-medium text-brand-navy/60">
         {label}
       </span>
       <div className="mt-1.5">{children}</div>

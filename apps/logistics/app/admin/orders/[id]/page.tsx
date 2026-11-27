@@ -90,12 +90,12 @@ export default async function AdminOrderDetailPage({
       <div>
         <Link
           href="/admin/orders"
-          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
+          className="text-xs font-medium text-brand-navy/60 transition-colors hover:text-brand-burgundy"
         >
           {t("back")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
+          <h1 className="font-mono text-3xl font-medium tracking-tight text-brand-navy">
             <span className="inline-flex items-center gap-2">
               <OrderNoteIcon note={order.customer_note} />
               {order.name}
@@ -143,7 +143,7 @@ export default async function AdminOrderDetailPage({
 
       {order.internal_status === "CANCELLED" ? (
         <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-4 py-3 text-sm text-brand-burgundy-dark">
-          <div className="font-semibold">{t("cancelled.title")}</div>
+          <div className="font-medium">{t("cancelled.title")}</div>
           <div className="mt-1 text-xs">
             {t("cancelled.reason")}:{" "}
             <span className="font-mono">
@@ -160,7 +160,7 @@ export default async function AdminOrderDetailPage({
               </>
             ) : null}
           </div>
-          <div className="mt-2 text-[11px]">
+          <div className="mt-2 text-xs">
             {t("cancelled.allocationsReleased")}
           </div>
         </div>
@@ -171,7 +171,7 @@ export default async function AdminOrderDetailPage({
           <h2 className="eyebrow">{t("comments.title")}</h2>
           {order.customer_note ? (
             <div className="mt-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+              <div className="text-xs font-medium text-brand-navy/60">
                 {t("comments.customerNote")}
               </div>
               <p className="mt-1 whitespace-pre-line text-sm text-brand-ink">
@@ -181,13 +181,13 @@ export default async function AdminOrderDetailPage({
           ) : null}
           {(order.note_attributes?.length ?? 0) > 0 ? (
             <div className="mt-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+              <div className="text-xs font-medium text-brand-navy/60">
                 {t("comments.orderAttributes")}
               </div>
               <dl className="mt-1 space-y-1 text-sm">
                 {order.note_attributes!.map((a, i) => (
                   <div key={i} className="flex flex-wrap gap-2">
-                    <dt className="font-semibold text-brand-navy">{a.name}:</dt>
+                    <dt className="font-medium text-brand-navy">{a.name}:</dt>
                     <dd className="whitespace-pre-line text-brand-ink">
                       {a.value || "—"}
                     </dd>
@@ -254,7 +254,7 @@ export default async function AdminOrderDetailPage({
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">
           <p className="eyebrow">{t("allocationsEyebrow")}</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             {t("lineItemsTitle", {
               count: order.line_items.length,
               allocs: allocs.length,
@@ -277,7 +277,7 @@ export default async function AdminOrderDetailPage({
                 return (
                   <tr key={li.id}>
                     <td>
-                      <div className="font-semibold text-brand-navy">
+                      <div className="font-medium text-brand-navy">
                         {li.title}
                       </div>
                       {li.custom || !li.variant_id ? (
@@ -294,7 +294,7 @@ export default async function AdminOrderDetailPage({
                     <td className="font-mono text-xs text-brand-navy/70">
                       {li.sku ?? "—"}
                     </td>
-                    <td className="text-right text-base font-bold text-brand-navy">
+                    <td className="text-right text-base font-medium text-brand-navy">
                       {li.qty}
                     </td>
                     <td className="space-y-1 text-xs">
@@ -313,10 +313,10 @@ export default async function AdminOrderDetailPage({
                               key={a.id}
                               className="flex flex-wrap items-center gap-2"
                             >
-                              <span className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white">
+                              <span className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-medium text-white">
                                 {b?.charge_number ?? a.batch_id.slice(0, 6)}
                               </span>
-                              <span className="font-semibold text-brand-navy">
+                              <span className="font-medium text-brand-navy">
                                 {a.qty}×
                               </span>
                               {consumedIso ? (
@@ -348,7 +348,7 @@ export default async function AdminOrderDetailPage({
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">
           <p className="eyebrow">{t("audit.eyebrow")}</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             {t("audit.title", { count: movs.length })}
           </h2>
         </div>
@@ -389,7 +389,7 @@ export default async function AdminOrderDetailPage({
                         <span className="chip chip-soft">{m.type}</span>
                       </td>
                       <td
-                        className={`text-right font-mono font-bold ${
+                        className={`text-right font-mono font-medium ${
                           m.qty < 0 ? "text-brand-burgundy" : "text-emerald-700"
                         }`}
                       >
@@ -425,7 +425,7 @@ function DefRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <dt className="text-xs font-medium text-brand-navy/60">
         {label}
       </dt>
       <dd className="text-right text-sm text-brand-ink">{children}</dd>

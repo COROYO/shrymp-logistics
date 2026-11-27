@@ -70,7 +70,7 @@ export function InventorySourceForm({
         {OPTIONS.map((opt) => (
           <label
             key={opt.value}
-            className={`flex cursor-pointer items-start gap-3 rounded-md border px-4 py-4 transition ${
+            className={`flex cursor-pointer items-start gap-3 rounded-md border px-4 py-4 transition-colors ${
               selected === opt.value
                 ? "border-brand-burgundy/40 bg-brand-burgundy-soft/30"
                 : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
@@ -85,7 +85,7 @@ export function InventorySourceForm({
               className="mt-0.5 h-4 w-4"
             />
             <span>
-              <span className="block text-sm font-semibold text-brand-navy">
+              <span className="block text-sm font-medium text-brand-navy">
                 {opt.title}
               </span>
               <span className="mt-1 block text-xs text-brand-navy/70">

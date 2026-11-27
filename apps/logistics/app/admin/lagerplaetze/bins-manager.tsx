@@ -159,14 +159,14 @@ function CreateBinsForm({ t, pending, startTransition, onDone, transErr }: Commo
           <button
             type="button"
             onClick={() => setMode("single")}
-            className={`rounded px-3 py-1 font-semibold ${mode === "single" ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
+            className={`rounded px-3 py-1 font-medium ${mode === "single" ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
           >
             {t("create.single")}
           </button>
           <button
             type="button"
             onClick={() => setMode("bulk")}
-            className={`rounded px-3 py-1 font-semibold ${mode === "bulk" ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
+            className={`rounded px-3 py-1 font-medium ${mode === "bulk" ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
           >
             {t("create.bulk")}
           </button>
@@ -275,14 +275,14 @@ function BinList({
               clipRule="evenodd"
             />
           </svg>
-          <h2 className="text-sm font-semibold text-brand-navy">
+          <h2 className="text-sm font-medium text-brand-navy">
             {t("list.title", { count: bins.length })}
           </h2>
         </button>
         <button
           type="button"
           onClick={onCreateClick}
-          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90"
+          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-burgundy/90"
         >
           <PlusIcon className="h-4 w-4" />
           {t("create.add")}
@@ -314,11 +314,11 @@ function BinList({
                 ) : (
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="rounded-md bg-brand-navy px-2.5 py-1 font-mono text-sm font-bold text-white">
+                      <span className="rounded-md bg-brand-navy px-2.5 py-1 font-mono text-sm font-medium text-white">
                         {bin.code}
                       </span>
                       <div>
-                        <div className="text-sm font-semibold text-brand-navy">{bin.name}</div>
+                        <div className="text-sm font-medium text-brand-navy">{bin.name}</div>
                         <div className="text-xs text-brand-navy/50">
                           {bin.zone ? `${bin.zone} · ` : ""}
                           {t("list.variantCount", { count: bin.variantCount })}
@@ -326,7 +326,7 @@ function BinList({
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
+                    <div className="flex items-center gap-3 text-xs font-medium">
                       <button type="button" onClick={() => setEditing(bin.id)} className="text-brand-navy/70 hover:text-brand-burgundy">
                         {t("edit")}
                       </button>
@@ -384,7 +384,7 @@ function AssignSection({
     <section className="card overflow-hidden">
       <div className="border-b border-zinc-200 px-6 py-4">
         <p className="eyebrow">{t("assign.eyebrow")}</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">{t("assign.title")}</h2>
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">{t("assign.title")}</h2>
         <p className="mt-1 text-xs text-brand-navy/60">{t("assign.intro")}</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <input
@@ -418,7 +418,7 @@ function AssignSection({
               {filtered.map((v) => (
                 <tr key={v.variantId}>
                   <td>
-                    <div className="font-semibold text-brand-navy">{v.productTitle}</div>
+                    <div className="font-medium text-brand-navy">{v.productTitle}</div>
                     <div className="text-xs text-brand-navy/60">{v.variantTitle}</div>
                   </td>
                   <td className="font-mono text-xs text-brand-navy/70">
@@ -467,7 +467,7 @@ function Field({
 }) {
   return (
     <label className="block text-sm">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <span className="text-xs font-medium text-brand-navy/60">
         {label}
       </span>
       <input

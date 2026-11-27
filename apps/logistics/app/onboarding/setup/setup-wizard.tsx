@@ -87,7 +87,7 @@ const inputClass =
   "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
 const labelClass =
-  "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70";
+  "block text-xs font-medium text-brand-navy/70";
 
 export function SetupWizard({
   initialStep,
@@ -248,7 +248,7 @@ export function SetupWizard({
           <span>
             Schritt {step + 1} von {STEPS.length}
           </span>
-          <span className="font-semibold text-brand-navy">{progressPct}%</span>
+          <span className="font-medium text-brand-navy">{progressPct}%</span>
         </div>
         <div
           className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-200"
@@ -258,7 +258,7 @@ export function SetupWizard({
           aria-valuemax={100}
         >
           <div
-            className="h-full rounded-full bg-brand-burgundy transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-brand-burgundy transition-colors duration-500 ease-out"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -266,7 +266,7 @@ export function SetupWizard({
           {STEPS.map((s, i) => (
             <li
               key={s.id}
-              className={`flex-1 truncate rounded px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wide ${
+              className={`flex-1 truncate rounded px-2 py-1 text-center text-xs font-medium ${
                 i === step
                   ? "bg-brand-navy text-white"
                   : i < step
@@ -380,7 +380,7 @@ function WelcomeStep({
 
         <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
           <div className="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+            <dt className="text-xs font-medium text-brand-navy/50">
               Shop
             </dt>
             <dd className="mt-1 font-mono text-xs text-brand-navy">
@@ -388,7 +388,7 @@ function WelcomeStep({
             </dd>
           </div>
           <div className="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+            <dt className="text-xs font-medium text-brand-navy/50">
               Admin
             </dt>
             <dd className="mt-1 text-xs text-brand-navy">{userEmail}</dd>
@@ -483,7 +483,7 @@ function ImportStep({
     <div className="flex flex-1 flex-col">
       <div className="card flex-1 p-8">
         <p className="eyebrow">Import</p>
-        <h2 className="mt-2 text-xl font-semibold text-brand-navy">
+        <h2 className="mt-2 text-xl font-medium text-brand-navy">
           Shopify-Daten laden
         </h2>
         <p className="mt-2 text-sm text-brand-navy/70">
@@ -499,7 +499,7 @@ function ImportStep({
                 Schritt {progress.step} von {IMPORT_STEP_COUNT}
                 {progress.label ? ` · ${progress.label}` : ""}
               </span>
-              <span className="font-semibold text-brand-navy">
+              <span className="font-medium text-brand-navy">
                 {progress.pct}%
               </span>
             </div>
@@ -512,7 +512,7 @@ function ImportStep({
               aria-label="Import-Fortschritt"
             >
               <div
-                className="h-full rounded-full bg-brand-burgundy transition-all duration-500 ease-out"
+                className="h-full rounded-full bg-brand-burgundy transition-colors duration-500 ease-out"
                 style={{ width: `${progress.pct}%` }}
               />
             </div>
@@ -531,7 +531,7 @@ function ImportStep({
                     : "border-zinc-200 bg-zinc-50 text-brand-navy/60"
               }`}
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-medium">
                 {s.done ? "✓" : s.active ? "…" : "○"}
               </span>
               <span className="font-medium">{s.label}</span>
@@ -628,10 +628,10 @@ function ImportStep({
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-md border border-zinc-200 bg-white px-4 py-3">
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+      <dt className="text-xs font-medium text-brand-navy/50">
         {label}
       </dt>
-      <dd className="mt-1 font-mono text-lg font-semibold text-brand-navy">
+      <dd className="mt-1 font-mono text-lg font-medium text-brand-navy">
         {value.toLocaleString("de-DE")}
       </dd>
     </div>
@@ -655,7 +655,7 @@ function ConfigStep({
     <div className="flex flex-1 flex-col">
       <div className="card flex-1 p-8">
         <p className="eyebrow">Konfiguration</p>
-        <h2 className="mt-2 text-xl font-semibold text-brand-navy">{title}</h2>
+        <h2 className="mt-2 text-xl font-medium text-brand-navy">{title}</h2>
         <p className="mt-2 text-sm text-brand-navy/70">{description}</p>
         <div className="mt-6">{children}</div>
       </div>
@@ -700,7 +700,7 @@ function DhlStep({
     <div className="flex flex-1 flex-col">
       <div className="card flex-1 p-8">
         <p className="eyebrow">Optional</p>
-        <h2 className="mt-2 text-xl font-semibold text-brand-navy">
+        <h2 className="mt-2 text-xl font-medium text-brand-navy">
           DHL Versand & Rechnungsdaten
         </h2>
         <p className="mt-2 text-sm text-brand-navy/70">
@@ -806,7 +806,7 @@ function TeamStep({
     <div className="flex flex-1 flex-col">
       <div className="card flex-1 p-8">
         <p className="eyebrow">Optional</p>
-        <h2 className="mt-2 text-xl font-semibold text-brand-navy">
+        <h2 className="mt-2 text-xl font-medium text-brand-navy">
           Mitarbeiter einladen
         </h2>
         <p className="mt-2 text-sm text-brand-navy/70">
@@ -842,7 +842,7 @@ function DoneStep({
     <div className="flex flex-1 flex-col items-center justify-center text-center">
       <div className="card w-full max-w-lg p-10">
         <BrandMark variant="dark" />
-        <h2 className="mt-6 text-2xl font-semibold text-brand-navy">
+        <h2 className="mt-6 text-2xl font-medium text-brand-navy">
           Einrichtung abgeschlossen
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-brand-navy/70">

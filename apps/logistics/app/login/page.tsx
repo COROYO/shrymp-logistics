@@ -38,22 +38,13 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="relative flex flex-1 items-center justify-center px-4 py-16">
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-cream via-brand-cream to-brand-stone"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-brand-navy"
-      />
-
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-zinc-200 bg-white p-10 shadow-xl shadow-brand-navy/5">
+    <div className="flex flex-1 items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md space-y-8 rounded-xl border border-brand-ink/8 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex flex-col items-start gap-6">
           <BrandMark variant="dark" />
           <div>
             <p className="eyebrow">Login</p>
-            <h1 className="h-display mt-1 text-2xl">Willkommen zurück</h1>
+            <h1 className="h-display mt-1 text-2xl">Anmeldung</h1>
             <p className="mt-1 text-sm text-brand-navy/60">
               Bitte mit deinem Mitarbeiter-Konto anmelden.
             </p>
@@ -77,7 +68,7 @@ export default async function LoginPage({
           Noch kein Konto?{" "}
           <Link
             href="/register"
-            className="font-semibold text-brand-burgundy underline-offset-2 hover:underline"
+            className="font-medium text-brand-burgundy underline-offset-2 hover:underline"
           >
             Registrieren
           </Link>
@@ -87,7 +78,7 @@ export default async function LoginPage({
           Passwort vergessen?{" "}
           <Link
             href="/admin/users"
-            className="font-semibold text-brand-burgundy underline-offset-2 hover:underline"
+            className="font-medium text-brand-burgundy underline-offset-2 hover:underline"
           >
             Beim Admin melden
           </Link>

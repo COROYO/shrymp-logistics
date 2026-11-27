@@ -87,7 +87,7 @@ export function DhlConfigForm({
           mono
           placeholder="33333333330102"
         />
-        <p className="mt-1 text-[11px] text-brand-navy/60">
+        <p className="mt-1 text-xs text-brand-navy/60">
           Findest du im DHL Geschäftskundenportal unter deinen
           Versandeinstellungen.
         </p>
@@ -282,7 +282,7 @@ export function DhlConfigForm({
             mono
           />
         </div>
-        <p className="mt-1 text-[11px] text-brand-navy/60">
+        <p className="mt-1 text-xs text-brand-navy/60">
           Maße sind optional. Wenn angegeben, müssen alle drei gesetzt sein.
         </p>
       </div>
@@ -291,7 +291,7 @@ export function DhlConfigForm({
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-navy-soft disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-navy-soft disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? "Speichere…" : "Speichern"}
         </button>
@@ -319,7 +319,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
+      <span className="block text-xs font-medium text-brand-navy/70">
         {label}
         {required ? " *" : ""}
       </span>
@@ -329,7 +329,7 @@ function Field({
         defaultValue={defaultValue ?? ""}
         required={required}
         placeholder={placeholder}
-        className={`mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 ${
+        className={`mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-brand-ink shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 ${
           mono ? "font-mono" : ""
         }`}
       />

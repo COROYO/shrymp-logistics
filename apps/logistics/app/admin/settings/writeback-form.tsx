@@ -122,7 +122,7 @@ export function WritebackForm({ current }: { current: WritebackFormValue }) {
           className="mt-0.5 h-4 w-4 rounded border-zinc-300"
         />
         <span>
-          <span className="block text-sm font-semibold text-brand-navy">
+          <span className="block text-sm font-medium text-brand-navy">
             Kunden über den Versand informieren
           </span>
           <span className="mt-1 block text-xs text-brand-navy/70">
@@ -186,7 +186,7 @@ function Toggle({
         className="mt-0.5 h-4 w-4 rounded border-zinc-300"
       />
       <span>
-        <span className="block text-sm font-semibold text-brand-navy">
+        <span className="block text-sm font-medium text-brand-navy">
           {title}
         </span>
         <span className="mt-1 block text-xs text-brand-navy/70">{body}</span>
@@ -216,7 +216,7 @@ function TagField({
     <div className={muted ? "opacity-60" : undefined}>
       <label
         htmlFor={id}
-        className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60"
+        className="block text-xs font-medium text-brand-navy/60"
       >
         {label}
       </label>
@@ -230,7 +230,7 @@ function TagField({
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm"
       />
-      <p className="mt-1 text-[11px] text-brand-navy/50">{hint}</p>
+      <p className="mt-1 text-xs text-brand-navy/50">{hint}</p>
     </div>
   );
 }

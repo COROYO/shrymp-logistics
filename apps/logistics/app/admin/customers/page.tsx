@@ -22,7 +22,7 @@ export default async function CustomersPage() {
 
       <section className="card p-6">
         <p className="eyebrow">{t("backfill.eyebrow")}</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           {t("backfill.title")}
         </h2>
         <p className="mt-1 max-w-3xl text-xs text-brand-navy/60">

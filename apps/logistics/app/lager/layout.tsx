@@ -77,12 +77,12 @@ export default async function LagerLayout({
           />
         }
       />
-      <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-brand-navy text-white shadow-[2px_0_0_0_var(--color-brand-burgundy)] md:flex print:hidden">
-        <div className="px-5 py-5">
+      <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-brand-navy text-white md:flex print:hidden">
+        <div className="px-4 py-5">
           <Link href="/lager" className="flex items-center">
             <BrandMark />
           </Link>
-          <div className="mt-1 ml-12 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+          <div className="mt-1 ml-10 text-xs font-medium text-white/40">
             {t("lager")}
           </div>
         </div>
@@ -95,7 +95,7 @@ export default async function LagerLayout({
           <Sidebar sections={SECTIONS} footer={footer} />
         </div>
       </aside>
-      <main className="flex-1 min-w-0 px-6 py-8 md:px-10">{children}</main>
+      <main className="flex-1 min-w-0 px-6 py-8 md:px-8">{children}</main>
     </div>
   ));
 }

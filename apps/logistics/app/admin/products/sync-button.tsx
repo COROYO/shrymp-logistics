@@ -47,7 +47,7 @@ export function ProductSyncButton() {
           className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-brand-burgundy focus:ring-brand-navy/30"
         />
         <span>
-          <span className="font-semibold">{t("inventoryCheckbox")}</span>
+          <span className="font-medium">{t("inventoryCheckbox")}</span>
           <span className="mt-0.5 block text-xs text-brand-navy/60">
             {t("inventoryCheckboxHint")}
           </span>

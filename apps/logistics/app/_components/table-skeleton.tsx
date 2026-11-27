@@ -6,7 +6,7 @@ export function TableSkeleton({
   cols?: number;
 }) {
   return (
-    <div className="animate-pulse divide-y divide-zinc-100">
+    <div className="divide-y divide-zinc-100">
       {Array.from({ length: rows }, (_, r) => (
         <div
           key={r}
@@ -30,7 +30,7 @@ export function StatSkeleton({ count = 3 }: { count?: number }) {
   return (
     <dl className="grid gap-3 text-sm sm:grid-cols-3">
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="card animate-pulse p-5">
+        <div key={i} className="card bg-zinc-100 p-5">
           <div className="h-3 w-24 rounded bg-zinc-200" />
           <div className="mt-3 h-8 w-16 rounded bg-zinc-200" />
         </div>

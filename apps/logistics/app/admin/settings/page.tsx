@@ -69,7 +69,7 @@ export default async function SettingsOverviewPage({
 
       <section className="card p-6">
         <p className="eyebrow">Übersicht</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Konfiguration nach Bereich
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -78,7 +78,7 @@ export default async function SettingsOverviewPage({
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <dt className="text-xs font-medium text-brand-navy/60">
               Bestandsführung
             </dt>
             <dd className="mt-1">
@@ -88,7 +88,7 @@ export default async function SettingsOverviewPage({
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <dt className="text-xs font-medium text-brand-navy/60">
               Chargen-Tracking
             </dt>
             <dd className="mt-1">
@@ -102,7 +102,7 @@ export default async function SettingsOverviewPage({
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <dt className="text-xs font-medium text-brand-navy/60">
               MHD-Sperre
             </dt>
             <dd className="mt-1 font-mono text-xs">
@@ -122,7 +122,7 @@ export default async function SettingsOverviewPage({
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="flex items-center justify-between py-3 text-sm font-semibold text-brand-navy transition hover:text-brand-burgundy"
+                  className="flex items-center justify-between py-3 text-sm font-medium text-brand-navy transition-colors hover:text-brand-burgundy"
                 >
                   <span>{item.label}</span>
                   <span className="text-brand-navy/30">→</span>

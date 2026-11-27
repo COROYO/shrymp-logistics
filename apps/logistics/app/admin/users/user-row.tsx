@@ -99,7 +99,7 @@ export function UserRow({
     <>
       <tr className={user.disabled ? "bg-zinc-50/60 text-brand-navy/50" : undefined}>
         <td>
-          <div className="font-semibold text-brand-navy">
+          <div className="font-medium text-brand-navy">
             {user.display_name ?? user.email ?? user.uid}
             {isMe ? (
               <span className="chip chip-soft ml-2 !px-1.5 !py-0">du</span>
@@ -111,7 +111,7 @@ export function UserRow({
             </div>
           ) : null}
           {!user.has_mirror ? (
-            <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            <div className="mt-1 text-xs font-medium text-amber-700">
               kein Firestore-Mirror — sync re-trigger empfohlen
             </div>
           ) : null}
@@ -139,12 +139,12 @@ export function UserRow({
         <td className="text-xs text-brand-navy/60">{createdShort}</td>
         <td className="text-xs text-brand-navy/60">{lastSignInShort}</td>
         <td className="whitespace-nowrap text-right">
-          <div className="inline-flex gap-4 text-[11px] font-semibold uppercase tracking-[0.1em]">
+          <div className="inline-flex gap-4 text-xs font-medium">
             <button
               type="button"
               onClick={toggleRole}
               disabled={pending || isMe}
-              className="text-brand-navy/70 transition hover:text-brand-burgundy disabled:opacity-30"
+              className="text-brand-navy/70 transition-colors hover:text-brand-burgundy disabled:opacity-30"
               title={
                 isMe
                   ? "Du kannst deine eigene Rolle nicht ändern"
@@ -157,7 +157,7 @@ export function UserRow({
               type="button"
               onClick={() => setPwModalOpen(true)}
               disabled={pending}
-              className="text-brand-navy/70 transition hover:text-brand-burgundy disabled:opacity-30"
+              className="text-brand-navy/70 transition-colors hover:text-brand-burgundy disabled:opacity-30"
             >
               Passwort
             </button>
@@ -165,7 +165,7 @@ export function UserRow({
               type="button"
               onClick={toggleDisabled}
               disabled={pending || isMe}
-              className="text-brand-navy/70 transition hover:text-brand-burgundy disabled:opacity-30"
+              className="text-brand-navy/70 transition-colors hover:text-brand-burgundy disabled:opacity-30"
               title={
                 isMe
                   ? "Du kannst dich nicht selbst deaktivieren"
@@ -180,13 +180,13 @@ export function UserRow({
               type="button"
               onClick={handleDelete}
               disabled={pending || isMe}
-              className="text-brand-burgundy transition hover:text-brand-burgundy-dark disabled:opacity-30"
+              className="text-brand-burgundy transition-colors hover:text-brand-burgundy-dark disabled:opacity-30"
             >
               Löschen
             </button>
           </div>
           {err ? (
-            <div className="mt-1 text-[10px] font-semibold text-brand-burgundy">
+            <div className="mt-1 text-xs font-medium text-brand-burgundy">
               {err}
             </div>
           ) : null}
@@ -238,7 +238,7 @@ function ResetPasswordRow({
       <td colSpan={6} className="px-6 py-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
+            <label className="block text-xs font-medium text-brand-navy/70">
               Neues Passwort für {email}
             </label>
             <input
@@ -261,12 +261,12 @@ function ResetPasswordRow({
             type="button"
             onClick={onClose}
             disabled={pending}
-            className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
+            className="text-xs font-medium text-brand-navy/70 hover:text-brand-burgundy"
           >
             Abbrechen
           </button>
           {err ? (
-            <span className="text-xs font-semibold text-brand-burgundy">
+            <span className="text-xs font-medium text-brand-burgundy">
               {err}
             </span>
           ) : null}

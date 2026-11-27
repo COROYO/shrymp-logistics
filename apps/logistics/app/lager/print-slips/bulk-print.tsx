@@ -162,10 +162,10 @@ export function BulkPrintClient({
       `}</style>
       {generating ? (
         <div className="print:hidden sticky top-0 z-20 rounded-lg border border-brand-navy/10 bg-white px-4 py-3 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
+          <p className="text-xs font-medium text-brand-burgundy">
             {t("eyebrow")}
           </p>
-          <h1 className="mt-1 text-lg font-semibold tracking-tight text-brand-navy">
+          <h1 className="mt-1 text-lg font-medium tracking-tight text-brand-navy">
             {total > 0 ? t("generating", { current, total }) : t("preparing")}
           </h1>
           {total > 0 ? (
@@ -202,7 +202,7 @@ export function BulkPrintClient({
           {waveIndex < waveCount - 1 ? (
             <button
               type="button"
-              className="rounded-md bg-brand-burgundy px-3 py-1.5 text-sm font-semibold text-white"
+              className="rounded-md bg-brand-burgundy px-3 py-1.5 text-sm font-medium text-white"
               onClick={() => {
                 setWaveIndex((n) => n + 1);
                 setPrintNonce((n) => n + 1);

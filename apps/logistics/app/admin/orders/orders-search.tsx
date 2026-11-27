@@ -49,7 +49,7 @@ export function OrdersSearch({
       }}
       placeholder={placeholder}
       aria-label={placeholder}
-      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 sm:max-w-md"
+      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 sm:max-w-md"
     />
   );
 }

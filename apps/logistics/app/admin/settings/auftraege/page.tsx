@@ -18,7 +18,7 @@ export default async function AuftraegeSettingsPage() {
     <>
       <section className="card p-6">
         <p className="eyebrow">Versandbereit</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Wann eine Bestellung SHIP wird
         </h2>
         <p className="mt-1 max-w-2xl text-xs text-brand-navy/60">
@@ -39,7 +39,7 @@ export default async function AuftraegeSettingsPage() {
 
       <section className="card p-6">
         <p className="eyebrow">Priorität</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Prioritäts-Tags
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -67,7 +67,7 @@ export default async function AuftraegeSettingsPage() {
 
       <section className="card p-6">
         <p className="eyebrow">Aufträge</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Bestehende Aufträge importieren
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -82,7 +82,7 @@ export default async function AuftraegeSettingsPage() {
 
       <section className="card p-6">
         <p className="eyebrow">Verfügbarkeit</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Aufträge neu prüfen
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">

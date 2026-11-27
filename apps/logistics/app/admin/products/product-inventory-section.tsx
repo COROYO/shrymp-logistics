@@ -60,7 +60,7 @@ export function ProductInventorySection({
 
   return (
     <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-brand-navy">
+      <h2 className="text-sm font-medium text-brand-navy">
         {t("sectionInventory")}
       </h2>
       <p className="mt-1 text-sm text-brand-navy/60">{t("sectionInventoryHint")}</p>

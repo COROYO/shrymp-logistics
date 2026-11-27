@@ -47,7 +47,7 @@ export function TestModeForm({ current }: { current: { test_mode: boolean } }) {
           className="mt-0.5 h-4 w-4 rounded border-zinc-300"
         />
         <span>
-          <span className="block text-sm font-semibold text-brand-navy">
+          <span className="block text-sm font-medium text-brand-navy">
             Testmodus aktiv
           </span>
           <span className="mt-1 block text-xs text-brand-navy/70">

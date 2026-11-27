@@ -111,7 +111,7 @@ function StatusGroup<T extends string>({
 }) {
   return (
     <fieldset>
-      <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <legend className="text-xs font-medium text-brand-navy/60">
         {legend}
       </legend>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -129,7 +129,7 @@ function StatusGroup<T extends string>({
             />
             <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span>{labels[status]}</span>
-              <span className="font-mono text-[10px] text-brand-navy/40">
+              <span className="font-mono text-xs text-brand-navy/40">
                 {status}
               </span>
             </span>

@@ -48,7 +48,7 @@ export function PriorityTagsForm({
       <div>
         <label
           htmlFor="priority_tags"
-          className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60"
+          className="block text-xs font-medium text-brand-navy/60"
         >
           Prioritäts-Tags
         </label>

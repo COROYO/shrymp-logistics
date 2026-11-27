@@ -153,7 +153,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
       <div className="flex flex-col gap-3 border-b border-zinc-200 px-6 py-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="eyebrow">Allokationen</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             {filtered.length} von {rows.length} Zuordnung
             {rows.length === 1 ? "" : "en"}
           </h2>
@@ -164,12 +164,12 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
             placeholder="Order, Produkt, SKU, Charge…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 sm:w-64"
+            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 sm:w-64"
           />
           <select
             value={productFilter}
             onChange={(e) => setProductFilter(e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
           >
             <option value="">Alle Produkte</option>
             {allProducts.map((p) => (
@@ -181,7 +181,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
           <select
             value={chargeFilter}
             onChange={(e) => setChargeFilter(e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
           >
             <option value="">Alle Chargen</option>
             {allCharges.map((c) => (
@@ -198,7 +198,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
               setChargeFilter("");
               setProductFilter("");
             }}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 transition hover:border-brand-navy hover:text-brand-navy disabled:opacity-40"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-brand-navy/70 transition-colors hover:border-brand-navy hover:text-brand-navy disabled:opacity-40"
           >
             Reset
           </button>
@@ -271,7 +271,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
                   <td>
                     <Link
                       href={`/admin/orders/${r.orderId}`}
-                      className="font-mono font-semibold text-brand-navy transition hover:text-brand-burgundy"
+                      className="font-mono font-medium text-brand-navy transition-colors hover:text-brand-burgundy"
                     >
                       {r.orderName}
                     </Link>
@@ -280,7 +280,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
                     </div>
                   </td>
                   <td className="text-xs text-brand-navy/80">
-                    <div className="font-semibold">{r.productTitle}</div>
+                    <div className="font-medium">{r.productTitle}</div>
                     {r.variantTitle ? (
                       <div className="text-brand-navy/60">{r.variantTitle}</div>
                     ) : null}
@@ -289,7 +289,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
                     <button
                       type="button"
                       onClick={() => setChargeFilter(r.chargeNumber)}
-                      className="rounded-md bg-brand-navy px-2 py-0.5 font-mono text-xs font-semibold text-white transition hover:bg-brand-burgundy"
+                      className="rounded-md bg-brand-navy px-2 py-0.5 font-mono text-xs font-medium text-white transition-colors hover:bg-brand-burgundy"
                       title="Nach dieser Charge filtern"
                     >
                       {r.chargeNumber}
@@ -301,7 +301,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
                   <td className="font-mono text-xs text-brand-navy/70">
                     {r.sku ?? "—"}
                   </td>
-                  <td className="text-right text-base font-bold text-brand-navy">
+                  <td className="text-right text-base font-medium text-brand-navy">
                     {r.qty}
                   </td>
                   <td>
@@ -312,7 +312,7 @@ export function AllocationsTable({ rows }: { rows: AllocationTableRow[] }) {
                           title={r.releaseReason ?? undefined}
                         >
                           ↩ released
-                          <div className="text-[10px] text-brand-navy/50">
+                          <div className="text-xs text-brand-navy/50">
                             {formatDate(r.consumedIso)}
                           </div>
                         </span>
@@ -356,12 +356,12 @@ function SortableTh({
       <button
         type="button"
         onClick={onClick}
-        className={`inline-flex items-center gap-1 transition hover:text-brand-burgundy ${
+        className={`inline-flex items-center gap-1 transition-colors hover:text-brand-burgundy ${
           active ? "text-brand-burgundy" : ""
         }`}
       >
         {label}
-        <span className="text-[9px] opacity-70">
+        <span className="text-xs opacity-70">
           {active ? (dir === "asc" ? "▲" : "▼") : "↕"}
         </span>
       </button>

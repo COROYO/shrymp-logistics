@@ -98,8 +98,8 @@ export function ForecastTable({
                 onClick={() => setHorizon(h)}
                 className={
                   h === horizon
-                    ? "bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white"
-                    : "bg-white px-3 py-1.5 text-xs font-medium text-brand-navy/70 transition hover:bg-brand-navy/5"
+                    ? "bg-brand-navy px-3 py-1.5 text-xs font-medium text-white"
+                    : "bg-white px-3 py-1.5 text-xs font-medium text-brand-navy/70 transition-colors hover:bg-brand-navy/5"
                 }
               >
                 {t("horizon.days", { days: h })}
@@ -124,7 +124,7 @@ export function ForecastTable({
         ) : (
           <table className="w-full min-w-[860px] text-sm">
             <thead>
-              <tr className="border-b border-brand-navy/10 text-left text-xs uppercase tracking-wide text-brand-navy/50">
+              <tr className="border-b border-brand-navy/10 text-left text-xs text-brand-navy/50">
                 <th className="px-4 py-3 font-medium">{t("table.product")}</th>
                 <th className="px-4 py-3 font-medium">{t("table.sku")}</th>
                 <th className="px-4 py-3 text-right font-medium">
@@ -182,11 +182,11 @@ export function ForecastTable({
                       {row.method ? (
                         <span className="inline-flex items-center gap-2">
                           {reorder ? (
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700">
+                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
                               {t("table.reorderBadge")}
                             </span>
                           ) : null}
-                          <span className="font-semibold tabular-nums">
+                          <span className="font-medium tabular-nums">
                             {nf0.format(needed)}
                           </span>
                         </span>
@@ -206,7 +206,7 @@ export function ForecastTable({
                     </td>
                     <td className="px-4 py-3">
                       {row.method ? (
-                        <span className="rounded-full bg-brand-navy/5 px-2 py-0.5 text-[11px] font-medium text-brand-navy/70">
+                        <span className="rounded-full bg-brand-navy/5 px-2 py-0.5 text-xs font-medium text-brand-navy/70">
                           {t(`method.${row.method}`)}
                         </span>
                       ) : (
@@ -240,14 +240,14 @@ function Stat({
 }) {
   return (
     <div className="rounded-md border border-brand-navy/10 bg-white px-4 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-brand-navy/50">
+      <div className="text-xs text-brand-navy/50">
         {label}
       </div>
       <div
         className={
           tone === "alert"
-            ? "text-lg font-semibold text-red-700"
-            : "text-lg font-semibold text-brand-navy"
+            ? "text-lg font-medium text-red-700"
+            : "text-lg font-medium text-brand-navy"
         }
       >
         {value}

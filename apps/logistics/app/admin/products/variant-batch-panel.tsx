@@ -130,7 +130,7 @@ export function VariantBatchPanel({
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-brand-navy">
+          <div className="text-sm font-medium text-brand-navy">
             {variant.title}
           </div>
           <div className="text-xs text-brand-navy/60">
@@ -156,7 +156,7 @@ export function VariantBatchPanel({
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1100px] text-sm">
-        <thead className="bg-brand-cream text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
+        <thead className="bg-brand-cream text-left text-xs font-medium text-brand-navy/70">
           <tr>
             <th className="px-4 py-2">{t("charge")}</th>
             <th className="px-4 py-2">Standort</th>
@@ -235,7 +235,7 @@ export function VariantBatchPanel({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy transition hover:text-brand-burgundy-dark"
+            className="text-xs font-medium text-brand-burgundy transition-colors hover:text-brand-burgundy-dark"
           >
             {t("newBatch")}
           </button>
@@ -244,7 +244,7 @@ export function VariantBatchPanel({
           <button
             type="button"
             onClick={() => setShowArchived((v) => !v)}
-            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60 transition hover:text-brand-navy"
+            className="text-xs font-medium text-brand-navy/60 transition-colors hover:text-brand-navy"
           >
             {showArchived
               ? t("hideArchived")
@@ -267,11 +267,11 @@ function Cell({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+      <div className="text-xs font-medium text-brand-navy/50">
         {label}
       </div>
       <div
-        className={`text-sm font-bold tabular-nums ${
+        className={`text-sm font-medium tabular-nums ${
           tone === "warn" ? "text-brand-burgundy" : "text-brand-navy"
         }`}
       >
@@ -328,7 +328,7 @@ function BatchDisplayRow({
 
   return (
     <tr
-      className={`align-top transition hover:bg-brand-navy-50 ${
+      className={`align-top transition-colors hover:bg-brand-navy-50 ${
         archived
           ? "bg-zinc-50/60 text-brand-navy/45"
           : batch.expired
@@ -336,11 +336,11 @@ function BatchDisplayRow({
             : ""
       }`}
     >
-      <td className="px-4 py-2.5 font-mono font-semibold">
+      <td className="px-4 py-2.5 font-mono font-medium">
         <span className="inline-flex flex-wrap items-center gap-2">
           {batch.chargeNumber}
           {batch.expired && !archived ? (
-            <span className="rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+            <span className="rounded bg-amber-200/80 px-1.5 py-0.5 text-xs font-medium text-amber-950">
               {t("expiredBadge")}
             </span>
           ) : null}
@@ -353,7 +353,7 @@ function BatchDisplayRow({
         <td
           className={`px-4 py-2.5 font-mono ${
             batch.expired && !archived
-              ? "font-semibold text-amber-900"
+              ? "font-medium text-amber-900"
               : "text-brand-navy/80"
           }`}
         >
@@ -366,7 +366,7 @@ function BatchDisplayRow({
         </td>
       ) : null}
       {cols.remaining ? (
-        <td className="px-4 py-2.5 text-right text-base font-bold text-brand-navy">
+        <td className="px-4 py-2.5 text-right text-base font-medium text-brand-navy">
           {batch.remainingQty}
         </td>
       ) : null}
@@ -396,12 +396,12 @@ function BatchDisplayRow({
         </td>
       ) : null}
       <td className="px-4 py-2.5 text-right">
-        <div className="inline-flex gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
+        <div className="inline-flex gap-3 text-xs font-medium">
           <button
             type="button"
             onClick={onToggleHistory}
             title={t("history")}
-            className={`inline-flex items-center gap-1.5 transition hover:text-brand-burgundy ${
+            className={`inline-flex items-center gap-1.5 transition-colors hover:text-brand-burgundy ${
               historyOpen ? "text-brand-burgundy" : "text-brand-navy/70"
             }`}
           >
@@ -412,7 +412,7 @@ function BatchDisplayRow({
             type="button"
             onClick={onEdit}
             title={t("edit")}
-            className="inline-flex items-center gap-1.5 text-brand-navy/70 transition hover:text-brand-burgundy"
+            className="inline-flex items-center gap-1.5 text-brand-navy/70 transition-colors hover:text-brand-burgundy"
           >
             <EditIcon className="h-4 w-4" />
             {t("edit")}
@@ -423,7 +423,7 @@ function BatchDisplayRow({
               onClick={handleArchive}
               disabled={pending}
               title={t("archive")}
-              className="inline-flex items-center gap-1.5 text-brand-burgundy transition hover:text-brand-burgundy-dark disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-brand-burgundy transition-colors hover:text-brand-burgundy-dark disabled:opacity-50"
             >
               {pending ? (
                 "…"
@@ -437,7 +437,7 @@ function BatchDisplayRow({
           ) : null}
         </div>
         {err ? (
-          <div className="mt-1 text-[10px] font-semibold text-brand-burgundy">
+          <div className="mt-1 text-xs font-medium text-brand-burgundy">
             {err}
           </div>
         ) : null}
@@ -472,14 +472,14 @@ function BatchHistoryRow({
   return (
     <tr className="bg-brand-cream/40">
       <td colSpan={colSpan} className="px-4 py-3">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+        <div className="text-xs font-medium text-brand-navy/50">
           {t("historyTitle")}
         </div>
         {entries === null && !err ? (
           <div className="mt-2 text-xs text-brand-navy/50">…</div>
         ) : null}
         {err ? (
-          <div className="mt-2 text-xs font-semibold text-brand-burgundy">
+          <div className="mt-2 text-xs font-medium text-brand-burgundy">
             {err}
           </div>
         ) : null}
@@ -498,11 +498,11 @@ function BatchHistoryRow({
                 <span className="w-36 font-mono text-brand-navy/60">
                   {formatDateTime(e.createdAtIso)}
                 </span>
-                <span className="w-28 font-semibold text-brand-navy/80">
+                <span className="w-28 font-medium text-brand-navy/80">
                   {t(`movement.${e.type}`)}
                 </span>
                 <span
-                  className={`w-10 text-right font-bold tabular-nums ${
+                  className={`w-10 text-right font-medium tabular-nums ${
                     e.qty >= 0 ? "text-emerald-700" : "text-brand-burgundy"
                   }`}
                 >
@@ -583,7 +583,7 @@ function EditBatchRow({
   }
 
   const inlineInput =
-    "rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+    "rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
   return (
     <tr className="bg-amber-50/60 align-top">
@@ -630,7 +630,7 @@ function EditBatchRow({
           />
           {qtyChanged ? (
             <div
-              className={`mt-1 text-[10px] font-bold tabular-nums ${
+              className={`mt-1 text-xs font-medium tabular-nums ${
                 qtyDelta >= 0 ? "text-emerald-700" : "text-brand-burgundy"
               }`}
             >
@@ -682,12 +682,12 @@ function EditBatchRow({
         </td>
       ) : null}
       <td className="px-4 py-2 text-right">
-        <div className="inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
+        <div className="inline-flex items-center gap-3 text-xs font-medium">
           <button
             type="button"
             onClick={handleSave}
             disabled={pending}
-            className="rounded-md bg-brand-burgundy px-3 py-1.5 text-white shadow-sm transition hover:bg-brand-burgundy-dark disabled:opacity-50"
+            className="rounded-md bg-brand-burgundy px-3 py-1.5 text-white shadow-sm transition-colors hover:bg-brand-burgundy-dark disabled:opacity-50"
           >
             {pending ? "…" : t("save")}
           </button>
@@ -695,13 +695,13 @@ function EditBatchRow({
             type="button"
             onClick={onClose}
             disabled={pending}
-            className="text-brand-navy/70 transition hover:text-brand-burgundy"
+            className="text-brand-navy/70 transition-colors hover:text-brand-burgundy"
           >
             {t("cancel")}
           </button>
         </div>
         {err ? (
-          <div className="mt-1 max-w-xs text-[10px] font-semibold text-brand-burgundy">
+          <div className="mt-1 max-w-xs text-xs font-medium text-brand-burgundy">
             {err}
           </div>
         ) : null}
@@ -764,7 +764,7 @@ function NewBatchInlineForm({
   }
 
   const input =
-    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
   return (
     <div className="grid w-full grid-cols-1 items-end gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_2fr_auto]">
@@ -834,13 +834,13 @@ function NewBatchInlineForm({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 transition hover:text-brand-burgundy"
+          className="text-xs font-medium text-brand-navy/70 transition-colors hover:text-brand-burgundy"
         >
           {t("cancel")}
         </button>
       </div>
       {err ? (
-        <div className="text-xs font-semibold text-brand-burgundy sm:col-span-6">
+        <div className="text-xs font-medium text-brand-burgundy sm:col-span-6">
           {err}
         </div>
       ) : null}
@@ -870,7 +870,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <span className="text-xs font-medium text-brand-navy/60">
         {label}
       </span>
       {children}

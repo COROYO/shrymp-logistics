@@ -53,7 +53,7 @@ export default async function OnboardingPage({
         <ShopifyConnectForm initialShopDomain={pendingShop} />
 
         <div className="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-brand-navy">
-          <p className="font-semibold">Nach der Verbindung:</p>
+          <p className="font-medium">Nach der Verbindung:</p>
           <ol className="mt-2 list-decimal list-inside space-y-1 text-xs text-brand-navy/70">
             <li>Einrichtungs-Assistent startet automatisch</li>
             <li>Produkte, Aufträge & Kunden werden importiert</li>

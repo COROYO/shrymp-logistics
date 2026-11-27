@@ -82,7 +82,7 @@ export function ProductMediaGallery({
           type="button"
           disabled={uploading}
           onClick={() => fileInputRef.current?.click()}
-          className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 text-sm text-brand-navy/70 transition hover:border-brand-navy/30 hover:bg-brand-cream/50 disabled:opacity-50"
+          className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 text-sm text-brand-navy/70 transition-colors hover:border-brand-navy/30 hover:bg-brand-cream/50 disabled:opacity-50"
         >
           <span className="text-2xl leading-none text-brand-navy/40">+</span>
           <span>{uploading ? t("uploading") : t("galleryEmpty")}</span>
@@ -105,7 +105,7 @@ export function ProductMediaGallery({
               <button
                 type="button"
                 onClick={() => removeAt(index)}
-                className="absolute right-1.5 top-1.5 rounded-md bg-black/60 px-2 py-1 text-[11px] font-semibold text-white opacity-0 transition group-hover:opacity-100"
+                className="absolute right-1.5 top-1.5 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 transition-colors group-hover:opacity-100"
               >
                 {t("remove")}
               </button>
@@ -115,7 +115,7 @@ export function ProductMediaGallery({
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 text-xs font-semibold text-brand-navy/70 transition hover:border-brand-navy/30 hover:bg-brand-cream/50 disabled:opacity-50"
+            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 text-xs font-medium text-brand-navy/70 transition-colors hover:border-brand-navy/30 hover:bg-brand-cream/50 disabled:opacity-50"
           >
             <span className="text-xl leading-none text-brand-navy/40">+</span>
             {uploading ? t("uploading") : t("uploadImage")}

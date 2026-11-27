@@ -48,13 +48,13 @@ export async function CustomersContent() {
               <tbody>
                 {customers.map((c) => (
                   <tr key={c.key}>
-                    <td className="font-semibold text-brand-navy">
+                    <td className="font-medium text-brand-navy">
                       {c.displayName}
                     </td>
                     <td className="font-mono text-xs text-brand-navy/70">
                       {c.email ?? "—"}
                     </td>
-                    <td className="text-right font-semibold text-brand-navy">
+                    <td className="text-right font-medium text-brand-navy">
                       {c.orderCount}
                     </td>
                     <td className="text-right font-mono text-sm">
@@ -69,7 +69,7 @@ export async function CustomersContent() {
                     <td className="text-right">
                       <Link
                         href={`/admin/customers/${encodeURIComponent(c.key)}`}
-                        className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy hover:underline"
+                        className="text-xs font-medium text-brand-burgundy hover:underline"
                       >
                         {t("table.history")}
                       </Link>
@@ -88,10 +88,10 @@ export async function CustomersContent() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card px-4 py-3 text-right">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <div className="text-xs font-medium text-brand-navy/60">
         {label}
       </div>
-      <div className="font-mono text-lg font-bold text-brand-navy">{value}</div>
+      <div className="font-mono text-lg font-medium text-brand-navy">{value}</div>
     </div>
   );
 }

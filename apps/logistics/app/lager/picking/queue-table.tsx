@@ -113,14 +113,14 @@ export function QueueTable({
           <div className="flex flex-wrap items-center gap-3">
             {selected.size > 0 ? (
               <>
-                <span className="text-sm font-semibold text-brand-navy">
+                <span className="text-sm font-medium text-brand-navy">
                   {tBulk("selected", { count: selected.size })}
                 </span>
                 <button
                   type="button"
                   onClick={() => setSelected(new Set())}
                   disabled={pending}
-                  className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60 hover:text-brand-burgundy disabled:opacity-50"
+                  className="text-xs font-medium text-brand-navy/60 hover:text-brand-burgundy disabled:opacity-50"
                 >
                   {tBulk("clear")}
                 </button>
@@ -138,7 +138,7 @@ export function QueueTable({
                   <button
                     type="button"
                     onClick={() => setShowErrors((v) => !v)}
-                    className="ml-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy hover:underline"
+                    className="ml-2 text-xs font-medium text-brand-burgundy hover:underline"
                   >
                     {tBulk("showErrors")}
                   </button>
@@ -152,7 +152,7 @@ export function QueueTable({
                 type="button"
                 onClick={handleStartRun}
                 disabled={pending}
-                className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {pending ? tBulk("starting") : tBulk("startRun", { count: selected.size })}
               </button>
@@ -160,7 +160,7 @@ export function QueueTable({
                 type="button"
                 onClick={handlePrintSlips}
                 disabled={pending}
-                className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-4 py-2 text-xs font-medium text-brand-navy transition-colors hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {tBulk("printSlips", { count: selected.size })}
               </button>
@@ -168,7 +168,7 @@ export function QueueTable({
                 type="button"
                 onClick={handleMarkPacked}
                 disabled={pending}
-                className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-burgundy-dark disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-brand-burgundy-dark disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {pending ? tBulk("marking") : tBulk("markPacked")}
               </button>
@@ -189,7 +189,7 @@ export function QueueTable({
           <ul className="space-y-1 font-mono text-brand-burgundy-dark">
             {result.failures.map((f) => (
               <li key={f.orderId}>
-                <span className="font-bold">{f.orderId}</span>: {f.error}
+                <span className="font-medium">{f.orderId}</span>: {f.error}
               </li>
             ))}
           </ul>
@@ -251,7 +251,7 @@ export function QueueTable({
                         className="h-4 w-4 cursor-pointer accent-brand-burgundy"
                       />
                     </td>
-                    <td className="font-mono text-sm font-bold text-brand-navy">
+                    <td className="font-mono text-sm font-medium text-brand-navy">
                       <span className="inline-flex items-center gap-1.5">
                         <OrderNoteIcon note={o.customerNote} />
                         {o.name}
@@ -266,7 +266,7 @@ export function QueueTable({
                         : "—"}
                     </td>
                     <td className="text-sm">
-                      <span className="font-semibold text-brand-navy">
+                      <span className="font-medium text-brand-navy">
                         {o.itemCount}
                       </span>{" "}
                       <span className="text-xs text-brand-navy/50">
@@ -311,7 +311,7 @@ export function QueueTable({
                       <Link
                         href={`/lager/picking/${o.id}/slip`}
                         target="_blank"
-                        className="mr-4 text-[11px] font-semibold uppercase tracking-wide text-brand-navy/50 hover:text-brand-burgundy"
+                        className="mr-4 text-xs font-medium text-brand-navy/50 hover:text-brand-burgundy"
                         title={t("linkSlip")}
                       >
                         {t("linkSlip")}
@@ -319,7 +319,7 @@ export function QueueTable({
 
                       <Link
                         href={`/lager/picking/${o.id}`}
-                        className="text-sm font-semibold text-brand-burgundy hover:text-brand-burgundy-dark"
+                        className="text-sm font-medium text-brand-burgundy hover:text-brand-burgundy-dark"
                       >
                         {cta}
                       </Link>

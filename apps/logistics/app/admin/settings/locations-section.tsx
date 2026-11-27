@@ -102,7 +102,7 @@ export function LocationsSection() {
     <>
       <section className="card p-6">
         <p className="eyebrow">Standorte</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Lagerstandorte
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -122,7 +122,7 @@ export function LocationsSection() {
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy"
+            className="text-xs font-medium text-brand-burgundy"
           >
             {showForm ? "Abbrechen" : "+ Neuer Standort in Shopify"}
           </button>
@@ -142,7 +142,7 @@ export function LocationsSection() {
                   className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <span className="font-semibold text-brand-navy">
+                    <span className="font-medium text-brand-navy">
                       {loc.name}
                     </span>
                     {!loc.active ? (
@@ -151,12 +151,12 @@ export function LocationsSection() {
                       </span>
                     ) : null}
                     {loc.isPrimary ? (
-                      <span className="ml-2 rounded bg-brand-cream px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-navy/70">
+                      <span className="ml-2 rounded bg-brand-cream px-1.5 py-0.5 text-xs font-medium text-brand-navy/70">
                         Shopify Primary
                       </span>
                     ) : null}
                     {isDefault ? (
-                      <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800">
+                      <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
                         Standard-Lager
                       </span>
                     ) : null}
@@ -169,7 +169,7 @@ export function LocationsSection() {
                       type="button"
                       disabled={pending || isDefault}
                       onClick={() => handleSetDefault(loc.id)}
-                      className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy disabled:opacity-40"
+                      className="text-xs font-medium text-brand-navy/70 hover:text-brand-burgundy disabled:opacity-40"
                     >
                       Als Standard setzen
                     </button>
@@ -218,7 +218,7 @@ function Field({
 }) {
   return (
     <label className="block text-sm">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <span className="text-xs font-medium text-brand-navy/60">
         {label}
       </span>
       <input

@@ -81,12 +81,12 @@ export function PickScanVerifier({ items }: { items: PickScanItem[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4">
         <div>
           <p className="eyebrow">{t("eyebrow")}</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             {t("title")}
           </h2>
         </div>
         <div
-          className={`rounded-md px-3 py-1.5 text-sm font-bold tabular-nums ${
+          className={`rounded-md px-3 py-1.5 text-sm font-medium tabular-nums ${
             totals.complete
               ? "bg-emerald-100 text-emerald-800"
               : "bg-zinc-100 text-brand-navy"
@@ -135,13 +135,13 @@ export function PickScanVerifier({ items }: { items: PickScanItem[] }) {
         {errors.length > 0 ? (
           <div className="rounded-md border border-red-300 bg-red-50 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-[0.12em] text-red-700">
+              <span className="text-xs font-medium text-red-700">
                 {t("errorsTitle")}
               </span>
               <button
                 type="button"
                 onClick={() => setErrors([])}
-                className="text-[11px] font-semibold uppercase tracking-[0.1em] text-red-700/70 hover:text-red-800"
+                className="text-xs font-medium text-red-700/70 hover:text-red-800"
               >
                 {t("clear")}
               </button>
@@ -171,7 +171,7 @@ export function PickScanVerifier({ items }: { items: PickScanItem[] }) {
                 className={`flex items-center gap-3 py-3 ${done ? "opacity-60" : ""}`}
               >
                 <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
                     done ? "bg-emerald-500 text-white" : "bg-zinc-200 text-brand-navy/70"
                   }`}
                   aria-hidden
@@ -179,12 +179,12 @@ export function PickScanVerifier({ items }: { items: PickScanItem[] }) {
                   {done ? "✓" : picked}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-brand-navy">
+                  <div className="truncate text-sm font-medium text-brand-navy">
                     {item.title}
                   </div>
                   <div className="truncate text-xs text-brand-navy/60">
                     {item.binCode ? (
-                      <span className="font-mono font-semibold text-brand-navy/80">
+                      <span className="font-mono font-medium text-brand-navy/80">
                         {item.binCode}
                       </span>
                     ) : null}
@@ -193,7 +193,7 @@ export function PickScanVerifier({ items }: { items: PickScanItem[] }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="tabular-nums font-bold text-brand-navy">
+                  <span className="tabular-nums font-medium text-brand-navy">
                     {picked}/{item.qty}
                   </span>
                   <div className="flex items-center gap-1">
@@ -201,7 +201,7 @@ export function PickScanVerifier({ items }: { items: PickScanItem[] }) {
                       type="button"
                       onClick={() => adjust(item.variantId, -1, item.qty)}
                       disabled={picked === 0}
-                      className="h-7 w-7 rounded border border-zinc-300 text-brand-navy/70 transition hover:border-brand-navy disabled:cursor-not-allowed disabled:opacity-30"
+                      className="h-7 w-7 rounded border border-zinc-300 text-brand-navy/70 transition-colors hover:border-brand-navy disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="-1"
                     >
                       −
@@ -210,7 +210,7 @@ export function PickScanVerifier({ items }: { items: PickScanItem[] }) {
                       type="button"
                       onClick={() => adjust(item.variantId, +1, item.qty)}
                       disabled={picked >= item.qty}
-                      className="h-7 w-7 rounded border border-zinc-300 text-brand-navy/70 transition hover:border-brand-navy disabled:cursor-not-allowed disabled:opacity-30"
+                      className="h-7 w-7 rounded border border-zinc-300 text-brand-navy/70 transition-colors hover:border-brand-navy disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="+1"
                     >
                       +

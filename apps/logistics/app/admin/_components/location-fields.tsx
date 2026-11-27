@@ -59,7 +59,7 @@ export function LocationStockBreakdown({
       {rows.map((row, idx) => (
         <span
           key={`${row.locationId}-${idx}`}
-          className="inline-flex items-center gap-1 rounded-md bg-brand-cream/60 px-2 py-0.5 text-[10px] font-semibold text-brand-navy/80"
+          className="inline-flex items-center gap-1 rounded-md bg-brand-cream/60 px-2 py-0.5 text-xs font-medium text-brand-navy/80"
         >
           <span>{row.locationName}</span>
           <span className="tabular-nums text-brand-navy">{row.onHand}</span>

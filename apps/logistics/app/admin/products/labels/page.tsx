@@ -24,7 +24,7 @@ export default async function ProductLabelsPage({
       <div className="print:hidden">
         <Link
           href="/admin/products"
-          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
+          className="text-xs font-medium text-brand-navy/60 transition-colors hover:text-brand-burgundy"
         >
           {t("back")}
         </Link>

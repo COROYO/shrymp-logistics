@@ -105,7 +105,7 @@ export function VariantInventoryPanel({
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-brand-navy">
+          <div className="text-sm font-medium text-brand-navy">
             {variant.title}
           </div>
           <div className="text-xs text-brand-navy/60">
@@ -136,14 +136,14 @@ export function VariantInventoryPanel({
               <button
                 type="button"
                 onClick={() => setReceiving(true)}
-                className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy transition hover:text-brand-burgundy-dark"
+                className="text-xs font-medium text-brand-burgundy transition-colors hover:text-brand-burgundy-dark"
               >
                 {t("receiveStock")}
               </button>
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70 transition hover:text-brand-burgundy"
+                className="text-xs font-medium text-brand-navy/70 transition-colors hover:text-brand-burgundy"
               >
                 {t("adjustStock")}
               </button>
@@ -151,7 +151,7 @@ export function VariantInventoryPanel({
                 type="button"
                 onClick={() => setHistoryOpen((v) => !v)}
                 title={tb("history")}
-                className={`ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition hover:text-brand-burgundy ${
+                className={`ml-auto inline-flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-brand-burgundy ${
                   historyOpen ? "text-brand-burgundy" : "text-brand-navy/70"
                 }`}
               >
@@ -195,11 +195,11 @@ function Cell({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+      <div className="text-xs font-medium text-brand-navy/50">
         {label}
       </div>
       <div
-        className={`text-sm font-bold tabular-nums ${
+        className={`text-sm font-medium tabular-nums ${
           tone === "warn" ? "text-brand-burgundy" : "text-brand-navy"
         }`}
       >
@@ -258,7 +258,7 @@ function ReceiveStockForm({
   }
 
   const input =
-    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
   return (
     <div className="grid w-full grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
@@ -303,13 +303,13 @@ function ReceiveStockForm({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70"
+          className="text-xs font-medium text-brand-navy/70"
         >
           {tb("cancel")}
         </button>
       </div>
       {err ? (
-        <div className="text-xs font-semibold text-brand-burgundy sm:col-span-3">
+        <div className="text-xs font-medium text-brand-burgundy sm:col-span-3">
           {err}
         </div>
       ) : null}
@@ -380,7 +380,7 @@ function AdjustStockForm({
   }
 
   const input =
-    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
   return (
     <div className="grid w-full grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
@@ -402,7 +402,7 @@ function AdjustStockForm({
         />
         {changed ? (
           <div
-            className={`mt-1 text-[10px] font-bold tabular-nums ${
+            className={`mt-1 text-xs font-medium tabular-nums ${
               delta >= 0 ? "text-emerald-700" : "text-brand-burgundy"
             }`}
           >
@@ -433,13 +433,13 @@ function AdjustStockForm({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70"
+          className="text-xs font-medium text-brand-navy/70"
         >
           {tb("cancel")}
         </button>
       </div>
       {err ? (
-        <div className="text-xs font-semibold text-brand-burgundy sm:col-span-3">
+        <div className="text-xs font-medium text-brand-burgundy sm:col-span-3">
           {err}
         </div>
       ) : null}
@@ -468,14 +468,14 @@ function VariantHistoryList({ variantId }: { variantId: string }) {
 
   return (
     <div className="mt-3 rounded-md bg-brand-cream/40 px-4 py-3">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+      <div className="text-xs font-medium text-brand-navy/50">
         {t("historyTitle")}
       </div>
       {entries === null && !err ? (
         <div className="mt-2 text-xs text-brand-navy/50">…</div>
       ) : null}
       {err ? (
-        <div className="mt-2 text-xs font-semibold text-brand-burgundy">
+        <div className="mt-2 text-xs font-medium text-brand-burgundy">
           {err}
         </div>
       ) : null}
@@ -494,11 +494,11 @@ function VariantHistoryList({ variantId }: { variantId: string }) {
               <span className="w-36 font-mono text-brand-navy/60">
                 {formatDateTime(e.createdAtIso)}
               </span>
-              <span className="w-28 font-semibold text-brand-navy/80">
+              <span className="w-28 font-medium text-brand-navy/80">
                 {tb(`movement.${e.type}`)}
               </span>
               <span
-                className={`w-10 text-right font-bold tabular-nums ${
+                className={`w-10 text-right font-medium tabular-nums ${
                   e.qty >= 0 ? "text-emerald-700" : "text-brand-burgundy"
                 }`}
               >
@@ -532,7 +532,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <span className="text-xs font-medium text-brand-navy/60">
         {label}
       </span>
       {children}

@@ -71,10 +71,10 @@ export default async function PackedOrdersPage() {
         </div>
         <div className="card flex items-center gap-3 px-4 py-2 text-sm">
           <span className="h-2 w-2 rounded-full bg-brand-burgundy" aria-hidden />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+          <span className="text-xs font-medium text-brand-navy/60">
             {t("stats.packed")}
           </span>
-          <span className="text-lg font-bold text-brand-navy">
+          <span className="text-lg font-medium text-brand-navy">
             {rows.length}
           </span>
         </div>

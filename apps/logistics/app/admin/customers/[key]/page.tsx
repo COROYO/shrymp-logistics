@@ -38,7 +38,7 @@ export default async function CustomerDetailPage({
       <div>
         <Link
           href="/admin/customers"
-          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
+          className="text-xs font-medium text-brand-navy/60 transition-colors hover:text-brand-burgundy"
         >
           {t("back")}
         </Link>
@@ -106,7 +106,7 @@ export default async function CustomerDetailPage({
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">
           <p className="eyebrow">{t("history")}</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             {t("historySub")}
           </h2>
         </div>
@@ -125,7 +125,7 @@ export default async function CustomerDetailPage({
             <tbody>
               {detail.orders.map((o) => (
                 <tr key={o.id}>
-                  <td className="font-mono font-bold text-brand-navy">
+                  <td className="font-mono font-medium text-brand-navy">
                     <span className="inline-flex items-center gap-1.5">
                       <OrderNoteIcon note={o.customer_note} />
                       <Link
@@ -156,7 +156,7 @@ export default async function CustomerDetailPage({
                   <td className="text-sm text-brand-navy/70">
                     {o.city ?? "—"}
                   </td>
-                  <td className="text-right font-semibold text-brand-navy">
+                  <td className="text-right font-medium text-brand-navy">
                     {o.itemCount}
                   </td>
                   <td className="text-right font-mono text-sm">
@@ -175,10 +175,10 @@ export default async function CustomerDetailPage({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-4">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <div className="text-xs font-medium text-brand-navy/60">
         {label}
       </div>
-      <div className="mt-1 font-mono text-2xl font-bold text-brand-navy">
+      <div className="mt-1 font-mono text-2xl font-medium text-brand-navy">
         {value}
       </div>
     </div>

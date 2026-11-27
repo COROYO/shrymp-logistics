@@ -15,26 +15,25 @@ export function BrandMark({ variant = "light" }: BrandMarkProps) {
   return (
     <span className="flex items-center gap-2.5">
       <span
-        className={`grid h-9 w-9 place-items-center rounded-md ${bg} ring-1 ring-white/10`}
+        className={`grid h-8 w-8 place-items-center rounded-lg ${bg} ring-1 ${
+          isDark ? "ring-brand-ink/10" : "ring-white/15"
+        }`}
       >
-        <span
-          className={`font-bold leading-none tracking-tight ${text}`}
-          style={{ fontSize: "15px" }}
-        >
+        <span className={`text-[13px] font-medium leading-none ${text}`}>
           S<span className={accent}>·</span>L
         </span>
       </span>
       <span className="flex flex-col leading-tight">
         <span
-          className={`text-[15px] font-bold uppercase tracking-[0.18em] ${
+          className={`text-base font-medium ${
             isDark ? "text-brand-navy" : "text-white"
           }`}
         >
           Shrymp
         </span>
         <span
-          className={`text-[10px] font-semibold uppercase tracking-[0.32em] ${
-            isDark ? "text-brand-burgundy" : "text-white/60"
+          className={`text-xs font-medium ${
+            isDark ? "text-brand-navy/50" : "text-white/60"
           }`}
         >
           Logistics

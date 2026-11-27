@@ -31,14 +31,14 @@ export function MobileNav({
 
   return (
     <>
-      <div className="sticky top-0 z-30 flex w-full shrink-0 items-center justify-between gap-3 bg-brand-navy px-4 py-3 text-white shadow md:hidden print:hidden">
+      <div className="sticky top-0 z-30 flex h-14 w-full shrink-0 items-center justify-between gap-3 bg-brand-navy px-4 text-white md:hidden print:hidden">
         <Link
           href={homeHref}
           className="flex items-center gap-3"
           onClick={() => setOpen(false)}
         >
           <BrandMark />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+          <span className="text-xs font-medium text-white/40">
             {variantLabel}
           </span>
         </Link>
@@ -53,8 +53,8 @@ export function MobileNav({
             viewBox="0 0 20 20"
             fill="none"
             stroke="currentColor"
-            strokeWidth={1.8}
-            className="h-5 w-5"
+            strokeWidth={1.5}
+            className="h-4 w-4"
             aria-hidden
           >
             {open ? (

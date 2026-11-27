@@ -14,7 +14,7 @@ export default async function BestandSettingsPage() {
     <>
       <section className="card p-6">
         <p className="eyebrow">Bestand</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Bestandsführung
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -32,7 +32,7 @@ export default async function BestandSettingsPage() {
       {appIsSource && lagerCfg.shopify_writeback_inventory ? (
         <section className="card p-6">
           <p className="eyebrow">Shopify-Sync</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             Bestände nach Shopify pushen
           </h2>
           <p className="mt-1 text-xs text-brand-navy/60">
@@ -47,14 +47,14 @@ export default async function BestandSettingsPage() {
       ) : appIsSource ? (
         <section className="card p-6">
           <p className="eyebrow">Shopify-Sync</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             Rückschreiben aus
           </h2>
           <p className="mt-1 text-xs text-brand-navy/60">
             Bestand wird nicht an Shopify geschrieben. Einschalten unter{" "}
             <a
               href="/admin/settings/shopify"
-              className="font-semibold text-brand-burgundy underline"
+              className="font-medium text-brand-burgundy underline"
             >
               Einstellungen → Shopify
             </a>
@@ -64,7 +64,7 @@ export default async function BestandSettingsPage() {
       ) : (
         <section className="card p-6">
           <p className="eyebrow">Shopify-Sync</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             Push deaktiviert
           </h2>
           <p className="mt-1 text-xs text-brand-navy/60">

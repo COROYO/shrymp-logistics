@@ -23,15 +23,14 @@ html {
 
 body {
   font-family: var(--font-sans);
-  letter-spacing: -0.005em;
 }
 
 @layer components {
   /* Primary action — brand burgundy */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md
-           bg-brand-burgundy px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white
-           shadow-sm transition
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+           bg-brand-burgundy px-4 py-2 text-sm font-medium text-white
+           transition-colors
            hover:bg-brand-burgundy-dark
            focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/40 focus-visible:ring-offset-2
            disabled:cursor-not-allowed disabled:opacity-50;
@@ -39,9 +38,9 @@ body {
 
   /* Secondary action — navy outline */
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md
-           border border-brand-navy bg-white px-4 py-2 text-sm font-semibold uppercase tracking-wide text-brand-navy
-           transition
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+           border border-brand-ink/15 bg-white px-4 py-2 text-sm font-medium text-brand-navy
+           transition-colors
            hover:bg-brand-navy hover:text-white
            focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/30 focus-visible:ring-offset-2
            disabled:cursor-not-allowed disabled:opacity-50;
@@ -49,9 +48,9 @@ body {
 
   /* Quiet ghost button */
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-md
-           border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-700
-           transition
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+           border border-brand-ink/10 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700
+           transition-colors
            hover:border-brand-navy hover:text-brand-navy
            focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/20 focus-visible:ring-offset-2
            disabled:cursor-not-allowed disabled:opacity-50;
@@ -59,9 +58,9 @@ body {
 
   /* Danger action */
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-md
-           border border-brand-burgundy bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-burgundy
-           transition
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+           border border-brand-burgundy/40 bg-white px-3 py-1.5 text-xs font-medium text-brand-burgundy
+           transition-colors
            hover:bg-brand-burgundy hover:text-white
            focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-burgundy/20 focus-visible:ring-offset-2
            disabled:cursor-not-allowed disabled:opacity-50;
@@ -69,7 +68,12 @@ body {
 
   /* Card surface */
   .card {
-    @apply rounded-lg border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(15,27,51,0.04)];
+    @apply rounded-xl border border-brand-ink/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)];
+  }
+
+  /* Shelf label — bin and slot codes */
+  .bin-label {
+    @apply inline-flex items-center rounded-md bg-brand-cream px-2 py-1 font-mono text-sm font-medium tabular-nums text-brand-navy ring-1 ring-brand-ink/10;
   }
 
   /* Compact input — inline forms, selects, scan box */
@@ -80,12 +84,12 @@ body {
 
   /* Section eyebrow label */
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy;
+    @apply text-xs font-medium text-brand-navy/50;
   }
 
   /* Heading utility */
   .h-display {
-    @apply font-semibold tracking-tight text-brand-navy;
+    @apply font-medium text-brand-navy;
   }
 
   /* Branded data table */
@@ -93,10 +97,10 @@ body {
     @apply w-full text-sm;
   }
   .table-brand thead {
-    @apply bg-brand-navy text-white;
+    @apply border-b border-brand-ink/10 bg-brand-cream text-brand-navy;
   }
   .table-brand thead th {
-    @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em];
+    @apply px-4 py-3 text-left text-xs font-medium;
   }
   .table-brand tbody tr {
     @apply border-b border-zinc-100 transition-colors;
@@ -108,30 +112,30 @@ body {
     @apply px-4 py-3 align-top;
   }
 
-  /* Status chip base */
+  /* Status chip — quiet text, one meaning per tone */
   .chip {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
+    @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium;
   }
   .chip-navy {
-    @apply bg-brand-navy text-white;
+    @apply bg-brand-navy/8 text-brand-navy;
   }
   .chip-burgundy {
-    @apply bg-brand-burgundy text-white;
+    @apply bg-brand-burgundy-soft text-brand-burgundy-dark;
   }
   .chip-soft {
-    @apply bg-zinc-100 text-zinc-700;
+    @apply bg-zinc-100 text-zinc-600;
   }
   .chip-emerald {
-    @apply bg-emerald-100 text-emerald-800;
+    @apply bg-[#e8f6ee] text-[#166534];
   }
   .chip-violet {
-    @apply bg-violet-100 text-violet-800;
+    @apply bg-brand-navy/8 text-brand-navy;
   }
   .chip-amber {
-    @apply bg-amber-100 text-amber-800;
+    @apply bg-[#f8f1e3] text-[#92400e];
   }
   .chip-sky {
-    @apply bg-sky-100 text-sky-800;
+    @apply bg-zinc-100 text-zinc-600;
   }
 
   /* Product description rich-text editor (contentEditable) */

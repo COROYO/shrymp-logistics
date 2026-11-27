@@ -219,7 +219,7 @@ export function AutomationRulesPanel({
 
       <div className="overflow-hidden rounded-md border border-zinc-200">
         <table className="w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-[11px] uppercase tracking-wide text-brand-navy/50">
+          <thead className="bg-zinc-50 text-xs text-brand-navy/50">
             <tr>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Trigger</th>
@@ -250,7 +250,7 @@ export function AutomationRulesPanel({
                     <button
                       type="button"
                       disabled={pending}
-                      className={`text-xs font-semibold ${
+                      className={`text-xs font-medium ${
                         r.enabled ? "text-emerald-700" : "text-zinc-400"
                       }`}
                       onClick={() =>
@@ -271,7 +271,7 @@ export function AutomationRulesPanel({
                   <td className="px-3 py-2 text-right">
                     <button
                       type="button"
-                      className="text-xs font-semibold text-brand-burgundy"
+                      className="text-xs font-medium text-brand-burgundy"
                       onClick={() => openEdit(r)}
                     >
                       Bearbeiten
@@ -311,7 +311,7 @@ export function AutomationRulesPanel({
 
       {editing ? (
         <div className="space-y-4 rounded-md border border-zinc-200 bg-zinc-50 p-5">
-          <h2 className="text-sm font-semibold text-brand-navy">
+          <h2 className="text-sm font-medium text-brand-navy">
             {draft.id ? "Regel bearbeiten" : "Neue Regel"}
           </h2>
 
@@ -382,12 +382,12 @@ export function AutomationRulesPanel({
 
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-navy/60">
+              <h3 className="text-xs font-medium text-brand-navy/60">
                 Bedingungen (UND)
               </h3>
               <button
                 type="button"
-                className="text-xs font-semibold text-brand-burgundy"
+                className="text-xs font-medium text-brand-burgundy"
                 onClick={() =>
                   setDraft((d) => ({
                     ...d,
@@ -503,12 +503,12 @@ export function AutomationRulesPanel({
 
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-navy/60">
+              <h3 className="text-xs font-medium text-brand-navy/60">
                 Aktionen
               </h3>
               <button
                 type="button"
-                className="text-xs font-semibold text-brand-burgundy"
+                className="text-xs font-medium text-brand-burgundy"
                 onClick={() =>
                   setDraft((d) => ({
                     ...d,
@@ -708,7 +708,7 @@ function ActionEditor({
           <button
             type="button"
             onClick={onPickVariant}
-            className="col-span-1 truncate rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-left text-sm text-brand-navy transition hover:border-brand-navy/40 sm:col-span-2"
+            className="col-span-1 truncate rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-left text-sm text-brand-navy transition-colors hover:border-brand-navy/40 sm:col-span-2"
             title={action.variant_label || undefined}
           >
             {action.variant_label || (
@@ -763,7 +763,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <span className="mb-1 block text-xs font-medium text-brand-navy/60">
         {label}
       </span>
       {children}

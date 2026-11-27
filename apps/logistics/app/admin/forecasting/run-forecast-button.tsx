@@ -36,7 +36,7 @@ export function RunForecastButton() {
       type="button"
       onClick={handle}
       disabled={pending}
-      className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-navy-soft disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-navy-soft disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? t("loading") : t("button")}
     </button>

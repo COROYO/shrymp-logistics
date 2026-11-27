@@ -87,7 +87,7 @@ export default async function ShopifySettingsPage() {
     <>
       <section className="card p-6">
         <p className="eyebrow">Shopify</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Dein Shopify-Shop
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -109,7 +109,7 @@ export default async function ShopifySettingsPage() {
         {!status.token_installed ? (
           <div className="mt-5 space-y-4">
             <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <p className="font-semibold">Noch nicht verbunden.</p>
+              <p className="font-medium">Noch nicht verbunden.</p>
               <p className="mt-1 text-xs">
                 Client ID, Client Secret und Shop-Domain eintragen — Shopify
                 fragt danach die App-Freigabe ab.
@@ -124,7 +124,7 @@ export default async function ShopifySettingsPage() {
           <div className="mt-5 space-y-4">
             {missingScopes.length > 0 ? (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <p className="font-semibold">
+                <p className="font-medium">
                   Neue Berechtigungen erforderlich
                 </p>
                 <p className="mt-1 text-xs">
@@ -135,7 +135,7 @@ export default async function ShopifySettingsPage() {
             ) : null}
             {!healthSnap?.tokenValid ? (
               <div className="rounded-md border border-brand-burgundy/30 bg-brand-burgundy-soft px-4 py-3 text-sm text-brand-burgundy-dark">
-                <p className="font-semibold">Verbindung ungültig oder abgelaufen</p>
+                <p className="font-medium">Verbindung ungültig oder abgelaufen</p>
                 <p className="mt-1 text-xs">
                   Bitte Shopify erneut freigeben.
                 </p>
@@ -165,7 +165,7 @@ export default async function ShopifySettingsPage() {
 
       <section className="card p-6">
         <p className="eyebrow">Verbindung</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Verbindungsstatus
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -181,7 +181,7 @@ export default async function ShopifySettingsPage() {
         <>
           <section className="card p-6">
             <p className="eyebrow">Testmodus</p>
-            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            <h2 className="mt-1 text-sm font-medium text-brand-navy">
               Sicheres Testen
             </h2>
             <p className="mt-1 text-xs text-brand-navy/60">
@@ -195,7 +195,7 @@ export default async function ShopifySettingsPage() {
 
           <section className="card p-6">
             <p className="eyebrow">Testmodus-Protokoll</p>
-            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            <h2 className="mt-1 text-sm font-medium text-brand-navy">
               Geplante Shopify-Änderungen
             </h2>
             <p className="mt-1 text-xs text-brand-navy/60">
@@ -208,7 +208,7 @@ export default async function ShopifySettingsPage() {
 
           <section className="card p-6">
             <p className="eyebrow">Standorte</p>
-            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            <h2 className="mt-1 text-sm font-medium text-brand-navy">
               Multi-Location Bestand
             </h2>
             <p className="mt-1 text-xs text-brand-navy/60">
@@ -216,7 +216,7 @@ export default async function ShopifySettingsPage() {
               Locations anlegen — unter{" "}
               <a
                 href="/admin/settings/standorte"
-                className="font-semibold text-brand-burgundy underline"
+                className="font-medium text-brand-burgundy underline"
               >
                 Einstellungen → Standorte
               </a>
@@ -226,18 +226,18 @@ export default async function ShopifySettingsPage() {
 
           <section className="card p-6">
             <p className="eyebrow">{t("sync.eyebrow")}</p>
-            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            <h2 className="mt-1 text-sm font-medium text-brand-navy">
               {t("sync.title")}
             </h2>
             <p className="mt-1 text-xs text-brand-navy/60">{t("sync.intro")}</p>
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
               <DefItem label={t("stats.products")}>
-                <span className="font-bold tabular-nums">
+                <span className="font-medium tabular-nums">
                   {syncStats.productCount}
                 </span>
               </DefItem>
               <DefItem label={t("stats.variants")}>
-                <span className="font-bold tabular-nums">
+                <span className="font-medium tabular-nums">
                   {syncStats.variantCount}
                 </span>
               </DefItem>
@@ -256,7 +256,7 @@ export default async function ShopifySettingsPage() {
 
           <section className="card p-6">
             <p className="eyebrow">Rückschreiben</p>
-            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            <h2 className="mt-1 text-sm font-medium text-brand-navy">
               Was an Shopify zurückgeht
             </h2>
             <p className="mt-1 text-xs text-brand-navy/60">

@@ -49,7 +49,7 @@ export default async function UsersPage() {
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-200 px-6 py-4">
           <p className="eyebrow">Alle Benutzer</p>
-          <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+          <h2 className="mt-1 text-sm font-medium text-brand-navy">
             {users.length} Account{users.length === 1 ? "" : "s"}
           </h2>
         </div>
@@ -94,11 +94,11 @@ function Stat({
 }) {
   return (
     <div className="card p-5">
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <dt className="text-xs font-medium text-brand-navy/60">
         {label}
       </dt>
       <dd
-        className={`mt-1.5 text-2xl font-bold tabular-nums ${
+        className={`mt-1.5 text-2xl font-medium tabular-nums ${
           tone === "warn" ? "text-amber-700" : "text-brand-navy"
         }`}
       >

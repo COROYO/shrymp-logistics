@@ -7,10 +7,10 @@ import { formatFirebaseAuthError } from "@/lib/firebase/auth-errors";
 import { safeNextPath } from "@/lib/safe-redirect";
 
 const inputClass =
-  "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+  "mt-1.5 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-brand-ink shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
 const labelClass =
-  "block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70";
+  "block text-xs font-medium text-brand-navy/70";
 
 export function LoginForm({ nextPath }: { nextPath: string | null }) {
   const router = useRouter();

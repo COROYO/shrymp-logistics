@@ -36,7 +36,7 @@ export function SyncOrdersButton() {
       disabled={pending}
       title="Aus Shopify nachladen"
       aria-label="Aus Shopify nachladen"
-      className="inline-flex items-center justify-center rounded-md border border-brand-navy/30 bg-white p-2 text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center justify-center rounded-md border border-brand-navy/30 bg-white p-2 text-brand-navy transition-colors hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? <Spinner /> : <RefreshIcon />}
     </button>

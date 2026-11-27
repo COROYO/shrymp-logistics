@@ -17,7 +17,7 @@ export function TestModeLogPanel({ rows }: { rows: TestModeLogRow[] }) {
   return (
     <div className="overflow-x-auto rounded-md border border-zinc-200">
       <table className="min-w-full text-left text-sm">
-        <thead className="bg-zinc-50 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+        <thead className="bg-zinc-50 text-xs font-medium text-brand-navy/60">
           <tr>
             <th className="px-3 py-2">Zeit</th>
             <th className="px-3 py-2">Operation</th>

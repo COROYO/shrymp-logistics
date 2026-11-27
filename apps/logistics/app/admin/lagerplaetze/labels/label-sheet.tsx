@@ -43,7 +43,7 @@ export function LabelSheet({ bins }: { bins: BinLabel[] }) {
       <section className="card p-5 print:hidden">
         <div className="flex flex-wrap items-end gap-5">
           <div>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <span className="text-xs font-medium text-brand-navy/60">
               {t("columns")}
             </span>
             <div className="mt-1 flex gap-1 rounded-md bg-zinc-100 p-1 text-sm">
@@ -52,7 +52,7 @@ export function LabelSheet({ bins }: { bins: BinLabel[] }) {
                   key={c}
                   type="button"
                   onClick={() => setCols(c)}
-                  className={`rounded px-3 py-1 font-semibold ${cols === c ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
+                  className={`rounded px-3 py-1 font-medium ${cols === c ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
                 >
                   {c}
                 </button>
@@ -73,14 +73,14 @@ export function LabelSheet({ bins }: { bins: BinLabel[] }) {
             <button
               type="button"
               onClick={() => setSelected(new Set(bins.map((b) => b.id)))}
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
+              className="text-xs font-medium text-brand-navy/70 hover:text-brand-burgundy"
             >
               {t("selectAll")}
             </button>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
+              className="text-xs font-medium text-brand-navy/70 hover:text-brand-burgundy"
             >
               {t("selectNone")}
             </button>

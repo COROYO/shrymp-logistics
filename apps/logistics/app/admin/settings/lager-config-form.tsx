@@ -57,7 +57,7 @@ export function LagerConfigForm({
             className="mt-0.5 h-4 w-4 rounded border-zinc-300"
           />
           <span>
-            <span className="block text-sm font-semibold text-brand-navy">
+            <span className="block text-sm font-medium text-brand-navy">
               Chargen-Tracking aktiv
             </span>
             <span className="mt-1 block text-xs text-brand-navy/70">
@@ -71,7 +71,7 @@ export function LagerConfigForm({
       </div>
 
       <div className={`max-w-xs ${batchesEnabled ? "" : "opacity-50"}`}>
-        <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+        <label className="block text-xs font-medium text-brand-navy/60">
           Mindest-Restlaufzeit (Tage)
         </label>
         <p className="mt-1 text-xs text-brand-navy/70">

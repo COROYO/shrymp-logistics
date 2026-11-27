@@ -70,7 +70,7 @@ export default async function OrdersPage({
               <Link
                 key={f}
                 href={hrefFor(f)}
-                className={`rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   isActive
                     ? "bg-brand-navy text-white"
                     : "border border-zinc-200 bg-white text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"

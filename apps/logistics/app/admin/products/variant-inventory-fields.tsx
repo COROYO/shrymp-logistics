@@ -5,7 +5,7 @@ import type { ProductEditorVariant } from "@/server/catalog/editor-types";
 import { MoneyInput } from "./money-input";
 
 const inputClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
 export function VariantInventoryFields({
   variant,
@@ -94,7 +94,7 @@ function Field({
 }) {
   return (
     <div className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+      <span className="text-xs font-medium text-brand-navy/60">
         {label}
       </span>
       <div className="mt-1.5">{children}</div>

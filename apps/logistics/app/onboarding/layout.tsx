@@ -7,11 +7,7 @@ export default function OnboardingLayout({
 }) {
   return (
     <div className="relative flex min-h-screen flex-col">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-brand-cream via-brand-cream to-brand-stone"
-      />
-      <header className="border-b border-zinc-200/80 bg-white/80 px-6 py-4 backdrop-blur-sm">
+      <header className="border-b border-brand-ink/8 bg-white px-6 py-4">
         <BrandMark variant="dark" />
       </header>
       <main className="flex flex-1 flex-col">{children}</main>

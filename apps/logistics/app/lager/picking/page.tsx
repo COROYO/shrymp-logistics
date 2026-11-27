@@ -91,11 +91,11 @@ export default async function PickingQueuePage() {
           </p>
         </div>
         <div className="flex gap-3 text-sm">
-          <Stat label={t("stats.ready")} value={shipCount} accent="emerald" />
+          <Stat label={t("stats.ready")} value={shipCount} accent="ready" />
           <Stat
             label={t("stats.inProgress")}
             value={pickingCount}
-            accent="violet"
+            accent="active"
           />
         </div>
       </div>
@@ -111,7 +111,7 @@ export default async function PickingQueuePage() {
               <Link
                 key={run.id}
                 href={href}
-                className="card flex items-center justify-between gap-3 px-4 py-3 transition hover:border-brand-burgundy/40"
+                className="card flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:border-brand-burgundy/40"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export default async function PickingQueuePage() {
                         ? tRun("statusPacking")
                         : tRun("statusPicking")}
                     </span>
-                    <span className="text-sm font-semibold text-brand-navy">
+                    <span className="text-sm font-medium text-brand-navy">
                       {tRun("activeRun", { count: run.orderCount })}
                     </span>
                   </div>
@@ -135,10 +135,10 @@ export default async function PickingQueuePage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="tabular-nums text-sm font-bold text-brand-navy">
+                  <span className="tabular-nums text-sm font-medium text-brand-navy">
                     {run.pickedUnits}/{run.totalUnits}
                   </span>
-                  <span className="text-sm font-semibold text-brand-burgundy">
+                  <span className="text-sm font-medium text-brand-burgundy">
                     {tRun("resume")}
                   </span>
                 </div>
@@ -166,16 +166,16 @@ function Stat({
 }: {
   label: string;
   value: number;
-  accent: "emerald" | "violet";
+  accent: "ready" | "active";
 }) {
-  const dot = accent === "emerald" ? "bg-emerald-500" : "bg-violet-500";
+  const dot = accent === "ready" ? "bg-[#166534]" : "bg-brand-burgundy";
   return (
     <div className="card flex items-center gap-3 px-4 py-2">
       <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
-        {label}
+      <span className="text-xs font-medium text-brand-navy/60">{label}</span>
+      <span className="text-lg font-medium tabular-nums text-brand-navy">
+        {value}
       </span>
-      <span className="text-lg font-bold text-brand-navy">{value}</span>
     </div>
   );
 }

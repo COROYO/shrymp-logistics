@@ -22,7 +22,7 @@ export function SettingsNav() {
           <Link
             href="/admin/settings"
             aria-current={pathname === "/admin/settings" ? "page" : undefined}
-            className={`block rounded-md px-3 py-2 text-sm font-semibold transition ${
+            className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               pathname === "/admin/settings"
                 ? "bg-brand-burgundy text-white"
                 : "text-brand-navy/70 hover:bg-zinc-100 hover:text-brand-navy"
@@ -35,7 +35,7 @@ export function SettingsNav() {
 
       {SETTINGS_NAV.map((group) => (
         <div key={group.label}>
-          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-navy/45">
+          <p className="px-3 pb-2 text-xs font-medium text-brand-navy/45">
             {group.label}
           </p>
           <ul className="space-y-0.5">
@@ -46,7 +46,7 @@ export function SettingsNav() {
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`block rounded-md px-3 py-2 text-sm font-semibold transition ${
+                    className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       active
                         ? "bg-brand-burgundy text-white"
                         : "text-brand-navy/70 hover:bg-zinc-100 hover:text-brand-navy"

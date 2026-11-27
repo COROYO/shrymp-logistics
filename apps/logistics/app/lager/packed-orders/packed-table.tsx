@@ -81,24 +81,24 @@ export function PackedTable({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("search")}
-          className="w-full max-w-xs rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-navy/20"
+          className="w-full max-w-xs rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-navy/20"
         />
         {selected.size > 0 ? (
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-semibold text-brand-navy">
+            <span className="text-sm font-medium text-brand-navy">
               {t("selected", { count: selected.size })}
             </span>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60 hover:text-brand-burgundy"
+              className="text-xs font-medium text-brand-navy/60 hover:text-brand-burgundy"
             >
               {t("clear")}
             </button>
             <button
               type="button"
               onClick={handlePrintSlips}
-              className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-burgundy-dark"
+              className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-brand-burgundy-dark"
             >
               {t("printSlips", { count: selected.size })}
             </button>
@@ -151,7 +151,7 @@ export function PackedTable({
                         className="h-4 w-4 cursor-pointer accent-brand-burgundy"
                       />
                     </td>
-                    <td className="font-mono text-sm font-bold text-brand-navy">
+                    <td className="font-mono text-sm font-medium text-brand-navy">
                       <span className="inline-flex items-center gap-1.5">
                         <OrderNoteIcon note={o.customerNote} />
                         {o.name}
@@ -166,7 +166,7 @@ export function PackedTable({
                         : "—"}
                     </td>
                     <td className="text-sm">
-                      <span className="font-semibold text-brand-navy">
+                      <span className="font-medium text-brand-navy">
                         {o.itemCount}
                       </span>{" "}
                       <span className="text-xs text-brand-navy/50">
@@ -211,7 +211,7 @@ export function PackedTable({
                       <Link
                         href={`/lager/picking/${o.id}/slip`}
                         target="_blank"
-                        className="text-sm font-semibold text-brand-burgundy hover:text-brand-burgundy-dark"
+                        className="text-sm font-medium text-brand-burgundy hover:text-brand-burgundy-dark"
                       >
                         {t("reprint")}
                       </Link>

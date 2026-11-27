@@ -26,7 +26,7 @@ export function DhlServicesBadges({
       {services.shippingMethodTitle ? (
         <p className="text-xs text-brand-navy/70">
           {t("shippingMethod")}:{" "}
-          <span className="font-semibold text-brand-navy">
+          <span className="font-medium text-brand-navy">
             {services.shippingMethodTitle}
           </span>
         </p>

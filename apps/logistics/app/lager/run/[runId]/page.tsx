@@ -24,7 +24,7 @@ export default async function PickRunPage({
   if (run.status === "DONE" || run.status === "CANCELLED") {
     return (
       <div className="mx-auto max-w-md space-y-4 py-10 text-center">
-        <h1 className="text-2xl font-bold text-brand-navy">
+        <h1 className="text-2xl font-medium text-brand-navy">
           {run.status === "DONE" ? t("finishedTitle") : t("cancelledTitle")}
         </h1>
         <Link href="/lager/picking" className="btn-primary inline-flex">

@@ -6,7 +6,7 @@ import { MAX_PRODUCT_OPTIONS } from "@/server/catalog/variant-matrix";
 import { OptionValuesPillInput } from "./option-values-pill-input";
 
 const inputClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
+  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20";
 
 type OptionRow = ProductEditorFormInput["options"][number];
 
@@ -65,7 +65,7 @@ export function ProductOptionsPanel({
           <div className="flex items-start justify-between gap-3">
             <div className="grid flex-1 gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+                <span className="text-xs font-medium text-brand-navy/60">
                   {t("optionName")}
                 </span>
                 <input
@@ -78,7 +78,7 @@ export function ProductOptionsPanel({
                 />
               </label>
               <div className="block sm:col-span-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+                <span className="text-xs font-medium text-brand-navy/60">
                   {t("optionValues")}
                 </span>
                 <OptionValuesPillInput
@@ -108,7 +108,7 @@ export function ProductOptionsPanel({
           <button
             type="button"
             onClick={addOption}
-            className="text-sm font-semibold text-brand-burgundy"
+            className="text-sm font-medium text-brand-burgundy"
           >
             {t("addOption")}
           </button>
@@ -116,7 +116,7 @@ export function ProductOptionsPanel({
         <button
           type="button"
           onClick={onGenerateVariants}
-          className="rounded-md border border-brand-navy/20 bg-white px-3 py-2 text-sm font-semibold text-brand-navy transition hover:bg-brand-cream"
+          className="rounded-md border border-brand-navy/20 bg-white px-3 py-2 text-sm font-medium text-brand-navy transition-colors hover:bg-brand-cream"
         >
           {t("generateVariants")}
         </button>

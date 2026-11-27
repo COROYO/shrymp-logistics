@@ -114,7 +114,7 @@ export function ProductHtmlEditor({
         </div>
         {mode === "visual" ? (
           <div className="flex flex-wrap items-center gap-1 border-t border-zinc-200 pt-1">
-            <span className="px-1 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/50">
+            <span className="px-1 text-xs font-medium text-brand-navy/50">
               {t("htmlHeadings")}
             </span>
             {HEADING_TAGS.map((tag) => (
@@ -178,11 +178,11 @@ function ToolbarButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded px-2 py-1 text-xs font-semibold transition ${
+      className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
         active
           ? "bg-brand-navy text-white"
           : "text-brand-navy hover:bg-white"
-      } ${isBold ? "font-bold" : ""} ${isItalic ? "italic" : ""} ${isUnderline ? "underline" : ""} ${mono ? "font-mono text-[10px]" : ""}`}
+      } ${isBold ? "font-bold" : ""} ${isItalic ? "italic" : ""} ${isUnderline ? "underline" : ""} ${mono ? "font-mono text-xs" : ""}`}
     >
       {label}
     </button>

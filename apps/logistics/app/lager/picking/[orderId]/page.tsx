@@ -261,12 +261,12 @@ export default async function PickingDetailPage({
       <div>
         <Link
           href="/lager/picking"
-          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-navy/60 transition hover:text-brand-burgundy"
+          className="text-xs font-medium text-brand-navy/60 transition-colors hover:text-brand-burgundy"
         >
           {t("back")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="font-mono text-3xl font-bold tracking-tight text-brand-navy">
+          <h1 className="font-mono text-3xl font-medium tracking-tight text-brand-navy">
             <span className="inline-flex items-center gap-2">
               <OrderNoteIcon note={order.customer_note} />
               {order.name}
@@ -315,7 +315,7 @@ export default async function PickingDetailPage({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4">
           <div>
             <p className="eyebrow">{t("items.eyebrow")}</p>
-            <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+            <h2 className="mt-1 text-sm font-medium text-brand-navy">
               {t("items.positions", { count: lineItems.length })}
             </h2>
           </div>
@@ -348,7 +348,7 @@ export default async function PickingDetailPage({
                 return (
                 <tr key={li.id}>
                   <td>
-                    <div className="font-semibold text-brand-navy">
+                    <div className="font-medium text-brand-navy">
                       {li.productTitle}
                     </div>
                     {li.custom ? (
@@ -363,7 +363,7 @@ export default async function PickingDetailPage({
                   </td>
                   <td>
                     {bin ? (
-                      <span className="inline-flex items-center rounded-md bg-brand-cream px-2 py-0.5 font-mono text-xs font-bold text-brand-navy">
+                      <span className="inline-flex items-center rounded-md bg-brand-cream px-2 py-0.5 font-mono text-xs font-medium text-brand-navy">
                         {bin.code}
                       </span>
                     ) : (
@@ -375,7 +375,7 @@ export default async function PickingDetailPage({
                   <td className="font-mono text-xs text-brand-navy/70">
                     {li.sku ?? "—"}
                   </td>
-                  <td className="text-right text-lg font-bold text-brand-navy">
+                  <td className="text-right text-lg font-medium text-brand-navy">
                     {li.qty}
                   </td>
                   {batchesEnabled ? (
@@ -393,10 +393,10 @@ export default async function PickingDetailPage({
                               key={`${a.batchId}-${idx}`}
                               className="flex flex-wrap items-baseline gap-2 text-xs"
                             >
-                              <span className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-semibold text-white">
+                              <span className="rounded-md bg-brand-navy px-2 py-0.5 font-mono font-medium text-white">
                                 {a.chargeNumber}
                               </span>
-                              <span className="font-semibold text-brand-navy">
+                              <span className="font-medium text-brand-navy">
                                 {a.qty} {t("items.qtyUnit")}
                               </span>
                             </div>

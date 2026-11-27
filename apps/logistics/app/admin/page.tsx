@@ -52,18 +52,16 @@ function Kpi({
 }) {
   const accent =
     tone === "danger"
-      ? "text-red-600"
+      ? "text-[#dc2626]"
       : tone === "warn"
-        ? "text-amber-600"
+        ? "text-[#92400e]"
         : tone === "good"
-          ? "text-emerald-600"
+          ? "text-[#166534]"
           : "text-brand-navy";
   return (
     <div className="card p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
-        {label}
-      </p>
-      <p className={`mt-2 text-2xl font-semibold tabular-nums ${accent}`}>
+      <p className="text-xs font-medium text-brand-navy/50">{label}</p>
+      <p className={`mt-2 text-[28px] font-medium tabular-nums leading-none ${accent}`}>
         {value}
       </p>
       {sub ? <p className="mt-1 text-xs text-brand-navy/60">{sub}</p> : null}
@@ -74,22 +72,21 @@ function Kpi({
 function BarChart({
   data,
   pick,
-  color,
   emptyLabel,
   formatValue,
 }: {
   data: DashboardDayPoint[];
   pick: (d: DashboardDayPoint) => number;
-  color: string;
   emptyLabel: string;
   formatValue: (n: number) => string;
 }) {
   const max = Math.max(1, ...data.map(pick));
   const hasData = data.some((d) => pick(d) > 0);
+  const lastIndex = data.length - 1;
   return (
     <div>
-      <div className="flex h-32 items-end gap-1">
-        {data.map((d) => {
+      <div className="flex h-72 items-end gap-1">
+        {data.map((d, i) => {
           const v = pick(d);
           const heightPct = Math.round((v / max) * 100);
           const day = d.dateIso.slice(8, 10);
@@ -100,19 +97,26 @@ function BarChart({
               title={`${d.dateIso}: ${formatValue(v)}`}
             >
               <div
-                className="w-full rounded-t-sm transition-all"
+                className="w-full rounded-t-sm"
                 style={{
-                  height: `${Math.max(v > 0 ? 6 : 1, heightPct)}%`,
-                  backgroundColor: v > 0 ? color : "var(--color-zinc-200, #e4e4e7)",
+                  height: `${Math.max(v > 0 ? 4 : 2, heightPct)}%`,
+                  backgroundColor:
+                    v > 0
+                      ? i === lastIndex
+                        ? "#9b1b30"
+                        : "#0f1b33"
+                      : "#e4e4e7",
                 }}
               />
-              <span className="mt-1 text-[9px] text-brand-navy/40">{day}</span>
+              <span className="mt-2 font-mono text-xs tabular-nums text-brand-navy/40">
+                {day}
+              </span>
             </div>
           );
         })}
       </div>
       {!hasData ? (
-        <p className="mt-2 text-center text-[11px] text-brand-navy/40">
+        <p className="mt-2 text-center text-xs text-brand-navy/40">
           {emptyLabel}
         </p>
       ) : null}
@@ -194,8 +198,32 @@ async function Dashboard({ stats }: { stats: DashboardStats }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="card p-5">
-          <h2 className="text-sm font-semibold text-brand-navy">
+        <section className="card p-6 lg:col-span-2">
+          <h2 className="text-sm font-medium text-brand-navy">
+            {t("packedChart.title")}
+          </h2>
+          <p className="mt-1 text-xs text-brand-navy/50">
+            {t("packedChart.subtitle", { days: stats.series.length })}
+          </p>
+          <div className="mt-4">
+            <BarChart
+              data={stats.series}
+              pick={(d) => d.packed}
+              emptyLabel={t("noData")}
+              formatValue={(n) => `${formatInt(n)}`}
+            />
+          </div>
+          <p className="mt-4 text-xs text-brand-navy/60">
+            {t("packedChart.footer", {
+              week: formatInt(tp.packed7d),
+              samples: formatInt(tp.samples),
+            })}
+          </p>
+        </section>
+
+        <div className="flex flex-col gap-4">
+        <section className="card p-6">
+          <h2 className="text-sm font-medium text-brand-navy">
             {t("status.title")}
           </h2>
           <p className="mt-0.5 text-xs text-brand-navy/50">
@@ -206,19 +234,19 @@ async function Dashboard({ stats }: { stats: DashboardStats }) {
               label={t("status.new")}
               count={open.new}
               total={open.total}
-              color="#64748b"
+              color="#a1a1aa"
             />
             <StatusRow
               label={t("status.ship")}
               count={open.ship}
               total={open.total}
-              color="#2563eb"
+              color="#0f1b33"
             />
             <StatusRow
               label={t("status.picking")}
               count={open.picking}
               total={open.total}
-              color="#7c3aed"
+              color="#9b1b30"
             />
             <StatusRow
               label={t("status.stop")}
@@ -229,64 +257,47 @@ async function Dashboard({ stats }: { stats: DashboardStats }) {
           </div>
           <Link
             href="/admin/orders"
-            className="mt-4 inline-flex text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy"
+            className="mt-4 inline-flex text-sm font-medium text-brand-burgundy"
           >
             {t("status.link")}
           </Link>
         </section>
 
-        <section className="card p-5">
-          <h2 className="text-sm font-semibold text-brand-navy">
-            {t("packedChart.title")}
-          </h2>
-          <p className="mt-0.5 text-xs text-brand-navy/50">
-            {t("packedChart.subtitle", { days: stats.series.length })}
-          </p>
-          <div className="mt-4">
-            <BarChart
-              data={stats.series}
-              pick={(d) => d.packed}
-              color="#059669"
-              emptyLabel={t("noData")}
-              formatValue={(n) => `${formatInt(n)}`}
-            />
-          </div>
-          <p className="mt-3 text-xs text-brand-navy/60">
-            {t("packedChart.footer", {
-              week: formatInt(tp.packed7d),
-              samples: formatInt(tp.samples),
-            })}
-          </p>
-        </section>
-
-        <section className="card p-5">
-          <h2 className="text-sm font-semibold text-brand-navy">
+        <section className="card p-6">
+          <h2 className="text-sm font-medium text-brand-navy">
             {t("revenueChart.title")}
           </h2>
-          <p className="mt-0.5 text-xs text-brand-navy/50">
+          <p className="mt-1 text-xs text-brand-navy/50">
             {t("revenueChart.subtitle", { days: stats.series.length })}
           </p>
-          <div className="mt-4">
-            <BarChart
-              data={stats.series}
-              pick={(d) => d.revenueCents}
-              color="#9d174d"
-              emptyLabel={t("noData")}
-              formatValue={(n) => formatMoney(n, c)}
-            />
-          </div>
-          <p className="mt-3 text-xs text-brand-navy/60">
+          <ul className="mt-4 space-y-2">
+            {stats.series.slice(-7).map((d) => (
+              <li
+                key={d.dateIso}
+                className="flex items-baseline justify-between gap-3 font-mono text-xs"
+              >
+                <span className="tabular-nums text-brand-navy/45">
+                  {d.dateIso.slice(5)}
+                </span>
+                <span className="tabular-nums text-brand-navy">
+                  {formatMoney(d.revenueCents, c)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-brand-navy/60">
             {t("revenueChart.footer", {
               value: formatMoney(rev.last7dCents, c),
               orders: formatInt(rev.orders7d),
             })}
           </p>
         </section>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="card p-5 lg:col-span-2">
-          <h2 className="text-sm font-semibold text-brand-navy">
+          <h2 className="text-sm font-medium text-brand-navy">
             {t("inventory.title")}
           </h2>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -307,14 +318,14 @@ async function Dashboard({ stats }: { stats: DashboardStats }) {
           </div>
           <Link
             href="/admin/lagerbestand"
-            className="mt-4 inline-flex text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy"
+            className="mt-4 inline-flex text-sm font-medium text-brand-burgundy"
           >
             {t("inventory.link")}
           </Link>
         </section>
 
         <section className="card p-5">
-          <h2 className="text-sm font-semibold text-brand-navy">
+          <h2 className="text-sm font-medium text-brand-navy">
             {t("batches.title")}
           </h2>
           {b.enabled ? (
@@ -334,7 +345,7 @@ async function Dashboard({ stats }: { stats: DashboardStats }) {
               </div>
               <Link
                 href="/admin/lagerbestand"
-                className="mt-4 inline-flex text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy"
+                className="mt-4 inline-flex text-sm font-medium text-brand-burgundy"
               >
                 {t("batches.link")}
               </Link>
@@ -361,16 +372,14 @@ function Metric({
 }) {
   const accent =
     tone === "danger"
-      ? "text-red-600"
+      ? "text-[#dc2626]"
       : tone === "warn"
-        ? "text-amber-600"
+        ? "text-[#92400e]"
         : "text-brand-navy";
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-brand-navy/45">
-        {label}
-      </p>
-      <p className={`mt-1 text-lg font-semibold tabular-nums ${accent}`}>
+      <p className="text-xs font-medium text-brand-navy/45">{label}</p>
+      <p className={`mt-1 text-lg font-medium tabular-nums ${accent}`}>
         {value}
       </p>
     </div>
@@ -397,9 +406,8 @@ function DashboardSkeleton() {
     <div className="space-y-6">
       <StatSkeleton count={5} />
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="card h-64 animate-pulse bg-zinc-100" />
-        <div className="card h-64 animate-pulse bg-zinc-100" />
-        <div className="card h-64 animate-pulse bg-zinc-100" />
+        <div className="card h-72 bg-zinc-100 lg:col-span-2" />
+        <div className="card h-72 bg-zinc-100" />
       </div>
     </div>
   );
@@ -422,7 +430,7 @@ export default async function AdminHome() {
       </Suspense>
 
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+        <p className="text-xs font-medium text-brand-navy/50">
           {td("quickLinks")}
         </p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -430,16 +438,15 @@ export default async function AdminHome() {
             <Link
               key={tile.href}
               href={tile.href}
-              className="group card relative overflow-hidden p-6 transition hover:-translate-y-0.5 hover:shadow-md"
+              className="card p-6 transition-colors hover:border-brand-navy/20"
             >
-              <span className="absolute inset-x-0 top-0 h-1 bg-brand-burgundy opacity-0 transition group-hover:opacity-100" />
-              <h2 className="text-base font-semibold text-brand-navy">
+              <h2 className="text-base font-medium text-brand-navy">
                 {t(`tiles.${tile.key}.title`)}
               </h2>
               <p className="mt-2 text-xs text-brand-navy/60">
                 {t(`tiles.${tile.key}.desc`)}
               </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy">
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-burgundy">
                 {t("open")}
               </span>
             </Link>

@@ -88,14 +88,14 @@ export function HealthPanel({ initial }: { initial: HealthSnapshot | null }) {
                 : status.color === "amber"
                   ? "bg-amber-500"
                   : "bg-brand-burgundy"
-            } ${status.color === "emerald" ? "" : "animate-pulse"}`}
+            }`}
             aria-hidden
           />
-          <span className="text-sm font-semibold text-brand-navy">
+          <span className="text-sm font-medium text-brand-navy">
             {status.label}
           </span>
           {snap?.checkedAt ? (
-            <span className="text-[11px] text-brand-navy/60">
+            <span className="text-xs text-brand-navy/60">
               · {formatRelative(snap.checkedAt)}
             </span>
           ) : null}
@@ -104,7 +104,7 @@ export function HealthPanel({ initial }: { initial: HealthSnapshot | null }) {
           type="button"
           onClick={handleCheck}
           disabled={pending}
-          className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy transition hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-3 py-1.5 text-xs font-medium text-brand-navy transition-colors hover:bg-brand-navy/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? "Prüfe…" : "Jetzt prüfen + reparieren"}
         </button>
@@ -155,7 +155,7 @@ export function HealthPanel({ initial }: { initial: HealthSnapshot | null }) {
         </div>
       ) : null}
 
-      <p className="text-[11px] text-brand-navy/60">
+      <p className="text-xs text-brand-navy/60">
         Diese Prüfung läuft automatisch alle 15 Minuten im Hintergrund.
       </p>
     </div>
@@ -178,7 +178,7 @@ function Row({
       <div>
         <div className="text-sm font-medium text-brand-navy">{label}</div>
         {hint ? (
-          <div className="mt-0.5 text-[11px] text-brand-navy/60">{hint}</div>
+          <div className="mt-0.5 text-xs text-brand-navy/60">{hint}</div>
         ) : null}
       </div>
       <span

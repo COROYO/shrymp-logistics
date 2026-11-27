@@ -40,7 +40,7 @@ export default async function DhlSettingsPage() {
   return (
     <section className="card p-6">
       <p className="eyebrow">DHL Versand</p>
-      <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+      <h2 className="mt-1 text-sm font-medium text-brand-navy">
         Versandetiketten
       </h2>
       <p className="mt-1 text-xs text-brand-navy/60">

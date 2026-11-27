@@ -181,7 +181,7 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
       <section className="card p-5 print:hidden">
         <div className="flex flex-wrap items-end gap-5">
           <div>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <span className="text-xs font-medium text-brand-navy/60">
               {t("columns")}
             </span>
             <div className="mt-1 flex gap-1 rounded-md bg-zinc-100 p-1 text-sm">
@@ -190,7 +190,7 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
                   key={c}
                   type="button"
                   onClick={() => setCols(c)}
-                  className={`rounded px-3 py-1 font-semibold ${cols === c ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
+                  className={`rounded px-3 py-1 font-medium ${cols === c ? "bg-white text-brand-navy shadow-sm" : "text-brand-navy/60"}`}
                 >
                   {c}
                 </button>
@@ -199,7 +199,7 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
           </div>
 
           <label className="block text-sm">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <span className="text-xs font-medium text-brand-navy/60">
               {t("copies")}
             </span>
             <input
@@ -225,14 +225,14 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
             <button
               type="button"
               onClick={() => setSelected(new Set(rows.map((l) => l.variantId)))}
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
+              className="text-xs font-medium text-brand-navy/70 hover:text-brand-burgundy"
             >
               {t("selectAll")}
             </button>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 hover:text-brand-burgundy"
+              className="text-xs font-medium text-brand-navy/70 hover:text-brand-burgundy"
             >
               {t("selectNone")}
             </button>
@@ -240,7 +240,7 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
               type="button"
               onClick={downloadSelected}
               disabled={downloading || downloadableCount === 0}
-              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/70 transition hover:border-brand-navy hover:text-brand-navy disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-brand-navy/70 transition hover:border-brand-navy hover:text-brand-navy disabled:opacity-40"
             >
               <Download className="h-3.5 w-3.5" aria-hidden />
               {downloading ? "…" : t("downloadBarcodes", { count: downloadableCount })}
@@ -278,7 +278,7 @@ export function ProductLabelSheet({ labels }: { labels: VariantLabel[] }) {
                     <span className="text-brand-navy/50"> · {l.variantTitle}</span>
                   ) : null}
                   {l.barcode ? (
-                    <span className="ml-2 font-mono text-[11px] text-brand-navy/40">
+                    <span className="ml-2 font-mono text-xs text-brand-navy/40">
                       EAN {l.barcode}
                     </span>
                   ) : null}
@@ -398,7 +398,7 @@ function SkuEditor({
         type="button"
         onClick={save}
         disabled={pending || !dirty || !value.trim()}
-        className="rounded-md border border-zinc-300 px-2 py-1.5 text-[11px] font-semibold text-brand-navy/70 transition hover:border-brand-navy hover:text-brand-navy disabled:opacity-40"
+        className="rounded-md border border-zinc-300 px-2 py-1.5 text-xs font-medium text-brand-navy/70 transition hover:border-brand-navy hover:text-brand-navy disabled:opacity-40"
       >
         {pending ? "…" : t("skuSave")}
       </button>

@@ -29,7 +29,7 @@ export function VariantImageThumbnail({
       type="button"
       title={t("variantImagePick")}
       onClick={onClick}
-      className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-brand-cream ring-1 ring-zinc-200 transition hover:ring-brand-navy/30 focus:outline-none focus:ring-2 focus:ring-brand-navy/30"
+      className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-brand-cream ring-1 ring-zinc-200 transition-colors hover:ring-brand-navy/30 focus:outline-none focus:ring-2 focus:ring-brand-navy/30"
     >
       {imageUrl ? (
         <Image
@@ -145,7 +145,7 @@ export function VariantImageModal({
         <button
           type="button"
           onClick={() => selectItem(null)}
-          className="w-full rounded-md border border-zinc-200 px-3 py-2 text-left text-sm text-brand-navy/70 transition hover:bg-zinc-50"
+          className="w-full rounded-md border border-zinc-200 px-3 py-2 text-left text-sm text-brand-navy/70 transition-colors hover:bg-zinc-50"
         >
           {t("variantImageNone")}
         </button>
@@ -187,7 +187,7 @@ export function VariantImageModal({
           type="button"
           disabled={uploading}
           onClick={() => fileInputRef.current?.click()}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 text-sm font-semibold text-brand-navy/70 transition hover:border-brand-navy/30 hover:bg-brand-cream/50 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 text-sm font-medium text-brand-navy/70 transition-colors hover:border-brand-navy/30 hover:bg-brand-cream/50 disabled:opacity-50"
         >
           <span className="text-xl leading-none text-brand-navy/40">+</span>
           {uploading ? t("uploading") : t("uploadImage")}

@@ -22,7 +22,7 @@ export function LogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={isPending}
-      className="rounded-md border border-white/30 bg-transparent px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/80 transition hover:border-white hover:text-white disabled:opacity-50"
+      className="rounded-md border border-white/30 bg-transparent px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:border-white hover:text-white disabled:opacity-50"
     >
       {isPending ? "…" : "Abmelden"}
     </button>

@@ -118,12 +118,12 @@ export default async function AdminLayout({
           />
         }
       />
-      <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-brand-navy text-white shadow-[2px_0_0_0_var(--color-brand-burgundy)] md:flex print:hidden">
-        <div className="px-5 py-5">
+      <aside className="sticky top-0 hidden h-screen w-60 flex-col bg-brand-navy text-white md:flex print:hidden">
+        <div className="px-4 py-5">
           <Link href="/admin" className="flex items-center">
             <BrandMark />
           </Link>
-          <div className="mt-1 ml-12 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+          <div className="mt-1 ml-10 text-xs font-medium text-white/40">
             {t("admin")}
           </div>
         </div>
@@ -137,7 +137,7 @@ export default async function AdminLayout({
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 px-6 py-8 md:px-10">
+        <main className="flex-1 px-6 py-8 md:px-8">
           {testMode ? <TestModeBanner /> : null}
           {children}
         </main>

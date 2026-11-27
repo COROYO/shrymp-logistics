@@ -121,11 +121,11 @@ function ResultCard({ result }: { result: ScanResult }) {
             <img src={v.imageUrl} alt="" className="h-16 w-16 rounded-md object-cover" />
           ) : null}
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-brand-navy">{v.productTitle}</h2>
+            <h2 className="text-lg font-medium text-brand-navy">{v.productTitle}</h2>
             <p className="text-sm text-brand-navy/60">{v.variantTitle}</p>
             <p className="mt-1 font-mono text-xs text-brand-navy/50">
               {v.sku ? `SKU ${v.sku}` : ""}
-              {v.barcode ? `  ·  ${v.barcode}` : ""}
+              {v.barcode ? ` · ${v.barcode}` : ""}
             </p>
           </div>
         </div>
@@ -146,12 +146,12 @@ function ResultCard({ result }: { result: ScanResult }) {
       <div className="card p-5">
         <span className="chip chip-navy">{t("result.bin")}</span>
         <div className="mt-3 flex items-center gap-3">
-          <span className="rounded-md bg-brand-navy px-3 py-1.5 font-mono text-lg font-bold text-white">
+          <span className="rounded-md bg-brand-navy px-3 py-1.5 font-mono text-lg font-medium text-white">
             {result.code}
           </span>
-          <h2 className="text-lg font-semibold text-brand-navy">{result.name}</h2>
+          <h2 className="text-lg font-medium text-brand-navy">{result.name}</h2>
         </div>
-        <h3 className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+        <h3 className="mt-4 text-xs font-medium text-brand-navy/50">
           {t("result.storedHere", { count: result.variants.length })}
         </h3>
         {result.variants.length === 0 ? (
@@ -161,14 +161,14 @@ function ResultCard({ result }: { result: ScanResult }) {
             {result.variants.map((v) => (
               <li key={v.variantId} className="flex items-center justify-between gap-3 py-2">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-brand-navy">{v.productTitle}</div>
+                  <div className="truncate text-sm font-medium text-brand-navy">{v.productTitle}</div>
                   <div className="truncate text-xs text-brand-navy/60">
                     {v.variantTitle}
                     {v.sku ? ` · ${v.sku}` : ""}
                   </div>
                 </div>
                 <div className="text-right text-sm">
-                  <span className="font-bold text-brand-navy">{v.onHand - v.reserved}</span>
+                  <span className="font-medium text-brand-navy">{v.onHand - v.reserved}</span>
                   <span className="text-brand-navy/50"> / {v.onHand}</span>
                 </div>
               </li>
@@ -195,7 +195,7 @@ function BinBadge({
     return (
       <span className="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900">
         {t("result.noBin")}
-        <Link href="/admin/lagerplaetze" className="font-semibold underline underline-offset-2">
+        <Link href="/admin/lagerplaetze" className="font-medium underline underline-offset-2">
           {t("result.assignBin")}
         </Link>
       </span>
@@ -203,7 +203,7 @@ function BinBadge({
   }
   return (
     <span className="inline-flex items-center gap-2 rounded-md bg-brand-cream px-3 py-1.5 text-sm">
-      <span className="font-mono font-bold text-brand-navy">{code}</span>
+      <span className="font-mono font-medium text-brand-navy">{code}</span>
       <span className="text-brand-navy/70">{name}</span>
     </span>
   );
@@ -220,10 +220,10 @@ function Stat({
 }) {
   return (
     <div className="rounded-md border border-zinc-200 p-3 text-center">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-brand-navy/45">
+      <div className="text-xs font-medium text-brand-navy/45">
         {label}
       </div>
-      <div className={`mt-1 text-xl font-bold tabular-nums ${tone === "danger" ? "text-red-600" : "text-brand-navy"}`}>
+      <div className={`mt-1 text-xl font-medium tabular-nums ${tone === "danger" ? "text-red-600" : "text-brand-navy"}`}>
         {value}
       </div>
     </div>

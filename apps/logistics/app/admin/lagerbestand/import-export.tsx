@@ -14,7 +14,7 @@ import {
 } from "@/app/admin/_components/admin-jobs-events";
 
 const actionBtn =
-  "inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/80 transition hover:border-brand-navy hover:text-brand-navy";
+  "inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-brand-navy/80 transition-colors hover:border-brand-navy hover:text-brand-navy";
 
 export function ImportExportBar() {
   const t = useTranslations("lagerbestand.io");
@@ -36,7 +36,7 @@ export function ImportExportBar() {
         <button
           type="button"
           onClick={() => setImportOpen(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90"
+          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-brand-burgundy/90"
         >
           <UploadIcon className="h-4 w-4" />
           {t("import")}
@@ -93,7 +93,7 @@ function ImportForm({ onDone }: { onDone?: () => void }) {
         type="button"
         disabled={pending}
         onClick={() => fileRef.current?.click()}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-burgundy px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-brand-burgundy/90 disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-burgundy px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-brand-burgundy/90 disabled:opacity-50"
       >
         <UploadIcon className="h-4 w-4" />
         {pending ? t("importing") : t("import")}
@@ -145,11 +145,11 @@ function ImportResult({ result }: { result: ImportActionState }) {
           <table className="w-full text-xs">
             <thead className="bg-zinc-50 text-brand-navy/60">
               <tr>
-                <th className="px-3 py-2 text-left font-semibold">{t("row")}</th>
-                <th className="px-3 py-2 text-left font-semibold">
+                <th className="px-3 py-2 text-left font-medium">{t("row")}</th>
+                <th className="px-3 py-2 text-left font-medium">
                   {t("charge")}
                 </th>
-                <th className="px-3 py-2 text-left font-semibold">
+                <th className="px-3 py-2 text-left font-medium">
                   {t("detail")}
                 </th>
               </tr>
@@ -199,7 +199,7 @@ function Pill({
   }[tone];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-semibold ${toneClass}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium ${toneClass}`}
     >
       <span className="tabular-nums">{value}</span>
       {label}

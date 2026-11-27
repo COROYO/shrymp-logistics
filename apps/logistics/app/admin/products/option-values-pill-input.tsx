@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { CloseIcon } from "@/app/_components/icons";
 
 const containerClass =
-  "mt-1.5 flex min-h-[42px] cursor-text flex-wrap items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2 py-1.5 shadow-sm transition focus-within:border-brand-navy focus-within:ring-2 focus-within:ring-brand-navy/20";
+  "mt-1.5 flex min-h-[42px] cursor-text flex-wrap items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2 py-1.5 shadow-sm transition-colors focus-within:border-brand-navy focus-within:ring-2 focus-within:ring-brand-navy/20";
 
 export function OptionValuesPillInput({
   values,
@@ -81,7 +81,7 @@ export function OptionValuesPillInput({
               e.stopPropagation();
               removeValue(value);
             }}
-            className="inline-flex h-4 w-0 shrink-0 items-center justify-center overflow-hidden rounded opacity-0 transition-all group-hover:w-4 group-hover:opacity-100 hover:bg-brand-burgundy/10 hover:text-brand-burgundy"
+            className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-brand-burgundy/10 hover:text-brand-burgundy"
           >
             <CloseIcon className="h-3 w-3" />
           </button>

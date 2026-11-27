@@ -132,13 +132,13 @@ export function OrdersTable({
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-brand-cream px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-semibold text-brand-navy">
+            <span className="text-sm font-medium text-brand-navy">
               {t("selected", { count: selected.size })}
             </span>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60 hover:text-brand-burgundy"
+              className="text-xs font-medium text-brand-navy/60 hover:text-brand-burgundy"
             >
               {t("clear")}
             </button>
@@ -146,7 +146,7 @@ export function OrdersTable({
           <button
             type="button"
             onClick={handlePrintSlips}
-            className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-burgundy-dark"
+            className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-4 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-brand-burgundy-dark"
           >
             {t("printSlips", { count: selected.size })}
           </button>
@@ -239,7 +239,7 @@ function Row({
             onClick={onToggle}
             aria-expanded={isOpen}
             aria-label={t("table.expand")}
-            className="flex h-7 w-7 items-center justify-center rounded text-brand-navy/50 transition hover:bg-brand-navy hover:text-white"
+            className="flex h-7 w-7 items-center justify-center rounded text-brand-navy/50 transition-colors hover:bg-brand-navy hover:text-white"
           >
             <svg
               viewBox="0 0 20 20"
@@ -256,7 +256,7 @@ function Row({
             </svg>
           </button>
         </td>
-        <td className="font-mono font-bold text-brand-navy">
+        <td className="font-mono font-medium text-brand-navy">
           <span className="inline-flex items-center gap-1.5">
             <OrderNoteIcon note={order.customerNote} />
             <Link
@@ -279,7 +279,7 @@ function Row({
               href={`/lager/picking/${order.id}/slip`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 block whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-brand-burgundy hover:text-brand-burgundy-dark"
+              className="mt-1 block whitespace-nowrap text-xs font-medium text-brand-burgundy hover:text-brand-burgundy-dark"
             >
               {t("printSlip")}
             </a>
@@ -297,7 +297,7 @@ function Row({
           </span>
         </td>
         <td className="text-sm">
-          <span className="font-semibold text-brand-navy">
+          <span className="font-medium text-brand-navy">
             {order.itemCount}
           </span>{" "}
           <span className="text-xs text-brand-navy/50 font-mono block text-nowrap">
@@ -372,7 +372,7 @@ function LineItems({ items }: { items: OrderLineItemRow[] }) {
   return (
     <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
       <table className="w-full text-sm">
-        <thead className="bg-brand-cream text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70">
+        <thead className="bg-brand-cream text-left text-xs font-medium text-brand-navy/70">
           <tr>
             <th className="w-16 px-3 py-2">{t("table.image")}</th>
             <th className="px-3 py-2">{t("table.product")}</th>
@@ -410,23 +410,19 @@ function BundleSection({
   const t = useTranslations("ordersAdmin");
   return (
     <>
-      <tr className="bg-indigo-50/60">
+      <tr className="bg-brand-cream">
         <td colSpan={7} className="px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-              {t("table.bundleBadge")}
-            </span>
-            <span className="font-semibold text-indigo-900">
-              {bundle.title}
-            </span>
+            <span className="chip chip-navy">{t("table.bundleBadge")}</span>
+            <span className="font-medium text-brand-navy">{bundle.title}</span>
             {bundle.variantSku ? (
-              <span className="font-mono text-xs text-indigo-700/70">
+              <span className="font-mono text-xs text-brand-navy/50">
                 {bundle.variantSku}
               </span>
             ) : null}
-            <span className="ml-auto text-xs text-indigo-900">
+            <span className="ml-auto text-xs text-brand-navy/70">
               ×{" "}
-              <span className="font-mono font-semibold tabular-nums">
+              <span className="font-mono font-medium tabular-nums">
                 {bundle.quantity}
               </span>{" "}
               {t("table.bundles")} · {items.length} {t("table.components")}
@@ -451,13 +447,13 @@ function ItemRow({
   const t = useTranslations("ordersAdmin");
   const shortfall = !li.custom && li.available < li.qty;
   return (
-    <tr className={component ? "bg-indigo-50/20" : undefined}>
+    <tr className={component ? "bg-brand-cream/60" : undefined}>
       <td className="px-3 py-2">
         <div className="flex items-center gap-2">
           {component ? (
             <span
               aria-hidden
-              className="ml-1 inline-block h-8 w-3 border-l-2 border-b-2 border-indigo-300"
+              className="ml-1 inline-block h-8 w-3 border-l-2 border-b-2 border-brand-navy/20"
             />
           ) : null}
           <div
@@ -483,7 +479,7 @@ function ItemRow({
                 loading="lazy"
               />
             ) : li.custom ? null : (
-              <div className="flex h-full w-full items-center justify-center text-center text-[9px] leading-tight text-zinc-400">
+              <div className="flex h-full w-full items-center justify-center text-center text-xs leading-tight text-zinc-400">
                 {li.imageMissingReason === "no_variant"
                   ? t("table.imageMissing.noVariantShort")
                   : li.imageMissingReason === "no_product"
@@ -499,7 +495,7 @@ function ItemRow({
           {li.title}
           {li.mergedFromIds.length > 1 ? (
             <span
-              className="rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
+              className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium text-zinc-700"
               title={t("table.mergedFrom", {
                 count: li.mergedFromIds.length,
                 ids: li.mergedFromIds.join(", "),
@@ -519,7 +515,7 @@ function ItemRow({
       <td className="px-3 py-2">
         <ChargeCell charges={li.charges} />
       </td>
-      <td className="px-3 py-2 text-right text-base font-semibold tabular-nums">
+      <td className="px-3 py-2 text-right text-base font-medium tabular-nums">
         {li.qty}
       </td>
       <td className="px-3 py-2 text-right">
@@ -550,7 +546,7 @@ function ChargeCell({ charges }: { charges: ChargeRow[] }) {
           key={c.chargeNumber}
           className="inline-flex w-fit items-center gap-1.5 rounded bg-brand-navy/5 px-1.5 py-0.5 text-xs"
         >
-          <span className="font-mono font-semibold text-brand-navy">
+          <span className="font-mono font-medium text-brand-navy">
             {c.chargeNumber}
           </span>
           {charges.length > 1 ? (
@@ -617,7 +613,7 @@ function StockBadge({
         onFocus={show}
         onBlur={hide}
         tabIndex={0}
-        className={`inline-flex cursor-default items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset tabular-nums outline-none ${color}`}
+        className={`inline-flex cursor-default items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums outline-none ${color}`}
       >
         {available}
         <svg
@@ -651,7 +647,7 @@ function StockBadge({
               </div>
               <div className="mt-1 flex justify-between gap-3 border-t border-zinc-700 pt-1 tabular-nums">
                 <span className="text-zinc-400">{t("available")}</span>
-                <span className="font-mono font-semibold">{available}</span>
+                <span className="font-mono font-medium">{available}</span>
               </div>
             </div>,
             document.body,

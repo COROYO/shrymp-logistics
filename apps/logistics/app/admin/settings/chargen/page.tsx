@@ -12,7 +12,7 @@ export default async function ChargenSettingsPage() {
   return (
     <section className="card p-6">
       <p className="eyebrow">Lager</p>
-      <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+      <h2 className="mt-1 text-sm font-medium text-brand-navy">
         Chargen & MHD
       </h2>
       <p className="mt-1 text-xs text-brand-navy/60">

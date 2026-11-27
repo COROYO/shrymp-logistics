@@ -92,7 +92,7 @@ export function ApiKeysPanel({
     <div className="space-y-8">
       <section className="card p-6">
         <p className="eyebrow">Neuer Schlüssel</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Zugangsschlüssel erstellen
         </h2>
         <p className="mt-1 text-xs text-brand-navy/60">
@@ -104,7 +104,7 @@ export function ApiKeysPanel({
           <div className="max-w-md">
             <label
               htmlFor="api-key-label"
-              className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60"
+              className="block text-xs font-medium text-brand-navy/60"
             >
               Bezeichnung
             </label>
@@ -120,7 +120,7 @@ export function ApiKeysPanel({
           </div>
 
           <fieldset className="space-y-3">
-            <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <legend className="text-xs font-medium text-brand-navy/60">
               Berechtigungen
             </legend>
             {API_SCOPE_OPTIONS.map((opt) => (
@@ -136,7 +136,7 @@ export function ApiKeysPanel({
                   className="mt-0.5 h-4 w-4 rounded border-zinc-300"
                 />
                 <span>
-                  <span className="block text-sm font-semibold text-brand-navy">
+                  <span className="block text-sm font-medium text-brand-navy">
                     {opt.label}
                   </span>
                 </span>
@@ -155,7 +155,7 @@ export function ApiKeysPanel({
 
         {revealedKey ? (
           <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">
+            <p className="text-xs font-medium text-emerald-800">
               Neuer Schlüssel — nur jetzt sichtbar
             </p>
             <code className="mt-2 block break-all rounded bg-white/80 px-3 py-2 font-mono text-xs text-brand-navy">
@@ -164,7 +164,7 @@ export function ApiKeysPanel({
             <button
               type="button"
               onClick={() => copyKey()}
-              className="mt-3 text-sm font-semibold text-brand-burgundy hover:underline"
+              className="mt-3 text-sm font-medium text-brand-burgundy hover:underline"
             >
               In Zwischenablage kopieren
             </button>
@@ -174,7 +174,7 @@ export function ApiKeysPanel({
 
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-100 px-6 py-4">
-          <h2 className="text-sm font-semibold text-brand-navy">
+          <h2 className="text-sm font-medium text-brand-navy">
             Aktive Schlüssel
           </h2>
           <p className="mt-1 text-xs text-brand-navy/60">
@@ -196,13 +196,13 @@ export function ApiKeysPanel({
                 className="flex flex-wrap items-start justify-between gap-4 px-6 py-4"
               >
                 <div className="min-w-0">
-                  <p className="font-semibold text-brand-navy">{k.label}</p>
-                  <p className="mt-1 font-mono text-[10px] text-brand-navy/40">
+                  <p className="font-medium text-brand-navy">{k.label}</p>
+                  <p className="mt-1 font-mono text-xs text-brand-navy/40">
                     {k.id.slice(0, 12)}…
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {k.scopes.map((s) => (
-                      <span key={s} className="chip chip-emerald text-[10px]">
+                      <span key={s} className="chip chip-emerald text-xs">
                         {formatApiScope(s)}
                       </span>
                     ))}
@@ -218,7 +218,7 @@ export function ApiKeysPanel({
                   type="button"
                   disabled={pending}
                   onClick={() => onRevoke(k.id, k.label)}
-                  className="text-sm font-semibold text-red-700 hover:underline disabled:opacity-50"
+                  className="text-sm font-medium text-red-700 hover:underline disabled:opacity-50"
                 >
                   Widerrufen
                 </button>
@@ -230,18 +230,18 @@ export function ApiKeysPanel({
 
       <section className="card p-6">
         <p className="eyebrow">Anbindung</p>
-        <h2 className="mt-1 text-sm font-semibold text-brand-navy">
+        <h2 className="mt-1 text-sm font-medium text-brand-navy">
           Basis-URL für externe Tools
         </h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <dt className="text-xs font-medium text-brand-navy/60">
               Adresse
             </dt>
             <dd className="mt-1 font-mono text-xs">{baseUrl}/api/v1</dd>
           </div>
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+            <dt className="text-xs font-medium text-brand-navy/60">
               Authentifizierung
             </dt>
             <dd className="mt-1 text-xs text-brand-navy/70">

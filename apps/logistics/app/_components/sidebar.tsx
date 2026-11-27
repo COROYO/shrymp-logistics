@@ -100,7 +100,7 @@ export function Sidebar({
       {sections.map((section, i) => (
         <div key={i} className={i > 0 ? "mt-6" : undefined}>
           {section.label ? (
-            <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+            <div className="px-3 pb-2 text-xs font-medium text-white/40">
               {section.label}
             </div>
           ) : null}
@@ -116,14 +116,14 @@ export function Sidebar({
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold tracking-tight transition ${
+                    className={`group flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm font-medium transition-colors ${
                       active
-                        ? "bg-brand-burgundy text-white shadow-sm"
+                        ? "bg-white/10 text-white shadow-[inset_2px_0_0_0_var(--color-brand-burgundy)]"
                         : "text-white/70 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     <Icon
-                      className={`h-5 w-5 shrink-0 ${
+                      className={`h-4 w-4 shrink-0 ${
                         active ? "text-white" : "text-white/50 group-hover:text-white"
                       }`}
                     />
@@ -140,18 +140,18 @@ export function Sidebar({
           {footer.crossLink ? (
             <Link
               href={footer.crossLink.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold tracking-tight text-white/70 transition hover:bg-white/5 hover:text-white"
+              className="flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
             >
               {(() => {
                 const Icon = ICON_MAP[footer.crossLink.icon];
-                return <Icon className="h-5 w-5 text-white/50" />;
+                return <Icon className="h-4 w-4 text-white/50" />;
               })()}
               <span>{footer.crossLink.label}</span>
               <span className="ml-auto text-white/40">→</span>
             </Link>
           ) : null}
           {footer.userEmail !== undefined ? (
-            <div className="mt-3 flex items-center justify-between gap-2 px-3 py-2 text-[11px] text-white/60">
+            <div className="mt-3 flex items-center justify-between gap-2 px-3 py-2 text-xs text-white/60">
               <span className="truncate" title={footer.userEmail ?? undefined}>
                 {footer.userEmail ?? "—"}
               </span>

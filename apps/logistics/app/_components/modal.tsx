@@ -55,7 +55,7 @@ export function Modal({
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-200 px-6 py-4">
           <div>
-            <h2 id={titleId} className="text-sm font-semibold text-brand-navy">
+            <h2 id={titleId} className="text-sm font-medium text-brand-navy">
               {title}
             </h2>
             {description ? (
@@ -66,7 +66,7 @@ export function Modal({
             type="button"
             aria-label="Schließen"
             onClick={onClose}
-            className="rounded-md p-1.5 text-brand-navy/50 transition hover:bg-zinc-100 hover:text-brand-navy"
+            className="rounded-md p-1.5 text-brand-navy/50 transition-colors hover:bg-zinc-100 hover:text-brand-navy"
           >
             <CloseIcon className="h-5 w-5" />
           </button>

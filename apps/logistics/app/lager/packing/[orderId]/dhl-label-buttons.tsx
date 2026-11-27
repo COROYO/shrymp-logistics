@@ -8,13 +8,13 @@ import { createDhlLabelAction } from "../actions";
 /**
  * Per-order DHL label panel.
  *
- *   - DE shipments → real DHL Parcel DE Shipping API (POST /orders).
- *     PDF is uploaded to Firebase Storage and opened in a new tab.
- *     Shipment number is persisted on the order and used as tracking
- *     number for the Shopify fulfillment step.
+ * - DE shipments → real DHL Parcel DE Shipping API (POST /orders).
+ * PDF is uploaded to Firebase Storage and opened in a new tab.
+ * Shipment number is persisted on the order and used as tracking
+ * number for the Shopify fulfillment step.
  *
- *   - Non-DE shipments → keep the legacy external link to
- *     "DHL Express Commerce" since the Express API is not wired up yet.
+ * - Non-DE shipments → keep the legacy external link to
+ * "DHL Express Commerce" since the Express API is not wired up yet.
  *
  * `existingShipment` is the persisted `dhl_shipment` field — when present
  * we show "Etikett öffnen" / Tracking-Nr instead of "Etikett erstellen".
@@ -58,12 +58,12 @@ export function DhlLabelButtons({
           href={express}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-navy-soft"
+          className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-navy-soft"
         >
           {t("internationalButton")}
           <ExternalIcon />
         </a>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/60">
+        <span className="text-xs font-medium text-brand-navy/60">
           {t("internationalNotice", { country: countryCode })}
         </span>
       </div>
@@ -164,7 +164,7 @@ function CreateLabelPanel({
         <div>
           <label
             htmlFor="dhl-weight"
-            className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70"
+            className="block text-xs font-medium text-brand-navy/70"
           >
             {t("weightLabel")}
           </label>
@@ -175,14 +175,14 @@ function CreateLabelPanel({
             max={31500}
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            className="mt-1.5 w-32 rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-brand-ink shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
+            className="mt-1.5 w-32 rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-brand-ink shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20"
           />
         </div>
         {cod.required ? (
           <div>
             <label
               htmlFor="dhl-cod-amount"
-              className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy"
+              className="block text-xs font-medium text-brand-burgundy"
             >
               {t("codAmountLabel")}
             </label>
@@ -193,7 +193,7 @@ function CreateLabelPanel({
               placeholder={t("codAmountPlaceholder")}
               value={codAmount}
               onChange={(e) => setCodAmount(e.target.value)}
-              className="mt-1.5 w-32 rounded-md border border-brand-burgundy/40 bg-white px-3 py-2 font-mono text-sm text-brand-ink shadow-sm transition focus:border-brand-burgundy focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20"
+              className="mt-1.5 w-32 rounded-md border border-brand-burgundy/40 bg-white px-3 py-2 font-mono text-sm text-brand-ink shadow-sm transition-colors focus:border-brand-burgundy focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20"
             />
           </div>
         ) : null}
@@ -201,11 +201,11 @@ function CreateLabelPanel({
           type="button"
           onClick={handleCreate}
           disabled={pending}
-          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-burgundy-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md bg-brand-burgundy px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-burgundy-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? t("creating") : t("createButton")}
         </button>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/60">
+        <span className="text-xs font-medium text-brand-navy/60">
           {t("domestic")}
         </span>
       </div>
@@ -272,15 +272,15 @@ function ExistingLabelPanel({
       <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
         <div className="flex flex-wrap items-center gap-3">
           <div className="space-y-0.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.12em]">
+            <div className="text-xs font-medium">
               {t("existingNumber")}
               {shipment.sandbox ? (
-                <span className="ml-2 rounded bg-amber-200 px-1.5 py-0.5 font-mono text-[10px] text-amber-900">
+                <span className="ml-2 rounded bg-amber-200 px-1.5 py-0.5 font-mono text-xs text-amber-900">
                   {t("existingSandbox")}
                 </span>
               ) : null}
             </div>
-            <div className="font-mono text-base font-bold">
+            <div className="font-mono text-base font-medium">
               {shipment.shipment_no}
             </div>
             <div className="text-xs text-emerald-800/80">
@@ -295,7 +295,7 @@ function ExistingLabelPanel({
             href={shipment.label_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-brand-navy-soft"
+            className="inline-flex items-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-navy-soft"
           >
             {t("openPdf")}
             <ExternalIcon />
@@ -305,7 +305,7 @@ function ExistingLabelPanel({
           href={shipment.tracking_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-navy hover:bg-brand-navy/5"
+          className="inline-flex items-center gap-2 rounded-md border border-brand-navy/30 bg-white px-4 py-2 text-xs font-medium text-brand-navy hover:bg-brand-navy/5"
         >
           {t("tracking")}
           <ExternalIcon />
@@ -314,7 +314,7 @@ function ExistingLabelPanel({
           type="button"
           onClick={handleRecreate}
           disabled={pending}
-          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-burgundy underline-offset-4 hover:underline disabled:opacity-50"
+          className="text-xs font-medium text-brand-burgundy underline-offset-4 hover:underline disabled:opacity-50"
         >
           {pending
             ? t("recreating")

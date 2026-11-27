@@ -66,7 +66,7 @@ function Labeled({
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/45">
+      <span className="text-xs font-medium text-brand-navy/45">
         {label}
       </span>
       {children}

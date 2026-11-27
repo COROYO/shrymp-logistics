@@ -122,9 +122,9 @@ export function ProductAccordion({
           placeholder={t("search")}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 sm:w-96"
+          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-navy/20 sm:w-96"
         />
-        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/60">
+        <div className="text-xs font-medium text-brand-navy/60">
           {t("filterCount", { filtered: filtered.length, total: rows.length })}
         </div>
         <div className="ml-auto">
@@ -152,7 +152,7 @@ export function ProductAccordion({
               <button
                 type="button"
                 onClick={() => toggle(p.id)}
-                className="flex flex-1 items-center gap-4 px-5 py-4 text-left transition hover:bg-brand-navy-50"
+                className="flex flex-1 items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-brand-navy-50"
               >
                 <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-brand-cream ring-1 ring-zinc-200">
                   {p.imageUrl ? (
@@ -171,7 +171,7 @@ export function ProductAccordion({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold text-brand-navy">
+                  <div className="truncate font-medium text-brand-navy">
                     {p.title}
                   </div>
                   <div className="text-xs text-brand-navy/60">
@@ -184,19 +184,19 @@ export function ProductAccordion({
                   </div>
                 </div>
                 <div className="hidden text-right sm:block">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+                  <div className="text-xs font-medium text-brand-navy/50">
                     {t("onHand")}
                   </div>
-                  <div className="mt-0.5 text-base font-bold tabular-nums text-brand-navy">
+                  <div className="mt-0.5 text-base font-medium tabular-nums text-brand-navy">
                     {p.totalOnHand}
                   </div>
                 </div>
                 <div className="hidden text-right sm:block">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-navy/50">
+                  <div className="text-xs font-medium text-brand-navy/50">
                     {t("available")}
                   </div>
                   <div
-                    className={`mt-0.5 text-base font-bold tabular-nums ${
+                    className={`mt-0.5 text-base font-medium tabular-nums ${
                       p.totalAvailable <= 0
                         ? "text-brand-burgundy"
                         : "text-brand-navy"
@@ -218,7 +218,7 @@ export function ProductAccordion({
                 href={`/admin/products/${p.id}`}
                 title={t("editProduct")}
                 aria-label={t("editProduct")}
-                className="mr-1 grid h-10 w-10 shrink-0 place-items-center rounded-md text-brand-navy/50 transition hover:bg-brand-cream hover:text-brand-burgundy"
+                className="mr-1 grid h-10 w-10 shrink-0 place-items-center rounded-md text-brand-navy/50 transition-colors hover:bg-brand-cream hover:text-brand-burgundy"
               >
                 <Pencil className="h-4 w-4" />
               </Link>
@@ -227,7 +227,7 @@ export function ProductAccordion({
                 target="_blank"
                 title={t("printLabels")}
                 aria-label={t("printLabels")}
-                className="mr-3 grid h-10 w-10 shrink-0 place-items-center rounded-md text-brand-navy/50 transition hover:bg-brand-cream hover:text-brand-burgundy"
+                className="mr-3 grid h-10 w-10 shrink-0 place-items-center rounded-md text-brand-navy/50 transition-colors hover:bg-brand-cream hover:text-brand-burgundy"
               >
                 <Tag className="h-5 w-5" />
               </Link>
@@ -334,22 +334,22 @@ function ColumnMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-navy/70 shadow-sm transition hover:border-brand-navy hover:text-brand-navy"
+        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-xs font-medium text-brand-navy/70 shadow-sm transition-colors hover:border-brand-navy hover:text-brand-navy"
       >
         {label}
         {hiddenCount > 0 ? (
-          <span className="rounded bg-brand-navy/10 px-1.5 py-0.5 text-[10px] tabular-nums text-brand-navy">
+          <span className="rounded bg-brand-navy/10 px-1.5 py-0.5 text-xs tabular-nums text-brand-navy">
             −{hiddenCount}
           </span>
         ) : null}
-        <span className="text-[9px] opacity-70">{open ? "▲" : "▼"}</span>
+        <span className="text-xs opacity-70">{open ? "▲" : "▼"}</span>
       </button>
       {open ? (
         <div className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg">
           <ul className="space-y-0.5">
             {TOGGLEABLE_COLUMNS.map((key) => (
               <li key={key}>
-                <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-brand-navy transition hover:bg-brand-cream">
+                <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-brand-navy transition-colors hover:bg-brand-cream">
                   <input
                     type="checkbox"
                     checked={cols[key]}
@@ -364,7 +364,7 @@ function ColumnMenu({
           <button
             type="button"
             onClick={onReset}
-            className="mt-1 w-full rounded px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-navy/60 transition hover:bg-brand-cream hover:text-brand-navy"
+            className="mt-1 w-full rounded px-2 py-1.5 text-left text-xs font-medium text-brand-navy/60 transition-colors hover:bg-brand-cream hover:text-brand-navy"
           >
             {resetLabel}
           </button>

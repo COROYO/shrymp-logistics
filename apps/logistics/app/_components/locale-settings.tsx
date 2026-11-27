@@ -32,7 +32,7 @@ export function LocaleSettings() {
       {LOCALES.map((l) => (
         <label
           key={l}
-          className={`flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition ${
+          className={`flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors ${
             l === current
               ? "border-brand-burgundy/40 bg-brand-burgundy-soft/30"
               : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
@@ -46,10 +46,10 @@ export function LocaleSettings() {
             onChange={() => setLocale(l)}
             className="h-4 w-4"
           />
-          <span className="text-sm font-semibold text-brand-navy">
+          <span className="text-sm font-medium text-brand-navy">
             {LOCALE_LABELS[l]}
           </span>
-          <span className="ml-auto font-mono text-[11px] uppercase text-brand-navy/40">
+          <span className="ml-auto font-mono text-xs text-brand-navy/40">
             {l}
           </span>
         </label>

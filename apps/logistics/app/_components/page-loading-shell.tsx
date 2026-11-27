@@ -12,7 +12,7 @@ export function PageLoadingShell({
 }) {
   return (
     <div className="space-y-8">
-      <div className="animate-pulse">
+      <div>
         <div className="h-3 w-24 rounded bg-zinc-200" />
         <div className="mt-3 h-8 w-64 rounded bg-zinc-200" />
         <div className="mt-2 h-4 w-full max-w-2xl rounded bg-zinc-200" />

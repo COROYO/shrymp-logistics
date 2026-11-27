@@ -73,18 +73,16 @@ export function OrderNoteIcon({ note }: { note: string | null | undefined }) {
             <div
               role="tooltip"
               style={{ top: pos.top, left: pos.left }}
-              className="
-                pointer-events-none fixed z-[100]
-                -translate-x-1/2
-                w-max max-w-xs
-                whitespace-pre-wrap text-left
-                rounded-md border border-brand-navy/15 bg-white px-3 py-2
-                text-xs leading-relaxed text-brand-ink
-                shadow-lg
-                print:hidden
-              "
+              className="pointer-events-none fixed z-[100]
+ -translate-x-1/2
+ w-max max-w-xs
+ whitespace-pre-wrap text-left
+ rounded-md border border-brand-navy/15 bg-white px-3 py-2
+ text-xs leading-relaxed text-brand-ink
+ shadow-lg
+ print:hidden"
             >
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-burgundy">
+              <span className="block text-xs font-medium text-brand-burgundy">
                 {t("label")}
               </span>
               <span className="mt-1 block font-normal">{text}</span>
